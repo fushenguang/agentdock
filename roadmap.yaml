@@ -14,12 +14,12 @@ now:
 
   - id: anti-drift-system
     title: Establish anti-drift system (roadmap + alignment check + builder workflow)
-    status: in-progress
+    status: done
     owner: "@sunny"
 
   - id: layer2-constraints
     title: Add Layer 2 architectural constraint gates
-    status: planned
+    status: in-progress
     owner: "@sunny"
 
   - id: growth-trace-docs

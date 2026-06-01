@@ -1,0 +1,184 @@
+# ci-full.yml — Full security and health scan on every push to main
+#
+# Runs AFTER code is merged — acts as the final defense line.
+# Does NOT repeat align:check (handled by align-check.yml).
+# Does NOT repeat type-check/lint/arch (handled by ci-fast.yml on the PR).
+#
+# Jobs:
+#   secretlint     — scan entire repo for leaked credentials (hard failure)
+#   dep-health-check — warn on low-download-count or deprecated packages
+#
+# See: openspec/changes/add-layer2-constraint-gates/specs/ci-gates/spec.md
+
+name: CI Full
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  secretlint:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Scan for leaked secrets
+        run: pnpm secrets:check
+
+  dep-health-check:
+    name: Dependency Health
+    runs-on: ubuntu-latest
+    # Advisory only — does not block the release even if packages are unhealthy.
+    # Output is visible in the Actions log for human review.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check dependency health (advisory)
+        # Reports packages with < 10,000 weekly downloads or that are deprecated.
+        # Exit code is always 0 (advisory, not blocking).
+        run: |
+          echo "--- Dependency health report ---"
+          node -e '
+            const fs = require("fs");
+            const path = require("path");
+
+            const MIN_WEEKLY_DOWNLOADS = 10000;
+            const MAX_CONCURRENCY = 8;
+
+            function collectPackageJsonFiles(root) {
+              const out = [];
+              function walk(dir) {
+                const entries = fs.readdirSync(dir, { withFileTypes: true });
+                for (const entry of entries) {
+                  const full = path.join(dir, entry.name);
+                  if (entry.isDirectory()) {
+                    if (["node_modules", ".git", ".next", "dist", ".turbo"].includes(entry.name)) continue;
+                    walk(full);
+                    continue;
+                  }
+                  if (entry.isFile() && entry.name === "package.json") out.push(full);
+                }
+              }
+              walk(root);
+              return out;
+            }
+
+            function collectDeps(pkgJsonPath) {
+              const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
+              return Object.keys(pkg.dependencies || {});
+            }
+
+            async function fetchHealth(pkgName) {
+              const encoded = encodeURIComponent(pkgName).replace(/%40/g, "@").replace(/%2F/g, "/");
+              const [metaRes, dlRes] = await Promise.all([
+                fetch(`https://registry.npmjs.org/${encoded}`),
+                fetch(`https://api.npmjs.org/downloads/point/last-week/${encoded}`),
+              ]);
+
+              if (!metaRes.ok) {
+                return { name: pkgName, error: `metadata request failed (${metaRes.status})` };
+              }
+
+              const meta = await metaRes.json();
+              const distTags = meta["dist-tags"] || {};
+              const latestVersion = distTags.latest;
+              const latestMeta = (meta.versions && latestVersion && meta.versions[latestVersion]) || {};
+              const deprecated = latestMeta.deprecated || "";
+
+              let downloads = null;
+              if (dlRes.ok) {
+                const dlJson = await dlRes.json();
+                downloads = typeof dlJson.downloads === "number" ? dlJson.downloads : null;
+              }
+
+              return { name: pkgName, deprecated, downloads };
+            }
+
+            async function main() {
+              const root = process.cwd();
+              const pkgFiles = collectPackageJsonFiles(root);
+              const depSet = new Set();
+              for (const file of pkgFiles) {
+                for (const dep of collectDeps(file)) depSet.add(dep);
+              }
+
+              const deps = Array.from(depSet).sort();
+              if (deps.length === 0) {
+                console.log("No dependencies found.");
+                return;
+              }
+
+              console.log(`Checking ${deps.length} unique dependency(ies)...`);
+
+              const results = [];
+              for (let i = 0; i < deps.length; i += MAX_CONCURRENCY) {
+                const slice = deps.slice(i, i + MAX_CONCURRENCY);
+                const batch = await Promise.all(slice.map(fetchHealth));
+                results.push(...batch);
+              }
+
+              const deprecated = results.filter((r) => r.deprecated);
+              const lowDownloads = results.filter(
+                (r) => typeof r.downloads === "number" && r.downloads < MIN_WEEKLY_DOWNLOADS,
+              );
+              const errors = results.filter((r) => r.error);
+
+              if (deprecated.length === 0 && lowDownloads.length === 0 && errors.length === 0) {
+                console.log("No dependency health issues found.");
+                return;
+              }
+
+              if (deprecated.length > 0) {
+                console.log("Deprecated packages:");
+                for (const item of deprecated) {
+                  console.log(`  - ${item.name}: ${item.deprecated}`);
+                }
+              }
+
+              if (lowDownloads.length > 0) {
+                console.log(`Packages below ${MIN_WEEKLY_DOWNLOADS} weekly downloads:`);
+                for (const item of lowDownloads) {
+                  console.log(`  - ${item.name}: ${item.downloads}`);
+                }
+              }
+
+              if (errors.length > 0) {
+                console.log("Packages with check errors:");
+                for (const item of errors) {
+                  console.log(`  - ${item.name}: ${item.error}`);
+                }
+              }
+            }
+
+            main().catch((err) => {
+              console.error("Dependency health check failed unexpectedly:", err);
+            });
+          ' || true
+          echo "--- End of dependency health report ---"

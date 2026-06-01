@@ -1,11 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@agentdock/tsconfig/base.json",
   "compilerOptions": {
-    "strict": true,
-    "exactOptionalPropertyTypes": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
     "isolatedModules": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

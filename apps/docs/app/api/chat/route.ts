@@ -61,8 +61,9 @@ async function chunkedAll<O>(promises: Promise<O>[]): Promise<O[]> {
 }
 
 const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: process.env.OPENROUTER_BASE_URL,
+  // Use spread to satisfy exactOptionalPropertyTypes: only set the property when defined
+  ...(process.env.OPENROUTER_API_KEY !== undefined && { apiKey: process.env.OPENROUTER_API_KEY }),
+  ...(process.env.OPENROUTER_BASE_URL !== undefined && { baseURL: process.env.OPENROUTER_BASE_URL }),
 })
 
 /** System prompt, you can update it to provide more specific information */
@@ -86,11 +87,13 @@ export async function POST(req: Request, ctx: RouteContext<'/api/chat'>) {
       { role: 'system', content: systemPrompt },
       ...(await convertToModelMessages<ChatUIMessage>(reqJson.messages ?? [], {
         convertDataPart(part) {
-          if (part.type === 'data-client')
+          if (part.type === 'data-client') {
             return {
               type: 'text',
               text: `[Client Context: ${JSON.stringify(part.data)}]`,
             }
+          }
+          return undefined
         },
       })),
     ],

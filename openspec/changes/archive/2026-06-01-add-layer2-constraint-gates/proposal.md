@@ -41,4 +41,4 @@ roadmap-id: layer2-constraints
 ## Impact
 
 - 影响范围：新增 `packages/eslint-config`、`packages/tsconfig`、根 `.dependency-cruiser.cjs`、`lefthook.yml`、`.github/workflows/ci-fast.yml` 与 `ci-full.yml`。
-- 风险：规则过严会拖慢早期开发 → 新规则先以 warn 引入、验证后再升 error；与 ② 的 CI 接线需统一编排避免重复。
+- 风险：规则过严会拖慢早期开发 → **架构不变量规则**（`no-direct-db-in-features`、`require-feature-contract`、`no-cross-feature-import`、`no-core-mutation`）从第一天即 `error`——它们只对模板 `src/features/` 生效（⑤ 才存在），现有代码不会误伤，且"有牙齿"是其全部意义；**质量/风格类规则**（import 排序等）先 `warn`，经 ⑤ 真实验证后再升 `error`。与 ② 的 CI 接线需统一编排避免重复。

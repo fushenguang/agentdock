@@ -4,16 +4,27 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "turbo run lint",
+    "lint": "eslint . && turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "align:check": "tsx scripts/align-check/index.ts",
     "align:check:fast": "tsx scripts/align-check/index.ts --fast",
+    "arch:check": "tsx scripts/arch-check/index.ts",
+    "secrets:check": "secretlint '**/*'",
     "prepare": "lefthook install"
   },
   "devDependencies": {
+    "@agentdock/eslint-config": "workspace:*",
+    "@agentdock/tsconfig": "workspace:*",
+    "@secretlint/secretlint-rule-preset-recommend": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "dependency-cruiser": "^16.0.0",
+    "eslint": "^9.0.0",
     "lefthook": "^2.1.9",
+    "lint-staged": "^15.0.0",
     "prettier": "^3.7.4",
+    "secretlint": "^9.0.0",
     "tsx": "^4.22.4",
     "turbo": "^2.9.16",
     "typescript": "5.9.2"

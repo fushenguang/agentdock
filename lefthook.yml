@@ -5,31 +5,23 @@
 # This is auto-run after `pnpm install` via the `prepare` script.
 
 pre-commit:
+  # Run checks in parallel for fast feedback (align-fast + lint-staged together
+  # keeps total pre-commit time well under 15 seconds on typical machines).
+  parallel: true
   commands:
     # Fast subset only — orphan-change (invariant 1) + WIP limit (invariant 3)
     # Runs in seconds; full alignment check runs in CI.
     align-fast:
       run: pnpm align:check --fast
 
-#   parallel: true
-#   jobs:
-#     - run: yarn eslint {staged_files}
-#       glob: "*.{js,ts,jsx,tsx}"
-#
-#     - name: rubocop
-#       glob: "*.rb"
-#       exclude:
-#         - config/application.rb
-#         - config/routes.rb
-#       run: bundle exec rubocop --force-exclusion -- {all_files}
-#
-#     - name: govet
-#       files: git ls-files -m
-#       glob: "*.go"
-#       run: go vet -- {files}
-#
-#     - script: "hello.js"
-#       runner: node
-#
-#     - script: "hello.go"
-#       runner: go run
+    # ESLint on staged .ts/.tsx files only — fast, only lints what changed.
+    # Catches architecture rule violations (no-direct-db-in-features, ban-ts-comment)
+    # before they reach CI.
+    lint-staged:
+      glob: "**/*.{ts,tsx}"
+      run: pnpm exec eslint {staged_files}
+
+    # Optional local type-check gate.
+    # Enable with: LEFTHOOK_RUN_TYPECHECK=1 git commit ...
+    type-check:
+      run: '[ "${LEFTHOOK_RUN_TYPECHECK:-0}" = "1" ] && pnpm check-types || echo "type-check: skipped (set LEFTHOOK_RUN_TYPECHECK=1 to enable)"'
