@@ -3,11 +3,31 @@ schema: spec-driven
 # Project context (optional)
 # This is shown to AI when creating artifacts.
 # Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  AgentDock is an open-source scaffold platform for AI coding agent–ready projects.
+
+  Tech stack: TypeScript 5.9 (strict), turborepo 2.9, pnpm 9, Node ≥18
+  Templates use: Next.js 16, React 19, Tailwind CSS, Supabase (data layer, not in MVP ground work)
+  Docs site: Fumadocs / Next.js at apps/docs
+
+  Directory contract:
+    templates/  — scaffolding templates (e.g. web-nextjs)
+    packages/   — platform tooling packages
+    apps/docs   — AgentDock's own documentation site (NOT a template)
+    openspec/   — single source of truth for all platform decisions (SSOT)
+
+  Governance:
+    - All features start in openspec/changes/ before implementation
+    - Conventional commits enforced (type(scope): summary)
+    - pnpm only — no npm/yarn
+    - TypeScript strict — no any, no @ts-ignore without explanation
+    - AI tools: GitHub Copilot + Copilot CLI (MVP); Claude Code / Cursor not configured
+
+  Meta-repo self-exception:
+    This repository IS the platform, not a generated project.
+    Rules that target template output (anti-drift invariants, Layer 2 constraint gates,
+    orphan-feature checks) do NOT apply to this repo unless explicitly stated in a change spec.
+    See AGENTS.md for full self-exception boundaries.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.

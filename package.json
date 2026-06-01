@@ -1,5 +1,5 @@
 {
-  "name": "agentdock-shadow",
+  "name": "agentdock",
   "private": true,
   "scripts": {
     "build": "turbo run build",
