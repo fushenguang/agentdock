@@ -1,0 +1,194 @@
+---
+title: Builder Workflow
+description: Four-gate collaboration model for human, AI, and machine responsibilities in AgentDock.
+---
+
+# Builder Workflow — Four-Gate Collaboration Model
+
+This document describes the **four-gate builder workflow** for AgentDock platform development.
+It defines the responsibilities, sequence, and output at each step for the three actors:
+human engineers, AI planning models (Opus), AI coding models (Sonnet/Codex), and automated machines.
+
+---
+
+## Why This Workflow Exists
+
+AI coding agents have much higher output bandwidth than human review bandwidth.
+Without guardrails, this mismatch leads to scope drift, over-engineering, and unmaintainable code.
+
+The four-gate model applies **asymmetric division of labor**:
+
+- **Humans** own the "map" (roadmap) — small, slow, stable decisions.
+- **Machines** enforce objective alignment — fast, cheap, consistent.
+- **AI** does the implementation — fast, but bounded by human-approved intent.
+
+AI operates at full speed within approved scope. **Only humans can change the scope.**
+
+---
+
+## The Four Gates
+
+```
+ ┌──────────┐     ┌──────────┐     ┌───────────────────────┐     ┌───────────┐
+ │  Gate ①  │     │  Gate ②  │     │       Gate ③          │     │  Gate ④   │
+ │  Human   │     │  Human   │     │      Machine          │     │  Human    │
+ │  Roadmap │ ──▶ │  Scope   │ ──▶ │  lefthook + align:    │ ──▶ │  Merge    │
+ │  Approval│     │  Review  │     │  check + arch/lint    │     │  Decision │
+ └──────────┘     └──────────┘     └───────────────────────┘     └───────────┘
+       │                │                                                │
+  (Opus plans)    (Sonnet codes)                                  (codex reviews)
+```
+
+---
+
+## Step-by-Step
+
+### Gate ①: Human — Roadmap Approval
+
+**Actor:** Platform owner / human engineer  
+**Trigger:** New capability or direction needed  
+**Action:** Add or approve an entry in `roadmap.yaml`
+
+**Rules:**
+- Only humans can add entries to `roadmap.yaml`
+- `roadmap.yaml` is protected by CODEOWNERS — AI cannot modify it in an ordinary change
+- New entries require a clear `id`, `title`, `status: planned`, and `owner`
+- WIP limit: only 1 epic should be `in-progress` at a time (alignment check warns on violation)
+
+**Output:** A new approved roadmap entry (e.g., `id: my-feature, status: planned`)
+
+---
+
+### Planning: Opus
+
+**Actor:** Opus (AI planning model)  
+**Trigger:** After Gate ① approves a roadmap entry  
+**Action:** Create an OpenSpec change with all required artifacts
+
+**Rules:**
+- The change MUST reference the approved roadmap id in `proposal.md` frontmatter:
+  ```yaml
+  ---
+  roadmap-id: <approved-id>
+  ---
+  ```
+- The proposal MUST include a non-empty `## Non-goals` section
+- Scope must stay within the approved roadmap entry
+- Opus writes: `proposal.md`, `design.md`, `specs/**`, `tasks.md`
+
+**Output:** A complete OpenSpec change ready for Gate ②
+
+---
+
+### Gate ②: Human — Scope & Non-goals Review
+
+**Actor:** Platform owner / human engineer  
+**Trigger:** After Opus creates the change  
+**Estimated time:** ~30 seconds  
+**Action:** Review the proposal's scope and Non-goals
+
+**Checklist:**
+- [ ] Does the `roadmap-id` match an approved entry?
+- [ ] Is the scope tight (no over-engineering)?
+- [ ] Is the Non-goals list complete and correct?
+- [ ] Does the design reflect what we actually want to build?
+
+**Output:** Human approval to proceed. If rejected: Opus revises the artifacts.
+
+---
+
+### Implementation: Sonnet
+
+**Actor:** Sonnet (AI coding model, in a new session)  
+**Trigger:** After Gate ② approval  
+**Action:** Implement tasks from `tasks.md` using `/opsx:apply <change-name>`
+
+**Rules:**
+- Work strictly within the scope approved at Gate ②
+- Check off tasks as completed
+- Do not modify `roadmap.yaml` or other changes' artifacts
+- Minimal, focused changes — no unauthorized refactors
+
+**Output:** Code changes matching the tasks, with all checkboxes checked.
+
+---
+
+### Gate ③: Machine — Automated Checks
+
+**Actor:** Automated tooling (lefthook pre-commit + GitHub Actions CI)  
+**Trigger:** On commit (fast subset) and on PR to main (full check)  
+**Action:** Run objective checks that cannot be faked
+
+**Checks run:**
+- `pnpm align:check --fast` (pre-commit): orphan-change + WIP limit
+- `pnpm align:check` (CI): all five invariants (orphan-change, orphan-feature, WIP, zombie, Non-goals)
+- Type checking: `pnpm check-types`
+- Lint + format: `pnpm lint`, `pnpm format`
+- Architecture/constraint checks (added by change ③ when it lands)
+
+**Output:** Pass (green CI) or Fail (block merge). These checks are free, fast, and objective.
+
+---
+
+### Review: Codex
+
+**Actor:** Codex (AI review model)  
+**Trigger:** After Gate ③ passes  
+**Action:** Review what machines cannot check
+
+**Focus areas:**
+- Logic correctness
+- Domain-specific correctness (does the implementation do the right thing?)
+- Over-engineering smell (unnecessary abstraction, gold-plating)
+- Missing edge cases
+- Spec conformance (does code match design.md and specs?)
+
+**Output:** Review comments. If issues found: Sonnet revises, Gate ③ re-runs.
+
+---
+
+### Gate ④: Human — Merge Decision
+
+**Actor:** Platform owner / human engineer  
+**Trigger:** After Codex review passes  
+**Action:** Final review and merge
+
+**Final check:**
+- [ ] Does the PR description clearly state what changed?
+- [ ] Has `openspec validate <change-name>` passed?
+- [ ] Is everything still within the approved roadmap scope?
+
+**Output:** Merge to main. The change is archived after merge.
+
+---
+
+## Summary Table
+
+| Step | Actor | Duration | Primary Concern |
+|------|-------|----------|----------------|
+| Gate ①: Roadmap approval | Human | Minutes | Strategic direction |
+| Planning | Opus | Minutes | Artifact completeness |
+| Gate ②: Scope review | Human | ~30 sec | Scope & Non-goals |
+| Implementation | Sonnet | Variable | Code correctness |
+| Gate ③: Machine checks | Machines | Seconds | Objective invariants |
+| Review | Codex | Minutes | Logic & over-engineering |
+| Gate ④: Merge | Human | Minutes | Final call |
+
+---
+
+## Key Invariants Enforced by This Workflow
+
+1. **AI cannot choose what to build** — roadmap is human-owned (Gate ①)
+2. **AI cannot expand scope undetected** — Non-goals review (Gate ②) + alignment check (Gate ③)
+3. **Every change is linked to an approved intent** — orphan-change invariant (Gate ③)
+4. **Work-in-progress is bounded** — WIP limit (Gate ①, Gate ③)
+
+---
+
+## Related Files
+
+- [`roadmap.yaml`](/roadmap.yaml) — human-owned intent map
+- [`scripts/align-check/index.ts`](/scripts/align-check/index.ts) — Gate ③ alignment script
+- [`lefthook.yml`](/lefthook.yml) — pre-commit hooks
+- [`.github/workflows/align-check.yml`](/.github/workflows/align-check.yml) — CI workflow
+- [`openspec/config.yaml`](/openspec/config.yaml) — change template rules

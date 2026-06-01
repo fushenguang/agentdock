@@ -2,6 +2,13 @@
 
 > For: Copilot CLI (`gh copilot`). Supplements `.github/copilot-instructions.md`.
 
+## Builder Workflow (Four-Gate Model)
+
+All platform changes follow the four-gate builder workflow that enforces human ownership of intent
+while allowing AI to operate at full speed within approved scope.
+
+See: [apps/docs/content/docs/builder-workflow.mdx](apps/docs/content/docs/builder-workflow.mdx)
+
 ## Meta-Repo Self-Exception
 
 AgentDock is an **AI Coding Agent scaffold platform** — it cannot fully bootstrap itself from its own templates. Rules that exist to govern _generated projects_ (e.g. anti-drift invariants, Layer 2 constraint gates) apply to `templates/` output, **not** to this repository unless explicitly declared.

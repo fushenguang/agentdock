@@ -1,0 +1,43 @@
+# AgentDock Roadmap
+# Human-owned intent map. AI cannot modify this in ordinary changes.
+# Protected by .github/CODEOWNERS — requires human-owner review to modify.
+#
+# Buckets: Now | Next | Later | Won't
+# Entry fields: id (kebab-case, globally unique) | title | status | owner
+# Status values: planned | in-progress | done
+
+now:
+  - id: platform-foundation
+    title: Bootstrap platform skeleton (monorepo, tooling, docs site)
+    status: done
+    owner: "@sunny"
+
+  - id: anti-drift-system
+    title: Establish anti-drift system (roadmap + alignment check + builder workflow)
+    status: in-progress
+    owner: "@sunny"
+
+  - id: layer2-constraints
+    title: Add Layer 2 architectural constraint gates
+    status: planned
+    owner: "@sunny"
+
+  - id: growth-trace-docs
+    title: Growth trace documentation (changelog, ADRs, decision log)
+    status: planned
+    owner: "@sunny"
+
+  - id: web-nextjs-template
+    title: Scaffold web-nextjs template (Next.js 16, React 19, Tailwind)
+    status: planned
+    owner: "@sunny"
+
+next: []
+
+later:
+  - id: web-nextjs-builtin-suite
+    title: "web-nextjs built-in production feature suite (auth, payments, analytics, etc.)"
+    status: planned
+    owner: "@sunny"
+
+wont: []

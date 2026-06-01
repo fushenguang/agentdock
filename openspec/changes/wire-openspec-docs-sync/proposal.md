@@ -1,3 +1,7 @@
+---
+roadmap-id: growth-trace-docs
+---
+
 ## Why
 
 我们要让项目的"成长轨迹"清晰明确：OpenSpec changes 是 Single Source of Truth，但它对人和外部 LLM 不友好。需要把归档的 changes 与人拥有的 roadmap **投影**到 `apps/docs`，形成可读的演化历史与 changelog，并产出 `llms.txt`/`llms-full.txt` 落地 GEO 的可理解性基础。这是 ADR/Intent 作为"真正资产"的载体。

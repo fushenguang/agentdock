@@ -1,0 +1,7 @@
+# AgentDock Meta-Repository Marker
+#
+# This file marks the repository as the AgentDock platform meta-repository.
+# Its presence exempts this repo from the "orphan-feature" invariant in align:check,
+# per the meta-repo self-exception documented in AGENTS.md and openspec/config.yaml.
+#
+# Do NOT copy this file into template outputs (templates/, generated projects, etc.)

@@ -1,0 +1,10 @@
+# AgentDock CODEOWNERS
+#
+# Defines required reviewers for sensitive files.
+# AI agents MUST NOT modify roadmap.yaml in an ordinary change without human approval.
+#
+# Syntax: <pattern> <owner> [<owner2> ...]
+# GitHub will require at least one listed owner to approve PRs that touch these files.
+
+# roadmap.yaml — human-owned intent map, must be reviewed by platform owner
+/roadmap.yaml @sunny

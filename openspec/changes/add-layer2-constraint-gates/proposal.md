@@ -1,3 +1,7 @@
+---
+roadmap-id: layer2-constraints
+---
+
 ## Why
 
 企业级生产（安全、稳定第一）要求 AI 违反架构/安全约定时由**机器直接拦截**，而不是靠人 review 发现——人审查带宽有限，且 AI 互审是主观的。Layer 2 的"有牙齿的约束"是 AgentDock"防退化"的核心杠杆，也是 codex review 之前的客观闸门（机器能判的不浪费 codex token）。

@@ -31,10 +31,10 @@ context: |
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - >
+      Must reference a roadmap id. Preferred format: frontmatter field
+      `roadmap-id: <id>` (single-write). Legacy body anchor `Roadmap 锚点：\`<id>\``
+      is also accepted for existing changes (dual-read compat).
+    - Must include a non-empty "Non-goals" section listing explicit out-of-scope items.

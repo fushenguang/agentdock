@@ -1,0 +1,35 @@
+# Lefthook — Git hooks configuration
+# https://lefthook.dev/configuration/
+#
+# To activate hooks, run: pnpm lefthook install
+# This is auto-run after `pnpm install` via the `prepare` script.
+
+pre-commit:
+  commands:
+    # Fast subset only — orphan-change (invariant 1) + WIP limit (invariant 3)
+    # Runs in seconds; full alignment check runs in CI.
+    align-fast:
+      run: pnpm align:check --fast
+
+#   parallel: true
+#   jobs:
+#     - run: yarn eslint {staged_files}
+#       glob: "*.{js,ts,jsx,tsx}"
+#
+#     - name: rubocop
+#       glob: "*.rb"
+#       exclude:
+#         - config/application.rb
+#         - config/routes.rb
+#       run: bundle exec rubocop --force-exclusion -- {all_files}
+#
+#     - name: govet
+#       files: git ls-files -m
+#       glob: "*.go"
+#       run: go vet -- {files}
+#
+#     - script: "hello.js"
+#       runner: node
+#
+#     - script: "hello.go"
+#       runner: go run
