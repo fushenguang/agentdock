@@ -1,4 +1,4 @@
-import type { Greeting } from "../types/greeting";
+import type { Greeting } from '../types/greeting'
 
 /**
  * Repository interface for Greeting persistence.
@@ -7,8 +7,8 @@ import type { Greeting } from "../types/greeting";
  */
 export interface IGreetingRepository {
   /** Persist a new greeting and return the saved record. */
-  save(name: string): Promise<Greeting>;
+  save(name: string): Promise<Greeting>
 
   /** Return the most recent greeting records. */
-  findRecent(): Promise<Greeting[]>;
+  findRecent(): Promise<Greeting[]>
 }

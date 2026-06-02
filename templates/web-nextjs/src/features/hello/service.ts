@@ -7,6 +7,6 @@
  * Falls back to "World" when name is empty.
  */
 export function greet(name: string): string {
-  const target = name.trim() || "World";
-  return `Hello, ${target}!`;
+  const target = name.trim() || 'World'
+  return `Hello, ${target}!`
 }

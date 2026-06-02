@@ -6,12 +6,12 @@
 
 This project enforces a four-layer directory contract. **Before placing any code**, confirm which layer it belongs to:
 
-| Layer | Path | Purpose | Rules |
-|---|---|---|---|
-| **core** | `src/core/` | Stable domain layer — types, repository interfaces, pure logic | No framework imports, no DB clients, read-only |
-| **features** | `src/features/` | AI coding zone — business features | Must have `__contract__.ts`; no direct DB access; no cross-feature imports |
-| **infra** | `src/infra/` | Infrastructure — Supabase clients, third-party SDKs | Requires approval; only `core/repositories` implementations live here |
-| **experiments** | `src/features/_experiments/` | Sandbox | Never imported by non-experimental features |
+| Layer           | Path                         | Purpose                                                        | Rules                                                                      |
+| --------------- | ---------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **core**        | `src/core/`                  | Stable domain layer — types, repository interfaces, pure logic | No framework imports, no DB clients, read-only                             |
+| **features**    | `src/features/`              | AI coding zone — business features                             | Must have `__contract__.ts`; no direct DB access; no cross-feature imports |
+| **infra**       | `src/infra/`                 | Infrastructure — Supabase clients, third-party SDKs            | Requires approval; only `core/repositories` implementations live here      |
+| **experiments** | `src/features/_experiments/` | Sandbox                                                        | Never imported by non-experimental features                                |
 
 ## Layer 2 Architecture Rules (error-level, enforced by ESLint)
 

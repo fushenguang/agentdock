@@ -63,7 +63,9 @@ async function chunkedAll<O>(promises: Promise<O>[]): Promise<O[]> {
 const openrouter = createOpenRouter({
   // Use spread to satisfy exactOptionalPropertyTypes: only set the property when defined
   ...(process.env.OPENROUTER_API_KEY !== undefined && { apiKey: process.env.OPENROUTER_API_KEY }),
-  ...(process.env.OPENROUTER_BASE_URL !== undefined && { baseURL: process.env.OPENROUTER_BASE_URL }),
+  ...(process.env.OPENROUTER_BASE_URL !== undefined && {
+    baseURL: process.env.OPENROUTER_BASE_URL,
+  }),
 })
 
 /** System prompt, you can update it to provide more specific information */

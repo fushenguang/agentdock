@@ -7,10 +7,10 @@
 
 /** Input accepted by the hello feature. */
 export interface HelloInput {
-  name: string;
+  name: string
 }
 
 /** Output returned by the hello feature. */
 export interface HelloOutput {
-  greeting: string;
+  greeting: string
 }

@@ -29,7 +29,7 @@ now:
 
   - id: web-nextjs-template
     title: Scaffold web-nextjs template (Next.js 16, React 19, Tailwind)
-    status: in-progress
+    status: done
     owner: "@sunny"
 
 next: []
