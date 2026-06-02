@@ -32,7 +32,11 @@ now:
     status: done
     owner: "@sunny"
 
-next: []
+next:
+  - id: cli-mvp-scaffolder
+    title: "Scaffold CLI MVP (agentdock init + agentdock mcp, dual-mode human/agent)"
+    status: in-progress
+    owner: "@sunny"
 
 later:
   - id: web-nextjs-builtin-suite

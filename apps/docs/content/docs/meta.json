@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "builder-workflow",
+    "cli",
     "roadmap",
     "changelog"
   ]

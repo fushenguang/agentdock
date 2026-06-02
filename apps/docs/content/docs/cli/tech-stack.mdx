@@ -1,0 +1,47 @@
+---
+title: 技术栈：出处、采用理由与核心角色
+description: 以可溯源证据说明 AgentDock CLI 候选技术栈、采用理由与职责分层。
+---
+
+# 技术栈：出处、采用理由与核心角色
+
+> 说明：以下为目标选型，强调“可溯源依据 + 工程推导”，不表示已全部在本仓库落地。
+
+## 分层与角色
+
+| 组件 | 开源出处 | 可验证依据 | 在 AgentDock CLI 中的核心角色 |
+| --- | --- | --- | --- |
+| Bun | [github.com/oven-sh/bun](https://github.com/oven-sh/bun) | README 明确其为 all-in-one toolkit、单一可执行工具链，并提供 single-file executable 文档路径 | 运行时与分发层：负责启动性能与潜在单文件分发 |
+| Citty | [github.com/unjs/citty](https://github.com/unjs/citty) | README 明确 Zero dependency、Nested sub-commands、Lazy commands、Hooks/Plugins | 命令建模层：命令拓扑、参数 schema、生命周期管理 |
+| Clack | [github.com/bombshell-dev/clack](https://github.com/bombshell-dev/clack) | README 明确 `@clack/prompts`（现成交互）与 `@clack/core`（headless primitives）双层结构 | 人类交互层：提供 TTY 交互，不侵入执行器核心 |
+| MCP TypeScript SDK | [github.com/modelcontextprotocol/typescript-sdk](https://github.com/modelcontextprotocol/typescript-sdk) | README Overview/Packages 指出服务端客户端 SDK、stdio/HTTP 相关传输与工具 schema 支持 | Agent 协议层：把 CLI 能力投影为可被模型稳定调用的工具接口 |
+| Giget | [github.com/unjs/giget](https://github.com/unjs/giget) | README Features 指出 zero dependency、provider、registry、cache/offline、auth | 模板获取层：统一远程模板拉取、镜像与私有源访问策略 |
+| Changesets | [github.com/changesets/changesets](https://github.com/changesets/changesets) | README 指出其核心目标是多包仓库版本与 changelog 管理 | 发布治理层：保障多包语义版本与发布变更可追溯 |
+
+## 为什么是这组组合
+
+这组组合的设计逻辑是“分层解耦”：
+
+- Bun 提供运行时和分发基座。
+- Citty 定义命令语义结构。
+- Clack 专注人类交互，不污染无头执行逻辑。
+- MCP SDK 提供 Agent 原生消费接口。
+- Giget 负责模板供应链。
+- Changesets 负责版本治理闭环。
+
+这一分层可以把系统拆成可独立测试的模块，降低后续替换成本。
+
+## 证据与推导边界
+
+- 上表中的“可验证依据”全部来自各项目 README/官方文档对外声明。
+- “在 AgentDock CLI 中的核心角色”属于工程推导，用于指导本项目架构分层，不代表上游项目对 AgentDock 的官方建议。
+
+## 参考出处
+
+- Bun: [github.com/oven-sh/bun](https://github.com/oven-sh/bun)
+- Bun docs（single-file executable）: [bun.com/docs/bundler/executables](https://bun.com/docs/bundler/executables)
+- Citty: [github.com/unjs/citty](https://github.com/unjs/citty)
+- Clack: [github.com/bombshell-dev/clack](https://github.com/bombshell-dev/clack)
+- MCP TypeScript SDK: [github.com/modelcontextprotocol/typescript-sdk](https://github.com/modelcontextprotocol/typescript-sdk)
+- Giget: [github.com/unjs/giget](https://github.com/unjs/giget)
+- Changesets: [github.com/changesets/changesets](https://github.com/changesets/changesets)
