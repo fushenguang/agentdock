@@ -19,12 +19,12 @@ now:
 
   - id: layer2-constraints
     title: Add Layer 2 architectural constraint gates
-    status: in-progress
+    status: done
     owner: "@sunny"
 
   - id: growth-trace-docs
     title: Growth trace documentation (changelog, ADRs, decision log)
-    status: planned
+    status: in-progress
     owner: "@sunny"
 
   - id: web-nextjs-template

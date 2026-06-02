@@ -1,0 +1,24 @@
+{
+  "name": "@agentdock/openspec-docs-sync",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "openspec-docs-sync": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@agentdock/tsconfig": "workspace:*",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "typescript": "5.9.2"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "gray-matter": "^4.0.3"
+  }
+}

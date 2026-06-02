@@ -11,7 +11,8 @@
     "align:check:fast": "tsx scripts/align-check/index.ts --fast",
     "arch:check": "tsx scripts/arch-check/index.ts",
     "secrets:check": "secretlint '**/*'",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "docs:sync": "pnpm --filter @agentdock/openspec-docs-sync build && node packages/openspec-docs-sync/dist/index.js"
   },
   "devDependencies": {
     "@agentdock/eslint-config": "workspace:*",

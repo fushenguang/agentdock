@@ -1,0 +1,9 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "builder-workflow",
+    "roadmap",
+    "changelog"
+  ]
+}

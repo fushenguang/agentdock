@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
+    "prebuild": "pnpm --filter @agentdock/openspec-docs-sync build && node ../../packages/openspec-docs-sync/dist/index.js",
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",

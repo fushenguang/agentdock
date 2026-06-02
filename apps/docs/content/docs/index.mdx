@@ -1,13 +1,24 @@
 ---
-title: Hello World
-description: Your first document
+title: AgentDock
+description: Open-source scaffold platform for AI coding agents — monorepo tooling, governance, and templates.
 ---
 
-Welcome to the docs! You can start writing documents in `/content/docs`.
+# AgentDock
 
-## What is Next?
+AgentDock is an open-source scaffold platform for building production-ready AI coding agent projects.
+It provides monorepo tooling, governance workflows, and opinionated templates so teams can move fast without drifting.
+
+## What's in the Platform
 
 <Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.dev" />
+  <Card title="Builder Workflow" href="/docs/builder-workflow" description="Four-gate model: human intent → AI planning → AI coding → machine gates." />
+  <Card title="Roadmap" href="/docs/roadmap" description="Current platform roadmap — Now / Next / Later / Won't." />
+  <Card title="Changelog" href="/docs/changelog" description="Archived changes and decision log." />
 </Cards>
+
+## Key Principles
+
+- **Human owns intent** — AI operates within approved scope only.
+- **OpenSpec = SSOT** — feature decisions live in `openspec/`, code reflects specs.
+- **Anti-drift by design** — alignment checks and Layer 2 constraint gates catch drift before it ships.
+- **pnpm + Turborepo** — fast, reproducible monorepo with strict TypeScript throughout.
