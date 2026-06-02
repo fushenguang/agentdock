@@ -24,12 +24,12 @@ now:
 
   - id: growth-trace-docs
     title: Growth trace documentation (changelog, ADRs, decision log)
-    status: in-progress
+    status: done
     owner: "@sunny"
 
   - id: web-nextjs-template
     title: Scaffold web-nextjs template (Next.js 16, React 19, Tailwind)
-    status: planned
+    status: in-progress
     owner: "@sunny"
 
 next: []

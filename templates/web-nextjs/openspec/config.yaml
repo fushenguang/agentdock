@@ -1,0 +1,28 @@
+schema: spec-driven
+
+# Project context (shown to AI when creating artifacts)
+context: |
+  You are working in a project generated from the AgentDock web-nextjs template.
+
+  Tech stack: Next.js 16 (App Router), React 19, TypeScript 5+ (strict), Tailwind CSS,
+  Supabase (@supabase/ssr), next-intl (i18n), Vitest (unit tests), pnpm ≥9, Node ≥18.
+
+  Four-layer directory contract (enforced by ESLint Layer 2 rules at error severity):
+    src/core/       — domain types + repository interfaces (no framework deps, read-only)
+    src/features/   — AI coding zone; each feature needs __contract__.ts + index.ts + tests
+    src/infra/      — Supabase implementation (requires human approval before editing)
+    src/app/        — Next.js App Router pages and layouts
+
+  Governance rules:
+    - Conventional commits: type(scope): summary
+    - pnpm only — no npm/yarn
+    - TypeScript strict — no any, no @ts-ignore without explanation
+    - Features must not import from infra/db directly (use core/repositories interfaces)
+    - Every feature directory must have __contract__.ts
+
+  Reference feature: src/features/hello/ (complete example of the four-layer pattern)
+
+# Workflow rules
+rules:
+  proposal:
+    - "Proposal MUST contain a Non-goals section listing what this change will NOT implement."

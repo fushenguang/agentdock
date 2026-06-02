@@ -1,0 +1,3 @@
+# src/infra/db
+# Supabase implementation layer.
+# Only core/repositories implementations are allowed to live here.

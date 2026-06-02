@@ -1,0 +1,3 @@
+# src/core/types
+# Domain types — no framework dependencies.
+# Do not add Supabase, Next.js, or React imports here.

@@ -1,0 +1,10 @@
+{
+  "home": {
+    "title": "Welcome to AgentDock Web Template",
+    "description": "A Next.js scaffold with four-layer architecture."
+  },
+  "hello": {
+    "title": "Hello Feature",
+    "greeting": "Hello, {name}!"
+  }
+}

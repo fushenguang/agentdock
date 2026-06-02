@@ -1,0 +1,32 @@
+{
+  "name": "@agentdock/template-web-nextjs",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "pnpm": ">=9",
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.10.3",
+    "next": "16",
+    "next-intl": "^4.13.0",
+    "react": "19",
+    "react-dom": "19"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8",
+    "@agentdock/eslint-config": "workspace:*",
+    "@agentdock/tsconfig": "workspace:*"
+  }
+}

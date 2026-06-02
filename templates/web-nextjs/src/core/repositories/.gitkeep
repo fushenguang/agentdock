@@ -1,0 +1,2 @@
+# src/core/repositories
+# Repository interfaces — pure TypeScript interfaces, no DB dependencies.
