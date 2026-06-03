@@ -1,4 +1,4 @@
 {
   "title": "CI / 持续集成",
-  "pages": ["index", "monorepo-best-practices"]
+  "pages": ["index", "monorepo-best-practices", "troubleshooting"]
 }
