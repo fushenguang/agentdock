@@ -1,6 +1,7 @@
 {
   "name": "@agentdock/cli",
   "version": "0.1.0",
+  "private": true,
   "type": "module",
   "description": "AgentDock CLI – scaffold projects for humans and AI agents",
   "publishConfig": {
