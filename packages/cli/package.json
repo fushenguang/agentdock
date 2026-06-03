@@ -1,0 +1,37 @@
+{
+  "name": "@agentdock/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AgentDock CLI – scaffold projects for humans and AI agents",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "agentdock": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist/"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "pnpm run generate-registry && bun build bin/agentdock.ts --outfile dist/index.js --target node && cp src/registry.json dist/registry.json && rm -rf dist/templates && mkdir -p dist/templates && rsync -a --exclude='node_modules/' --exclude='.next/' --exclude='.turbo/' ../../templates/ dist/templates/",
+    "generate-registry": "tsx ../../scripts/generate-registry/index.ts",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "citty": "^0.1.6",
+    "@clack/prompts": "^0.9.1",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "giget": "^1.2.4"
+  },
+  "devDependencies": {
+    "@agentdock/tsconfig": "workspace:*",
+    "@types/node": "^20.0.0",
+    "bun": "latest",
+    "vitest": "^4.1.8"
+  }
+}

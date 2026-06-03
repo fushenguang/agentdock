@@ -1,6 +1,7 @@
 {
   "name": "@agentdock/template-web-nextjs",
   "version": "0.1.0",
+  "description": "Full-stack Next.js 16 starter with Supabase, next-intl, Tailwind CSS and Vitest",
   "private": true,
   "engines": {
     "pnpm": ">=9",
@@ -27,6 +28,10 @@
     "typescript": "^6.0.3",
     "vitest": "^4.1.8",
     "@agentdock/eslint-config": "workspace:*",
-    "@agentdock/tsconfig": "workspace:*"
+    "@agentdock/tsconfig": "workspace:*",
+    "@fission-ai/openspec": "^1.3.1"
+  },
+  "agentdock": {
+    "minCliVersion": "0.1.0"
   }
 }

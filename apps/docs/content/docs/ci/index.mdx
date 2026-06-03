@@ -1,0 +1,237 @@
+---
+title: CI 策略总览
+description: >
+  AgentDock monorepo 的 CI 策略、分层防御模型、工具选型决策与最佳实践。
+  覆盖 GitHub Actions、Turborepo 远程缓存、Changesets 发版自动化三条主线。
+  适合人类构建者阅读，也供 AI Agent 查询具体配置决策。
+---
+
+# CI 策略总览
+
+> 深入执行版请看：[Monorepo CI 最佳实践（构造者 + Agent 双视角）](/docs/ci/monorepo-best-practices)
+
+## 为什么单独沉淀 CI 策略
+
+CI 不是"跑一跑测试"的附属品，它是**平台交付质量的最终守门人**。  
+在 monorepo 中，CI 的复杂度随包数量指数级增长——每次改动可能影响 1 个包，也可能影响 6 个。  
+不经设计的 CI 会在两个极端间摇摆：
+
+- **过于宽松**：漏掉真实影响，merge 了坏代码。
+- **过于保守**：每次改动都跑全量，PR 等待 10+ 分钟，开发者开始绕过 CI。
+
+AgentDock 的 CI 策略基于一个核心原则：**"按影响范围付费"**——只有被改动影响到的包才重新验证。
+
+---
+
+## 技术栈一览
+
+| 工具 | 角色 | 文档 |
+|------|------|------|
+| [GitHub Actions](https://docs.github.com/en/actions) | CI/CD 执行环境 | [Workflow 语法参考](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions) |
+| [Turborepo](https://turborepo.com/docs) | 任务编排 + 增量缓存 | [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) |
+| [pnpm](https://pnpm.io) | 包管理 + workspace | [pnpm/action-setup](https://github.com/pnpm/action-setup) |
+| [Changesets](https://github.com/changesets/changesets) | 版本管理 + npm 发布 | [changesets/action](https://github.com/changesets/action) |
+| [Lefthook](https://lefthook.dev) | 本地 Git hooks | [配置参考](https://lefthook.dev/configuration/) |
+| [secretlint](https://github.com/secretlint/secretlint) | 密钥泄露扫描 | — |
+
+---
+
+## 分层防御模型
+
+防御分三层，从快到慢，从本地到远程：
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 1 — 本地 (lefthook)                                      │
+│  触发：git commit                                                │
+│  耗时：< 5s                                                     │
+│  检查：staged 文件 ESLint + align:check --fast (anti-drift)     │
+└───────────────────────┬─────────────────────────────────────────┘
+                        │ push / PR
+┌───────────────────────▼─────────────────────────────────────────┐
+│  Layer 2 — PR Gate (ci.yml)                                     │
+│  触发：PR + push to main                                        │
+│  耗时：2–5 min (Turbo cache 命中后 < 1 min)                     │
+│  检查：typecheck / build / test / lint（4 个并行 job）          │
+│  阻塞合并：YES                                                   │
+└───────────────────────┬─────────────────────────────────────────┘
+                        │ schedule / openspec/** 变更
+┌───────────────────────▼─────────────────────────────────────────┐
+│  Layer 3 — Integrity (integrity.yml)                            │
+│  触发：每天 02:00 UTC + openspec/** PR + workflow_dispatch      │
+│  耗时：不限                                                      │
+│  检查：全量 align-check / arch-check / secrets-check            │
+│  阻塞合并：NO（失败发 GitHub 通知）                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**设计动机**：慢检查不应阻塞快反馈。`arch:check`（dependency-cruiser 全图扫描）在大型 monorepo 中可能需要 30–60 秒；放在 PR Gate 会显著拖慢 DX。放入定时任务后，开发者仍能在合并后当天收到通知。
+
+---
+
+## Workflow 文件职责划分
+
+```
+.github/workflows/
+├── ci.yml          # PR gate — 4 个并行 job，阻塞 merge
+├── release.yml     # main 分支发版 — Changesets 统一管理
+└── integrity.yml   # 慢速全量检查 — 定时/手动，不阻塞
+```
+
+### 为什么不给每个包单独一个 workflow？
+
+这是 monorepo CI 中最常见的反模式。以 `@agentdock/cli` 为例：
+
+```
+❌ 错误做法：release-cli.yml
+   ├─ 手动维护触发条件 (paths: packages/cli/**)
+   ├─ 手动决定何时发布
+   └─ 与其他包的发布产生竞争条件
+
+✅ 正确做法：统一 release.yml + Changesets
+   ├─ 开发者在 PR 中运行 pnpm changeset，添加版本意图
+   ├─ merge 后 Changesets Bot 自动聚合所有意图
+   └─ 生成 "Version Packages" PR → merge → 统一发布所有变更包
+```
+
+Changesets 解决的核心问题是**意图聚合**：一次 release 可能同时发布 3 个包，版本互相关联。分散的 workflow 无法做到这一点。
+
+详见 [→ Monorepo CI 最佳实践](/docs/ci/monorepo-best-practices)。
+
+---
+
+## Turbo 缓存策略
+
+Turborepo 的任务缓存是 CI 速度的核心杠杆。
+
+### 本地缓存（默认启用）
+
+每个任务的输入（源文件 hash）→ 输出（`dist/`、`.next/` 等）被 Turbo 缓存。  
+同样的 hash 命中缓存时，任务在毫秒内完成（"replaying logs"）。
+
+关键配置在 `turbo.json` 的 `inputs` / `outputs` 字段：
+
+```json
+{
+  "tasks": {
+    "generate-registry": {
+      "inputs": ["../../templates/*/package.json", "../../packages/*/package.json"],
+      "outputs": ["src/registry.json"]
+    },
+    "build": {
+      "dependsOn": ["^build", "generate-registry"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    }
+  }
+}
+```
+
+**`inputs` 精确声明**：当 `templates/*/package.json` 没有变化时，`generate-registry` 缓存命中，CLI build 跳过 registry 生成步骤。
+
+### 远程缓存（跨 PR 共享，推荐启用）
+
+跨 CI runner 共享缓存，冷启动时间从 3 min → 30s。
+
+```yaml
+# ci.yml 中已预留 env 变量
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+```
+
+启用步骤：
+1. 在 [Vercel Dashboard](https://vercel.com/docs/monorepos/turborepo) 创建 Remote Cache token
+2. 或使用 self-hosted：[ducktape](https://github.com/ducktapeai/ducktape) / [turborepo-remote-cache](https://github.com/fox1t/turborepo-remote-cache)
+3. 将 `TURBO_TOKEN` + `TURBO_TEAM` 添加为 GitHub repository secrets
+
+参考：[Turbo Remote Caching 文档](https://turborepo.com/docs/core-concepts/remote-caching)
+
+---
+
+## 安全规范
+
+### Secrets 管理
+
+GitHub Actions 的 secrets 在两个层级配置：
+
+| 层级 | 用途 | 配置入口 |
+|------|------|----------|
+| Repository secrets | 项目级密钥（NPM_TOKEN、TURBO_TOKEN） | Settings → Secrets → Actions |
+| Environment secrets | 分环境密钥（生产 DB、部署 token） | Settings → Environments → [env] → Secrets |
+
+参考：[GitHub Encrypted Secrets](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions)
+
+**当前项目必须配置的 secrets：**
+
+```
+NPM_TOKEN     — npm Automation token，用于 Changesets 发布
+TURBO_TOKEN   — Vercel Remote Cache token（可选，启用后大幅加速）
+```
+
+### Token 最小权限原则
+
+`release.yml` 中显式声明 `permissions`，避免使用 GitHub Actions 默认的广权限 token：
+
+```yaml
+permissions:
+  contents: write      # 创建 tags、version commits
+  pull-requests: write # 开 "Version Packages" PR
+```
+
+参考：[GitHub Token 权限控制](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token)
+
+### `.npmrc` 认证配置
+
+项目根 `.npmrc` 使用环境变量占位，不含真实 token：
+
+```ini
+//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
+```
+
+`setup-node` action 配置 `registry-url` 后，会自动将 `NODE_AUTH_TOKEN` env 映射到 npm 认证。  
+参考：[actions/setup-node — Publishing to npm](https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#publish-to-npmjs-and-gpr-with-npm)
+
+---
+
+## 并发控制
+
+多个 runner 同时处理同一分支的 push 会产生竞争（尤其是发布任务）。  
+每个 workflow 都配置了 `concurrency` 组以取消过时的运行：
+
+```yaml
+# ci.yml — 同一 ref + sha 的旧运行被取消
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+
+# release.yml — 同一 ref 只允许一个发布运行
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+```
+
+参考：[GitHub Actions 并发控制](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/using-concurrency)
+
+---
+
+## 常见问题 / AI Agent 查询索引
+
+以下为 AI Agent 查询时的快速参考。
+
+**Q: 为什么 `@agentdock/cli` 没有单独的发布 workflow？**  
+A: Changesets 统一管理所有包的版本意图聚合。分散 workflow 会引入竞争条件。见 [→ 发版自动化](/docs/ci/release-automation)。
+
+**Q: 新增一个 publishable package 需要改哪些 CI 文件？**  
+A: 不需要改任何 CI 文件。只需在包的 `package.json` 中移除 `private: true`，添加 `publishConfig: { "access": "public" }`。Changesets 自动发现 workspace 中所有非私有包。
+
+**Q: 如何在 PR 中只跑特定包的测试？**  
+A: `ci.yml` 的 `test` job 当前使用 `pnpm --filter @agentdock/cli test`。如需扩展，在同一行添加更多 `--filter` 或改为 `pnpm -r test`（跑所有有 test 脚本的包）。
+
+**Q: `registry.json` 在 CI 中如何生成？**  
+A: Turbo 任务图：`cli#build` → `generate-registry`（前置任务）。`pnpm build` 触发整个图，`generate-registry` 会先执行 `tsx ../../scripts/generate-registry/index.ts`，输出 `packages/cli/src/registry.json`。
+
+**Q: integrity.yml 失败了怎么处理？**  
+A: integrity.yml 不阻塞 merge，但失败会产生 GitHub Actions 通知和 email。按失败的具体 job 处理：`align` 失败说明有 anti-drift 违规，`arch` 失败说明有循环依赖或层边界越界，`secrets` 失败说明有潜在密钥泄露（高优先级，立即处理）。
+
+**Q: 如何手动触发 integrity 检查？**  
+A: Actions tab → Integrity workflow → "Run workflow" 按钮（`workflow_dispatch` 已配置）。

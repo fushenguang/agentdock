@@ -1,9 +1,12 @@
-# ci-fast.yml — Fast quality gates on every pull request
+# ci-fast.yml — Quality gates on every pull request
 #
-# Jobs run IN PARALLEL for fast feedback (typically < 3 min total).
+# Jobs run IN PARALLEL for fast feedback (typically < 5 min total).
+# Covers: type-check, lint, arch-guard, build, unit-tests.
 # Intentionally excludes secretlint and align:check:
 #   - secretlint runs in ci-full.yml (post-merge to main)
 #   - align:check runs in align-check.yml (separate workflow, not duplicated here)
+#
+# Note: build and test require Bun (CLI package uses `bun build`).
 #
 # See: openspec/changes/add-layer2-constraint-gates/specs/ci-gates/spec.md
 
@@ -82,3 +85,62 @@ jobs:
 
       - name: Run architecture check
         run: pnpm arch:check
+
+  # ── Build ─────────────────────────────────────────────────────────────────
+  # CLI package uses `bun build` — requires Bun runtime.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+  # ── Unit Tests ────────────────────────────────────────────────────────────
+  # Depends on build because registry.json must exist before tests run.
+  test:
+    name: Unit Tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Re-run build to generate registry.json (jobs run on fresh runners)
+      - name: Build (for registry.json)
+        run: pnpm build
+
+      - name: Run unit tests
+        run: pnpm --filter @agentdock/cli test

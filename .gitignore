@@ -24,6 +24,9 @@ out/
 build
 dist
 
+# Generated build artifacts
+packages/cli/src/registry.json
+
 
 # Debug
 npm-debug.log*

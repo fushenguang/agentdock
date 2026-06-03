@@ -1,0 +1,74 @@
+# Integrity — slow, thorough checks that run on a schedule and on main pushes.
+# These are NOT blocking PR gates (too slow / too noisy for per-PR feedback).
+# Failures here generate GitHub notifications but don't block merges.
+name: Integrity
+
+on:
+  # Run nightly to catch drift before a release
+  schedule:
+    - cron: "0 2 * * *"   # 02:00 UTC every day
+  # Also run when a PR touches spec/governance files (fast enough to gate)
+  pull_request:
+    branches: [main]
+    paths:
+      - "openspec/**"
+      - "scripts/**"
+      - "roadmap.yaml"
+  # Allow manual trigger for debugging
+  workflow_dispatch:
+
+concurrency:
+  group: integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Alignment Check ─────────────────────────────────────────────────────────
+  # Validates OpenSpec anti-drift invariants (full check, not --fast subset).
+  align:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Full alignment check
+        run: pnpm align:check
+
+  # ── Architecture Check ──────────────────────────────────────────────────────
+  # Dependency-cruiser rules (no circular deps, layer boundary enforcement).
+  arch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Architecture check
+        run: pnpm arch:check
+
+  # ── Secrets Scan ────────────────────────────────────────────────────────────
+  # secretlint — catches accidentally committed credentials.
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Secrets check
+        run: pnpm secrets:check
