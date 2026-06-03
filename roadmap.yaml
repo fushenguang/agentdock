@@ -35,7 +35,7 @@ now:
 next:
   - id: cli-mvp-scaffolder
     title: "Scaffold CLI MVP (agentdock init + agentdock mcp, dual-mode human/agent)"
-    status: in-progress
+    status: done
     owner: "@sunny"
 
 later:
