@@ -201,3 +201,24 @@ jobs:
       - name: Build docs site
         run: pnpm --filter docs build
 
+  template-web-nextjs-build:
+    name: Template web-nextjs Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: templates/web-nextjs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install template dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build template
+        run: pnpm build
+
