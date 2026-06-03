@@ -1,8 +1,8 @@
 // @ts-check
 "use strict";
 
-const base = require("@agentdock/eslint-config/base");
-const next = require("@agentdock/eslint-config/next");
+const base = require("@cogito.ai/eslint-config/base");
+const next = require("@cogito.ai/eslint-config/next");
 
 /** @type {import("eslint").Linter.Config[]} */
 module.exports = [

@@ -80,7 +80,7 @@ AgentDock 的 CI 策略基于一个核心原则：**"按影响范围付费"**—
 
 ### 为什么不给每个包单独一个 workflow？
 
-这是 monorepo CI 中最常见的反模式。以 `@agentdock/cli` 为例：
+这是 monorepo CI 中最常见的反模式。以 `@cogito.ai/cli` 为例：
 
 ```
 ❌ 错误做法：release-cli.yml
@@ -218,14 +218,14 @@ concurrency:
 
 以下为 AI Agent 查询时的快速参考。
 
-**Q: 为什么 `@agentdock/cli` 没有单独的发布 workflow？**  
+**Q: 为什么 `@cogito.ai/cli` 没有单独的发布 workflow？**  
 A: Changesets 统一管理所有包的版本意图聚合。分散 workflow 会引入竞争条件。见 [→ 发版自动化](/docs/ci/release-automation)。
 
 **Q: 新增一个 publishable package 需要改哪些 CI 文件？**  
 A: 不需要改任何 CI 文件。只需在包的 `package.json` 中移除 `private: true`，添加 `publishConfig: { "access": "public" }`。Changesets 自动发现 workspace 中所有非私有包。
 
 **Q: 如何在 PR 中只跑特定包的测试？**  
-A: `ci.yml` 的 `test` job 当前使用 `pnpm --filter @agentdock/cli test`。如需扩展，在同一行添加更多 `--filter` 或改为 `pnpm -r test`（跑所有有 test 脚本的包）。
+A: `ci.yml` 的 `test` job 当前使用 `pnpm --filter @cogito.ai/cli test`。如需扩展，在同一行添加更多 `--filter` 或改为 `pnpm -r test`（跑所有有 test 脚本的包）。
 
 **Q: `registry.json` 在 CI 中如何生成？**  
 A: Turbo 任务图：`cli#build` → `generate-registry`（前置任务）。`pnpm build` 触发整个图，`generate-registry` 会先执行 `tsx ../../scripts/generate-registry/index.ts`，输出 `packages/cli/src/registry.json`。

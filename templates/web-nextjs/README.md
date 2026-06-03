@@ -174,8 +174,8 @@ See `openspec/config.yaml` for project-specific governance rules.
 
 ## FAQs
 
-**Q: pnpm install fails with `ERR_PNPM_FETCH_404` for `@agentdock/*`**  
-A: The `@agentdock/tsconfig` and `@agentdock/eslint-config` packages must be published to npm before use. If you generated this project before the packages were published, run `pnpm install` again after they are live at [npmjs.com/@agentdock](https://www.npmjs.com/org/agentdock).
+**Q: pnpm install fails with `ERR_PNPM_FETCH_404` for `@cogito.ai/*`**  
+A: The `@cogito.ai/tsconfig` and `@cogito.ai/eslint-config` packages must be published to npm before use. If you generated this project before the packages were published, run `pnpm install` again after they are live at [npmjs.com/@agentdock](https://www.npmjs.com/org/cogito.ai).
 
 **Q: How do I add a new Supabase table?**  
 A: Create the table in the Supabase Dashboard, then add a repository interface to `src/core/repositories/` and implement it in `src/infra/db/`. Do not call Supabase directly from `src/features/` — use the interface.

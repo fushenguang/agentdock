@@ -1,5 +1,5 @@
 {
-  "name": "@agentdock/openspec-docs-sync",
+  "name": "@cogito.ai/openspec-docs-sync",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
-    "@agentdock/tsconfig": "workspace:*",
+    "@cogito.ai/tsconfig": "workspace:*",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
     "typescript": "5.9.2"

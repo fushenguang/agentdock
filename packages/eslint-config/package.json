@@ -1,5 +1,5 @@
 {
-  "name": "@agentdock/eslint-config",
+  "name": "@cogito.ai/eslint-config",
   "version": "0.1.0",
   "publishConfig": {
     "access": "public"

@@ -6,7 +6,7 @@
 // See: openspec/changes/add-layer2-constraint-gates/design.md
 "use strict";
 
-const base = require("@agentdock/eslint-config/base");
+const base = require("@cogito.ai/eslint-config/base");
 
 /** @type {import("eslint").Linter.Config[]} */
 module.exports = [

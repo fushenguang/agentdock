@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "prebuild": "pnpm --filter @agentdock/openspec-docs-sync build && node ../../packages/openspec-docs-sync/dist/index.js",
+    "prebuild": "pnpm --filter @cogito.ai/openspec-docs-sync build && node ../../packages/openspec-docs-sync/dist/index.js",
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",
@@ -35,8 +35,8 @@
     "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
-    "@agentdock/eslint-config": "workspace:*",
-    "@agentdock/tsconfig": "workspace:*",
+    "@cogito.ai/eslint-config": "workspace:*",
+    "@cogito.ai/tsconfig": "workspace:*",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/mdx": "^2.0.13",
     "@types/node": "^25.9.1",

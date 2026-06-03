@@ -65,8 +65,8 @@ const fakeTemplate: RegistryTemplate = {
   minCliVersion: "0.1.0",
   source: "templates/test-template",
   resolvedDependencies: {
-    "@agentdock/tsconfig": "^0.1.0",
-    "@agentdock/eslint-config": "^0.1.0",
+    "@cogito.ai/tsconfig": "^0.1.0",
+    "@cogito.ai/eslint-config": "^0.1.0",
   },
 };
 
@@ -124,8 +124,8 @@ describe("scaffoldProject", () => {
       minCliVersion: "0.1.0",
       source: "templates/web-nextjs",
       resolvedDependencies: {
-        "@agentdock/eslint-config": "^0.1.0",
-        "@agentdock/tsconfig": "^0.1.0",
+        "@cogito.ai/eslint-config": "^0.1.0",
+        "@cogito.ai/tsconfig": "^0.1.0",
       },
     };
 
@@ -152,8 +152,8 @@ describe("scaffoldProject", () => {
     expect(pkg.name).toBe("my-app");
     expect(pkg.private).toBeUndefined();
     expect(pkg.agentdock).toBeUndefined();
-    expect(pkg.devDependencies?.["@agentdock/eslint-config"]).toBe("^0.1.0");
-    expect(pkg.devDependencies?.["@agentdock/tsconfig"]).toBe("^0.1.0");
+    expect(pkg.devDependencies?.["@cogito.ai/eslint-config"]).toBe("^0.1.0");
+    expect(pkg.devDependencies?.["@cogito.ai/tsconfig"]).toBe("^0.1.0");
   });
 });
 

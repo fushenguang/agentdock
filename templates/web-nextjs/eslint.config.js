@@ -1,6 +1,6 @@
 // @ts-check
-const base = require("@agentdock/eslint-config/base");
-const features = require("@agentdock/eslint-config/features");
+const base = require("@cogito.ai/eslint-config/base");
+const features = require("@cogito.ai/eslint-config/features");
 
 /** @type {import("eslint").Linter.Config[]} */
 module.exports = [

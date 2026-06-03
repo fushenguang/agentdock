@@ -1,5 +1,5 @@
 {
-  "name": "@agentdock/template-web-nextjs",
+  "name": "@cogito.ai/template-web-nextjs",
   "version": "0.1.0",
   "description": "Full-stack Next.js 16 starter with Supabase, next-intl, Tailwind CSS and Vitest",
   "private": true,
@@ -27,8 +27,8 @@
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8",
-    "@agentdock/eslint-config": "workspace:*",
-    "@agentdock/tsconfig": "workspace:*",
+    "@cogito.ai/eslint-config": "workspace:*",
+    "@cogito.ai/tsconfig": "workspace:*",
     "@fission-ai/openspec": "^1.3.1"
   },
   "agentdock": {

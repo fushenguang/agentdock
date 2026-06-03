@@ -8,15 +8,15 @@ importers:
 
   .:
     devDependencies:
-      '@agentdock/eslint-config':
-        specifier: workspace:*
-        version: link:packages/eslint-config
-      '@agentdock/tsconfig':
-        specifier: workspace:*
-        version: link:packages/tsconfig
       '@changesets/cli':
         specifier: ^2.31.0
         version: 2.31.0(@types/node@25.9.1)
+      '@cogito.ai/eslint-config':
+        specifier: workspace:*
+        version: link:packages/eslint-config
+      '@cogito.ai/tsconfig':
+        specifier: workspace:*
+        version: link:packages/tsconfig
       '@secretlint/secretlint-rule-preset-recommend':
         specifier: ^9.0.0
         version: 9.3.4
@@ -117,10 +117,10 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@agentdock/eslint-config':
+      '@cogito.ai/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint-config
-      '@agentdock/tsconfig':
+      '@cogito.ai/tsconfig':
         specifier: workspace:*
         version: link:../../packages/tsconfig
       '@tailwindcss/postcss':
@@ -166,7 +166,7 @@ importers:
         specifier: ^1.2.4
         version: 1.2.5
     devDependencies:
-      '@agentdock/tsconfig':
+      '@cogito.ai/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
       '@types/node':
@@ -200,7 +200,7 @@ importers:
         specifier: ^4.1.0
         version: 4.2.0
     devDependencies:
-      '@agentdock/tsconfig':
+      '@cogito.ai/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
       '@types/js-yaml':
@@ -233,10 +233,10 @@ importers:
         specifier: '19'
         version: 19.2.6(react@19.2.6)
     devDependencies:
-      '@agentdock/eslint-config':
+      '@cogito.ai/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint-config
-      '@agentdock/tsconfig':
+      '@cogito.ai/tsconfig':
         specifier: workspace:*
         version: link:../../packages/tsconfig
       '@fission-ai/openspec':

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "@agentdock/tsconfig/base.json",
+  "extends": "@cogito.ai/tsconfig/base.json",
   "compilerOptions": {
     "isolatedModules": true,
     "esModuleInterop": true,

@@ -1,5 +1,5 @@
 {
-  "extends": "@agentdock/tsconfig/base.json",
+  "extends": "@cogito.ai/tsconfig/base.json",
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",

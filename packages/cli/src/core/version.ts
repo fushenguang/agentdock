@@ -51,7 +51,7 @@ export function checkVersion(
         min_required: minCliVersion,
         template: templateId,
       },
-      suggested_action: "npm install -g @agentdock/cli@latest",
+      suggested_action: "npm install -g @cogito.ai/cli@latest",
     };
     throw err;
   }

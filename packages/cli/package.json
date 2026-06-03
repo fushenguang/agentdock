@@ -1,5 +1,5 @@
 {
-  "name": "@agentdock/cli",
+  "name": "@cogito.ai/cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -30,7 +30,7 @@
     "giget": "^1.2.4"
   },
   "devDependencies": {
-    "@agentdock/tsconfig": "workspace:*",
+    "@cogito.ai/tsconfig": "workspace:*",
     "@types/node": "^20.0.0",
     "bun": "latest",
     "vitest": "^4.1.8"

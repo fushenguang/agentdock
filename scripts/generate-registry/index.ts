@@ -41,7 +41,7 @@ function readJson<T>(filePath: string): T {
   return JSON.parse(readFileSync(filePath, "utf-8")) as T;
 }
 
-/** Build a map of @agentdock/* package name -> version from packages/ dir */
+/** Build a map of @cogito.ai/* package name -> version from packages/ dir */
 function buildPackageVersionMap(): Record<string, string> {
   const packagesDir = join(repoRoot, "packages");
   const entries = readdirSync(packagesDir);
