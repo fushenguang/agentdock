@@ -32,16 +32,17 @@ now:
     status: done
     owner: "@sunny"
 
+  - id: web-nextjs-builtin-suite
+    title: "web-nextjs built-in production feature suite (monorepo+docs, auth, payments, analytics, etc.)"
+    status: in-progress
+    owner: "@sunny"
+
 next:
   - id: cli-mvp-scaffolder
     title: "Scaffold CLI MVP (agentdock init + agentdock mcp, dual-mode human/agent)"
     status: done
     owner: "@sunny"
 
-later:
-  - id: web-nextjs-builtin-suite
-    title: "web-nextjs built-in production feature suite (auth, payments, analytics, etc.)"
-    status: planned
-    owner: "@sunny"
+later: []
 
 wont: []
