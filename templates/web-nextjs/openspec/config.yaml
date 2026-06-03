@@ -4,14 +4,27 @@ schema: spec-driven
 context: |
   You are working in a project generated from the AgentDock web-nextjs template.
 
-  Tech stack: Next.js 16 (App Router), React 19, TypeScript 5+ (strict), Tailwind CSS,
+  Monorepo structure (turborepo + pnpm):
+    apps/web/   — Main Next.js 16 application
+    apps/docs/  — Fumadocs documentation site (features, decisions, changelog, roadmap)
+    packages/   — Shared tooling packages (eslint-config, tsconfig)
+
+  Tech stack (apps/web): Next.js 16 (App Router), React 19, TypeScript 5+ (strict), Tailwind CSS,
   Supabase (@supabase/ssr), next-intl (i18n), Vitest (unit tests), pnpm ≥9, Node ≥18.
 
-  Four-layer directory contract (enforced by ESLint Layer 2 rules at error severity):
-    src/core/       — domain types + repository interfaces (no framework deps, read-only)
-    src/features/   — AI coding zone; each feature needs __contract__.ts + index.ts + tests
-    src/infra/      — Supabase implementation (requires human approval before editing)
-    src/app/        — Next.js App Router pages and layouts
+  Tech stack (apps/docs): Fumadocs (fumadocs-core, fumadocs-ui, fumadocs-mdx), Next.js 16,
+  openspec-docs-sync (auto-generates changelog + roadmap from openspec/changes/archive/).
+
+  Four-layer directory contract in apps/web/src/ (enforced by ESLint Layer 2 rules at error severity):
+    apps/web/src/core/       — domain types + repository interfaces (no framework deps, read-only)
+    apps/web/src/features/   — AI coding zone; each feature needs __contract__.ts + index.ts + tests
+    apps/web/src/infra/      — Supabase implementation (requires human approval before editing)
+    apps/web/src/app/        — Next.js App Router pages and layouts
+
+  Docs co-evolution convention:
+    - New feature → create apps/docs/content/docs/features/<name>.mdx
+    - Architecture decision → create apps/docs/content/docs/decisions/<adr-id>.mdx
+    - After archiving a change → run `pnpm docs:sync` to update changelog + roadmap pages
 
   Governance rules:
     - Conventional commits: type(scope): summary
@@ -20,7 +33,7 @@ context: |
     - Features must not import from infra/db directly (use core/repositories interfaces)
     - Every feature directory must have __contract__.ts
 
-  Reference feature: src/features/hello/ (complete example of the four-layer pattern)
+  Reference feature: apps/web/src/features/hello/ (complete example of the four-layer pattern)
 
 # Workflow rules
 rules:

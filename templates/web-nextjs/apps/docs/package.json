@@ -1,0 +1,38 @@
+{
+  "name": "@cogito.ai/docs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "docs:sync": "openspec-docs-sync",
+    "postinstall": "fumadocs-mdx"
+  },
+  "dependencies": {
+    "fumadocs-core": "16.9.3",
+    "fumadocs-mdx": "15.0.10",
+    "fumadocs-ui": "16.9.3",
+    "next": "16",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@cogito.ai/eslint-config": "workspace:*",
+    "@cogito.ai/tsconfig": "workspace:*",
+    "@cogito.ai/openspec-docs-sync": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "@types/mdx": "^2.0.13",
+    "@types/node": "^25.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.0.0",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,35 +1,24 @@
 {
   "name": "@cogito.ai/template-web-nextjs",
   "version": "0.1.0",
-  "description": "Full-stack Next.js 16 starter with Supabase, next-intl, Tailwind CSS and Vitest",
+  "description": "Full-stack Next.js 16 monorepo starter with Supabase, next-intl, Tailwind CSS, Vitest and built-in Fumadocs docs site",
   "private": true,
   "engines": {
     "pnpm": ">=9",
     "node": ">=18"
   },
+  "packageManager": "pnpm@10.0.0",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint .",
-    "test": "vitest run",
-    "check-types": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@supabase/ssr": "^0.10.3",
-    "next": "16",
-    "next-intl": "^4.13.0",
-    "react": "19",
-    "react-dom": "19"
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "check-types": "turbo run check-types",
+    "docs:sync": "pnpm --filter @cogito.ai/docs docs:sync"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^6.0.2",
-    "tailwindcss": "^4.3.0",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.8",
-    "@cogito.ai/eslint-config": "workspace:*",
-    "@cogito.ai/tsconfig": "workspace:*",
-    "@fission-ai/openspec": "^1.3.1"
+    "@fission-ai/openspec": "^1.3.1",
+    "turbo": "latest"
   },
   "agentdock": {
     "minCliVersion": "0.1.0"

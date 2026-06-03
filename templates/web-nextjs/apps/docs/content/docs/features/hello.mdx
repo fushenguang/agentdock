@@ -1,0 +1,29 @@
+---
+title: "Hello Feature"
+description: "Reference implementation of the feature contract pattern."
+---
+
+## Overview
+
+The `hello` feature demonstrates the four-layer directory contract in practice:
+
+- `__contract__.ts` — declares input/output types and public API
+- `service.ts` — pure business logic, no side effects
+- `index.ts` — exports only what the contract declares
+- `hello.test.ts` — Vitest unit tests
+
+## Usage
+
+```typescript
+import { getGreeting } from '@/features/hello'
+
+const result = getGreeting({ name: 'World' })
+// { message: 'Hello, World!' }
+```
+
+## Architecture Notes
+
+This feature follows Layer 2 rules:
+- No direct database access (uses repository interfaces from `core/`)
+- No cross-feature imports
+- Contract-first design

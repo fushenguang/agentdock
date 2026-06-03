@@ -1,0 +1,23 @@
+# 1. 屏蔽所有构建产物、缓存（极其重要，这些文件 Token 量极大）
+.turbo/
+dist/
+build/
+out/
+.next/
+coverage/
+
+# 2. 显式屏蔽所有依赖
+node_modules/
+pnpm-lock.yaml
+
+# 3. 动态屏蔽不相关的子包 (按需注释)
+# 如果你今天只专注修 CLI 的 Bug，直接把其他模板全部屏蔽，防止上下文污染
+apps/web-nextjs/ 
+packages/ui/
+packages/config/
+
+# 4. 屏蔽庞大的静态资源、日志和国际化文件
+public/
+locales/
+*.log
+*.svg

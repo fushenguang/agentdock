@@ -1,0 +1,31 @@
+# Project Roadmap
+# Human-owned intent map. AI cannot modify this in ordinary changes.
+#
+# Buckets: Now | Next | Later | Won't
+# Entry fields: id (kebab-case, globally unique) | title | status | owner
+# Status values: planned | in-progress | done
+
+now:
+  - id: web-nextjs-builtin-suite
+    title: Web Next.js built-in suite (monorepo + docs + auth + payments)
+    status: in-progress
+    owner: "@team"
+
+next:
+  - id: web-nextjs-auth
+    title: Add authentication feature (Supabase Auth)
+    status: planned
+    owner: "@team"
+
+  - id: web-nextjs-payments
+    title: Add payments feature (Stripe)
+    status: planned
+    owner: "@team"
+
+later:
+  - id: web-nextjs-analytics
+    title: Add analytics feature
+    status: planned
+    owner: "@team"
+
+wont: []
