@@ -32,14 +32,14 @@
 - [x] 5.1 实现 `src/adapters/human.ts`：Clack 交互流程（项目名输入、模板选择、包管理器选择、确认、spinner），调用 `core/scaffold`
 - [x] 5.2 实现 `src/adapters/agent.ts`：解析 `--name`、`--template`、`--pm`、`--silent`、`--json` 参数，调用 `core/scaffold`，输出 NDJSON 结果
 - [x] 5.3 实现 `src/commands/init.ts`：Citty 命令定义，TTY 检测路由到 `human.ts` 或 `agent.ts`
-- [ ] 5.4 手动端到端验证：`pnpx agentdock init --name test-app --template web-nextjs --json`，检查生成目录结构与 `package.json` 内容
+- [x] 5.4 手动端到端验证：`pnpx agentdock init --name test-app --template web-nextjs --json`，检查生成目录结构与 `package.json` 内容
 
 ## 6. agentdock mcp 命令
 
 - [x] 6.1 实现 `src/adapters/mcp/tools.ts`：定义 `list_templates`、`scaffold_project`、`get_template_schema` 三个工具（调用 `core/`）
 - [x] 6.2 实现 `src/adapters/mcp/server.ts`：初始化 MCP Server，注册工具，连接 Stdio transport，处理 SIGINT 优雅退出
 - [x] 6.3 实现 `src/commands/mcp.ts`：Citty 命令定义，调用 `server.ts`
-- [ ] 6.4 验证：使用 MCP Inspector 或手写 JSON-RPC 消息测试三个工具的输入输出格式
+- [x] 6.4 验证：使用 MCP Inspector 或手写 JSON-RPC 消息测试三个工具的输入输出格式
 
 ## 7. 构建与发布配置
 
