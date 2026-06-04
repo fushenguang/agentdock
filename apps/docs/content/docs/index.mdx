@@ -17,6 +17,22 @@ It provides monorepo tooling, governance workflows, and opinionated templates so
   <Card title="Changelog" href="/docs/changelog" description="Archived changes and decision log." />
 </Cards>
 
+## Documentation Philosophy
+
+This documentation site has **two audiences**, ordered by priority:
+
+**First: AI Agents** (primary consumers, first-class citizens)
+
+AI coding agents read these docs to understand the platform's context, intent, and decisions before acting. The accuracy standard is strict: a small LLM (e.g. `qwen3.5:4b` running locally via ollama) should be able to reconstruct the full original context after reading — including the scene, the problem being solved, the decision made, and the rationale. Vague language, implicit assumptions, or undocumented decisions are bugs.
+
+**Second: Human stakeholders** (builders, PMs, contributors)
+
+Builders use these docs to understand the platform's workflow, make release decisions, and onboard. Content must be precise enough for a human to act on without needing to reverse-engineer the codebase.
+
+When writing documentation: be explicit, context-dense, and decision-complete. Prefer specifics over abstractions.
+
+---
+
 ## Key Principles
 
 - **Human owns intent** — AI operates within approved scope only.

@@ -1,0 +1,86 @@
+# Deploy apps/docs to GitHub Pages as a static export.
+#
+# Features available on GitHub Pages:
+#   ✓ All documentation pages
+#   ✓ LLM-friendly routes (/llms.txt, /llms-full.txt, /llms.mdx/*)
+#   ✓ Open Graph images (/og/*)
+#   ✗ AI chat (/api/chat) — requires a server with OPENROUTER_API_KEY
+#   ✗ Server-side search (/api/search) — gracefully disabled; UI shows no results
+#
+# Before first deploy:
+#   GitHub repo → Settings → Pages → Source: GitHub Actions
+#
+# To use a custom domain:
+#   1. Add a CNAME file to apps/docs/public/
+#   2. Set NEXT_BASE_PATH to '' (empty string) in the build step below
+#   3. Set NEXT_PUBLIC_SITE_URL to your domain
+name: Deploy Docs to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/docs/**'
+      - 'openspec/**'
+      - 'roadmap.yaml'
+      - '.github/workflows/deploy-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build static docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # openspec-docs-sync reads the full archive history
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install workspace dependencies
+        # Install from repo root so workspace packages (openspec-docs-sync, etc.) resolve correctly
+        run: pnpm install --frozen-lockfile
+
+      - name: Build static docs
+        run: pnpm --filter docs build
+        env:
+          NEXT_STATIC_EXPORT: '1'
+          # GitHub Pages project URL — update if using a custom domain (set to '')
+          NEXT_BASE_PATH: /agentdock
+          NEXT_PUBLIC_SITE_URL: https://fushenguang.github.io/agentdock
+
+      - name: Add .nojekyll
+        # Prevents GitHub Pages from ignoring files that start with underscore (_next/)
+        run: touch apps/docs/out/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/docs/out
+
+  deploy:
+    name: Deploy to GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
