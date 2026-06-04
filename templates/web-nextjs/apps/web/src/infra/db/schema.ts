@@ -2,16 +2,16 @@
  * Drizzle extension point — not implemented in Supabase MVP stage.
  *
  * When the team decides to adopt Drizzle ORM, implement the schema here.
- * The IGreetingRepository interface in src/core/repositories/ does not need
- * to change — only the implementation in SupabaseGreetingRepository.ts.
+ * Define your tables using `pgTable` from `drizzle-orm/pg-core` and export
+ * them so that `infra/db` implementations can reference the typed schema.
  *
- * Example future implementation:
+ * Example:
  *
  * import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
  *
- * export const greetings = pgTable("greetings", {
+ * export const profiles = pgTable("profiles", {
  *   id: text("id").primaryKey(),
- *   name: text("name").notNull(),
+ *   email: text("email").notNull(),
  *   createdAt: timestamp("created_at").notNull().defaultNow(),
  * });
  */

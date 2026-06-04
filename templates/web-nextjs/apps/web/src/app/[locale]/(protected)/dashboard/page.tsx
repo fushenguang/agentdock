@@ -1,4 +1,4 @@
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 import { getServerClient } from '@/infra/db/client'
 import { signOut } from '@/features/auth'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ export default async function DashboardPage({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
-  const t = useTranslations('auth')
+  const t = await getTranslations({ locale, namespace: 'auth' })
   const supabase = await getServerClient()
   const {
     data: { user },

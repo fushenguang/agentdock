@@ -74,5 +74,6 @@ export default async function middleware(request: NextRequest) {
 
 export const config = {
   // Match all pathnames except Next.js internals, static files, and auth callback.
-  matcher: ['/((?!_next|_vercel|auth/callback|.*\\..*).*)'],
+  // The explicit '/' entry ensures the root redirect to the default locale always fires.
+  matcher: ['/', '/((?!_next|_vercel|auth/callback|.*\\..*).*)'],
 }

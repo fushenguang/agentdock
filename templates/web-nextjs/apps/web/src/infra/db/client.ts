@@ -10,7 +10,7 @@ import type { NextRequest, NextResponse } from 'next/server'
  * ```ts
  * // In a Server Component or Server Action:
  * const supabase = await getServerClient();
- * const { data } = await supabase.from('greetings').select('*');
+ * const { data } = await supabase.from('profiles').select('*');
  * ```
  *
  * Requires env vars: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY

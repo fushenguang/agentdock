@@ -3,10 +3,6 @@
     "title": "Welcome to AgentDock Web Template",
     "description": "A Next.js scaffold with four-layer architecture."
   },
-  "hello": {
-    "title": "Hello Feature",
-    "greeting": "Hello, {name}!"
-  },
   "auth": {
     "loginTitle": "Welcome back",
     "loginSubtitle": "Sign in to your account",
