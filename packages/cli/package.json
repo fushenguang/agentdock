@@ -1,6 +1,6 @@
 {
   "name": "@cogito.ai/cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "AgentDock CLI – scaffold projects for humans and AI agents",
   "publishConfig": {
