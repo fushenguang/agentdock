@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.3.1
+
+### Patch Changes
+
+- 4ed79a6: Remove rewriteTurboJson post-processing from scaffold; template turbo.json is now standalone (no extends) so no post-processing is needed after scaffolding.
+
 ## 0.3.0
 
 ### Minor Changes
