@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.3.3
+
+### Patch Changes
+
+- 7d5709c: fixed template issues
+
 ## 0.3.2
 
 ### Patch Changes
