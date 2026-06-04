@@ -1,0 +1,197 @@
+---
+title: 使用指南
+description: agentdock init 与 agentdock mcp 命令的完整使用说明，涵盖交互模式、无头模式与 MCP 接入。
+---
+
+# 使用指南
+
+## 安装
+
+```bash
+# 推荐：每次使用最新版
+npx @cogito.ai/cli <command>
+
+# 全局安装
+npm install -g @cogito.ai/cli
+# 或
+pnpm add -g @cogito.ai/cli
+```
+
+安装完成后可直接使用 `agentdock` 命令：
+
+```bash
+agentdock --version
+agentdock --help
+```
+
+---
+
+## `agentdock init`
+
+从模板创建一个新项目。自动检测运行环境并切换模式：
+
+- **TTY 环境**（终端直接运行）→ 交互模式
+- **非 TTY 环境**（CI / 管道）或显式传入 `--silent` / `--json` → 无头模式
+
+### 交互模式（人类开发者）
+
+直接运行，按提示输入：
+
+```bash
+npx @cogito.ai/cli init
+```
+
+交互流程：
+
+1. 输入项目名称（小写字母、数字、连字符）
+2. 选择模板（方向键选择）
+3. 选择包管理器（pnpm 推荐）
+4. 确认创建
+
+创建完成后输出：
+
+```
+◆ Project created at ./my-app
+
+  cd my-app
+  pnpm install
+  pnpm run dev
+```
+
+### 无头模式（CI / Agent）
+
+所有参数通过 flag 传入，不会出现任何交互提示：
+
+```bash
+agentdock init \
+  --name my-app \
+  --template web-nextjs \
+  --pm pnpm \
+  --json
+```
+
+#### Flag 说明
+
+| Flag | 类型 | 默认值 | 说明 |
+| ---- | ---- | ------ | ---- |
+| `--name` | string | 必填 | 项目名称，也是目标目录名 |
+| `--template` | string | 必填 | 模板 ID，如 `web-nextjs` |
+| `--pm` | string | `pnpm` | 包管理器：`pnpm` / `npm` / `yarn` / `bun` |
+| `--dir` | string | `./<name>` | 目标目录（绝对路径或相对于 cwd） |
+| `--json` | boolean | `false` | 以 NDJSON 格式输出结果 |
+| `--silent` | boolean | `false` | 抑制所有输出（无声模式） |
+
+#### JSON 输出格式
+
+成功时输出到 stdout（单行 JSON）：
+
+```json
+{"ok":true,"targetDir":"/path/to/my-app","name":"my-app","template":"web-nextjs"}
+```
+
+失败时输出到 stdout（非 TTY 模式下），同时以非零退出码退出：
+
+```json
+{"ok":false,"error":"TARGET_DIR_EXISTS","message":"Directory already exists: /path/to/my-app"}
+```
+
+#### 错误码
+
+| error | 含义 |
+| ----- | ---- |
+| `MISSING_ARG` | 必填参数缺失（`field` 字段指明哪个参数） |
+| `TEMPLATE_NOT_FOUND` | 模板 ID 不存在 |
+| `TARGET_DIR_EXISTS` | 目标目录已存在 |
+| `CLI_VERSION_OUTDATED` | CLI 版本低于模板的 `minCliVersion` 要求 |
+| `SCAFFOLD_FAILED` | 文件复制/写入失败 |
+
+---
+
+## `agentdock mcp`
+
+启动一个 **MCP Stdio 服务器**，将 CLI 能力投影为 AI Agent 可直接调用的工具接口。
+
+```bash
+agentdock mcp
+```
+
+服务器通过 **stdio** 通信，遵循 [Model Context Protocol](https://modelcontextprotocol.io) 规范。
+
+### 暴露的工具
+
+| 工具名 | 说明 |
+| ------ | ---- |
+| `list_templates` | 列出所有可用模板（id、name、description、minCliVersion） |
+| `scaffold_project` | 从指定模板创建项目到目标目录 |
+
+#### `list_templates` 调用示例
+
+输入：`{}` （无参数）
+
+输出：
+
+```json
+{
+  "templates": [
+    {
+      "id": "web-nextjs",
+      "name": "web-nextjs",
+      "description": "Full-stack Next.js 16 monorepo starter with Supabase, next-intl, Tailwind CSS, Vitest and built-in Fumadocs docs site",
+      "minCliVersion": "0.1.0"
+    }
+  ]
+}
+```
+
+#### `scaffold_project` 调用示例
+
+输入：
+
+```json
+{
+  "name": "my-app",
+  "template": "web-nextjs",
+  "targetDir": "/Users/me/projects/my-app",
+  "packageManager": "pnpm"
+}
+```
+
+成功输出：
+
+```json
+{"ok":true,"targetDir":"/Users/me/projects/my-app","name":"my-app","template":"web-nextjs"}
+```
+
+### 在 MCP 客户端中配置
+
+以 VS Code Copilot 为例，在 `.vscode/mcp.json` 中：
+
+```json
+{
+  "servers": {
+    "agentdock": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@cogito.ai/cli", "mcp"]
+    }
+  }
+}
+```
+
+---
+
+## 可用模板
+
+| 模板 ID | 说明 |
+| ------- | ---- |
+| `web-nextjs` | Next.js 16 + Supabase + next-intl + Tailwind CSS v4 + Vitest + Fumadocs 的全栈 monorepo 模板 |
+
+查看完整模板列表：
+
+```bash
+# 通过 MCP 工具列出
+agentdock mcp  # 然后调用 list_templates
+
+# 或查看仓库
+ls templates/
+```

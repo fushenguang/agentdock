@@ -2,10 +2,8 @@ import type { Metadata } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+import { isLocale } from '@/i18n/config'
 import './globals.css'
-
-const locales = ['en', 'zh'] as const
-type Locale = (typeof locales)[number]
 
 export const metadata: Metadata = {
   title: 'AgentDock Web Template',
@@ -21,7 +19,7 @@ export default async function LocaleLayout({
 }) {
   const { locale } = await params
 
-  if (!locales.includes(locale as Locale)) {
+  if (!isLocale(locale)) {
     notFound()
   }
 

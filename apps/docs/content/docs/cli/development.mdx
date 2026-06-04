@@ -1,0 +1,265 @@
+---
+title: 开发 · 发布 · 维护
+description: AgentDock CLI 的本地开发环境搭建、架构设计、添加新模板、构建测试与版本发布全流程。
+---
+
+# 开发 · 发布 · 维护
+
+## 架构概览
+
+CLI 采用 **适配器（Adapter）模式**，执行器核心与表面层完全解耦：
+
+```
+agentdock init
+      │
+      ├── TTY detected ──→ Human Adapter  (Clack 交互式 UI)
+      │                                        │
+      └── Non-TTY / flags ──→ Agent Adapter   ─┤
+                                                │
+                                    Core Executor (scaffold, registry)
+                                                │
+                              ┌─────────────────┘
+                              │
+agentdock mcp ──→ MCP Adapter (MCP Stdio Server)
+                              │
+                    (same Core tools exposed as MCP tools)
+```
+
+| 层级 | 文件位置 | 职责 |
+| ---- | -------- | ---- |
+| 命令定义 | `src/commands/` | Citty 命令 schema，负责解析 flags |
+| 人类适配器 | `src/adapters/human.ts` | Clack UI，TTY 检测后调用 |
+| Agent 适配器 | `src/adapters/agent.ts` | 无头执行，JSON/silent 输出 |
+| MCP 适配器 | `src/adapters/mcp/` | MCP Stdio 服务器，工具注册 |
+| 执行器核心 | `src/core/scaffold.ts` | 文件复制、版本检查、错误处理 |
+| 注册表 | `src/core/registry.ts` | 读取 `registry.json`，提供模板查询 |
+
+---
+
+## 本地开发
+
+### 前置条件
+
+- Node.js ≥ 18
+- pnpm ≥ 9
+- Bun（用于构建，可通过 `brew install bun` 安装）
+
+### 环境搭建
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/CogitoTech/agentdock
+cd agentdock
+
+# 2. 安装依赖
+pnpm install
+
+# 3. 生成 registry.json（从 templates/ 元数据生成）
+pnpm --filter @cogito.ai/cli generate-registry
+
+# 4. 直接运行源码（无需构建）
+npx tsx packages/cli/bin/agentdock.ts init
+```
+
+### 开发时运行
+
+```bash
+# 方式一：通过 tsx 直接运行源码（推荐，改完即生效）
+cd packages/cli
+npx tsx bin/agentdock.ts init
+
+# 方式二：构建后运行
+pnpm --filter @cogito.ai/cli build
+node packages/cli/dist/index.js init
+```
+
+### 运行测试
+
+```bash
+# CLI 包单元测试
+pnpm --filter @cogito.ai/cli test
+
+# 类型检查
+pnpm --filter @cogito.ai/cli check-types
+
+# 全仓库 lint
+pnpm lint
+```
+
+---
+
+## 添加新模板
+
+### 步骤
+
+**1. 创建模板目录**
+
+```bash
+mkdir -p templates/<template-id>
+```
+
+**2. 在模板根目录添加 `package.json`**，包含 `agentdock` 元数据字段：
+
+```json
+{
+  "name": "@cogito.ai/template-<id>",
+  "version": "0.1.0",
+  "description": "模板简短描述（会显示在 CLI 选择列表中）",
+  "private": true,
+  "agentdock": {
+    "minCliVersion": "0.1.0"
+  }
+}
+```
+
+**3. 开发模板内容**，在 `templates/<id>/` 下构建完整的项目结构。
+
+**4. 重新生成 registry.json**：
+
+```bash
+pnpm --filter @cogito.ai/cli generate-registry
+```
+
+`generate-registry` 脚本会扫描 `templates/` 下的所有 `package.json`，自动提取 `name`、`description`、`minCliVersion` 并写入 `packages/cli/src/registry.json`。
+
+**5. 验证模板可被发现**：
+
+```bash
+npx tsx packages/cli/bin/agentdock.ts init
+# 在模板选择列表中应看到新模板
+```
+
+### 模板目录约定
+
+- `templates/<id>/` — 模板根目录
+- `templates/<id>/AGENTS.md` — AI Agent 使用说明（推荐）
+- `templates/<id>/README.md` — 人类开发者使用说明
+- `node_modules/`、`.next/`、`.turbo/` 会在打包时被 rsync 排除
+
+---
+
+## 构建
+
+```bash
+pnpm --filter @cogito.ai/cli build
+```
+
+构建脚本依次执行：
+
+1. `generate-registry` — 生成 `src/registry.json`
+2. `bun build bin/agentdock.ts` — 打包为单文件 `dist/index.js`（Node 运行时）
+3. `cp src/registry.json dist/registry.json` — 复制 registry 到 dist
+4. `rsync ../../templates/ dist/templates/` — 将所有模板打包进 dist（排除 `node_modules/`、`.next/`、`.turbo/`）
+
+构建产物：
+
+```
+packages/cli/dist/
+  index.js         ← 可执行入口
+  registry.json    ← 模板注册表
+  templates/
+    web-nextjs/    ← 模板文件
+```
+
+---
+
+## 版本发布
+
+项目使用 [Changesets](https://github.com/changesets/changesets) 进行版本管理。
+
+### 发布流程
+
+**1. 创建 changeset**（描述本次变更）：
+
+```bash
+pnpm changeset
+# 选择 @cogito.ai/cli，选择变更类型（patch/minor/major），填写变更说明
+```
+
+**2. 提交 changeset 文件**：
+
+```bash
+git add .changeset/
+git commit -m "chore: add changeset for <描述>"
+```
+
+**3. 更新版本号并生成 changelog**：
+
+```bash
+pnpm changeset version
+# 自动更新 packages/cli/package.json 版本号
+# 自动更新 packages/cli/CHANGELOG.md
+```
+
+**4. 构建**：
+
+```bash
+pnpm --filter @cogito.ai/cli build
+```
+
+**5. 发布到 npm**：
+
+```bash
+pnpm --filter @cogito.ai/cli publish
+```
+
+### 版本号语义
+
+| 类型 | 触发场景 |
+| ---- | -------- |
+| `patch` | Bug 修复、模板小调整、文档更新 |
+| `minor` | 新增命令、新增模板、新增 flag |
+| `major` | 破坏性变更（命令重命名、JSON 输出格式变更） |
+
+### 模板更新与 CLI 版本的关系
+
+模板文件与 CLI 可执行文件打包在同一 npm 包中。因此：
+
+- **修改 `templates/` 下的任何内容**都需要发布新版本的 CLI 才能让终端用户获取到最新模板
+- `agentdock.minCliVersion` 字段用于声明模板所需的最低 CLI 版本，脚手架时会自动检查
+
+---
+
+## 维护指南
+
+### 检查依赖健康
+
+```bash
+pnpm --filter @cogito.ai/cli check-types
+pnpm lint
+pnpm --filter @cogito.ai/cli test
+```
+
+### 更新 registry 元数据
+
+每次模板 `package.json` 变更后（description、minCliVersion 等）重新生成：
+
+```bash
+pnpm --filter @cogito.ai/cli generate-registry
+git add packages/cli/src/registry.json
+git commit -m "chore(cli): regenerate registry"
+```
+
+### 排查 scaffold 问题
+
+常见问题定位：
+
+| 现象 | 检查点 |
+| ---- | ------ |
+| `TEMPLATE_NOT_FOUND` | `src/registry.json` 是否包含该模板 ID；`generate-registry` 是否重新运行 |
+| `CLI_VERSION_OUTDATED` | 模板 `minCliVersion` 与当前 CLI 版本对比 |
+| `TARGET_DIR_EXISTS` | 目标目录已存在，改换目录或手动删除 |
+| scaffold 后文件不完整 | 检查 build 时 rsync 是否成功，确认 `.next/` 等排除规则 |
+
+### 本地端到端测试
+
+```bash
+# 构建
+pnpm --filter @cogito.ai/cli build
+
+# 用本地构建初始化项目
+node packages/cli/dist/index.js init --name test-project --template web-nextjs --json
+
+# 验证产物
+ls test-project/
+```

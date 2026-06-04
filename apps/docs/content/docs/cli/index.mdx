@@ -1,28 +1,46 @@
 ---
 title: CLI 工具链
-description: AgentDock CLI 的子页导航与证据边界说明。
+description: AgentDock CLI — 面向人类与 AI Agent 的项目脚手架工具，支持交互式、无头与 MCP 三种使用模式。
 ---
 
-# CLI 工具链
+# AgentDock CLI
 
-本章节已拆分为子页，便于按主题阅读：
+`@cogito.ai/cli` 是 AgentDock 平台的命令行工具，已正式发布并可用于生产。
 
-- [技术栈：出处、采用理由与核心角色](/docs/cli/tech-stack)
-- [Google Workspace CLI：前瞻理念与方法论借鉴](/docs/cli/gws-methodology)
-- [落地路线：从理念到可执行工程](/docs/cli/implementation-roadmap)
+它的核心设计理念：**同一套能力，同时服务于人类开发者、CI 流水线和 AI 编程 Agent**。
 
-## 证据边界与写作原则
+## 快速开始
 
-为确保“洞察、观点、论点”实事求是，本章节采用如下规则：
+```bash
+# 交互式创建项目（推荐，面向人类开发者）
+npx @cogito.ai/cli init
 
-- 事实性陈述必须能回溯到公开来源（仓库 README、官方文档或源码说明）。
-- 推导性结论会明确标记为“迁移建议/工程推导”，不伪装为上游项目已声明事实。
-- 涉及开源项目时均附出处链接，避免无源论断。
+# 非交互式创建项目（面向 CI / Agent）
+npx @cogito.ai/cli init --name my-app --template web-nextjs --pm pnpm --json
 
-## 本仓库现状基线
+# 以 MCP Stdio 服务器方式启动（供 AI Agent 调用）
+npx @cogito.ai/cli mcp
+```
 
-与当前仓库状态一致：
+## 当前版本
 
-- 本仓库当前不包含独立的 AgentDock CLI 可执行包实现。
-- 当前内容以架构规划、方法论借鉴和落地路线为主。
-- 因此本章节属于“面向实施的设计文档”，不是“已交付功能手册”。
+| 版本 | 状态 | 说明 |
+| ---- | ---- | ---- |
+| 0.3.x | ✅ 正式可用 | `init`（交互/无头）+ `mcp`（Stdio 服务器） |
+
+## 可用命令
+
+| 命令 | 说明 |
+| ---- | ---- |
+| `agentdock init` | 从模板脚手架项目，支持交互/无头两种模式 |
+| `agentdock mcp` | 启动 MCP Stdio 服务器，向 AI Agent 暴露工具接口 |
+
+## 章节导航
+
+<Cards>
+  <Card title="使用指南" href="/docs/cli/usage" description="init 命令详解、Agent 模式、MCP 接入、退出码与 JSON 输出格式。" />
+  <Card title="开发 · 发布 · 维护" href="/docs/cli/development" description="本地开发、添加模板、构建、测试、版本发布全流程。" />
+  <Card title="技术栈与架构" href="/docs/cli/tech-stack" description="技术选型依据、分层架构与适配器设计。" />
+  <Card title="设计理念参考" href="/docs/cli/gws-methodology" description="从 Google Workspace CLI 借鉴的前瞻方法论。" />
+  <Card title="落地路线" href="/docs/cli/implementation-roadmap" description="分阶段实施路径与当前进度。" />
+</Cards>

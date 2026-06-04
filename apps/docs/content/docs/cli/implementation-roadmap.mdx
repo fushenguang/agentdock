@@ -1,104 +1,90 @@
 ---
-title: 落地路线：从理念到可执行工程
-description: 将证据化方法论映射为 AgentDock CLI 的分阶段实施路径。
+title: 落地路线
+description: AgentDock CLI 的分阶段实施路径与当前进度。
 ---
 
-# 落地路线：从理念到可执行工程
+# 落地路线
 
-本页把前两页的结论转成执行路径，并明确哪些是当前事实、哪些是规划目标。
+## 当前状态（2026-06-04）
 
-## 当前事实（仓库现状）
+CLI `@cogito.ai/cli` 已正式发布并可用于生产。
 
-- 当前仓库尚未提供独立的 AgentDock CLI 可执行包。
-- 已有治理基础能力：OpenSpec 工作流、对齐检查、架构检查、docs 同步。
+已完成阶段：Phase 0 · Phase 1 · Phase 2 · Phase 3。
 
-因此，CLI 路线应从“契约先行”开始，而不是先写大量命令处理代码。
+---
 
-## Phase 0：先定协议，不先堆功能
+## Phase 0 ✅ 先定协议，不先堆功能
 
-目标：形成机器可消费且可测试的契约基线。
+**目标**：形成机器可消费且可测试的契约基线。
 
-交付物：
+**已交付**：
+- 命令输入 schema（Citty flag 定义，含类型与默认值）
+- 标准输出 schema（`{ ok: true, ... }` / `{ ok: false, error, message }`）
+- 错误码映射：`MISSING_ARG` / `TEMPLATE_NOT_FOUND` / `TARGET_DIR_EXISTS` / `CLI_VERSION_OUTDATED` / `SCAFFOLD_FAILED`
 
-- 命令输入 schema（参数、默认值、约束）。
-- 标准输出 schema（success/data/error）。
-- 错误码与退出码映射表。
+**验收结果**：同一输入在本地与 CI 产出一致结构 ✓，错误分型稳定 ✓
 
-验收标准：
+---
 
-- 同一输入在本地与 CI 产出一致结构。
-- 错误分型稳定，不依赖自然语言解析。
+## Phase 1 ✅ 最小可用 CLI（无头优先）
 
-## Phase 1：最小可用 CLI（无头优先）
+**目标**：先跑通最短链路。
 
-目标：先跑通最短链路。
+**已交付**：
+- `agentdock init` 无头模式：`--name`、`--template`、`--pm`、`--dir`、`--json`、`--silent`
+- NDJSON 输出：成功/失败均输出单行 JSON 对象到 stdout
+- 失败路径返回结构化错误 + 非零退出码
 
-交付物：
+**验收结果**：机器模式 stdout 零噪音 ✓，失败路径结构化 ✓
 
-- 最小 init 流程（下载模板、写盘、最小校验、失败回滚）。
-- silent + json 输出模式。
+---
 
-验收标准：
+## Phase 2 ✅ 人类交互与网络鲁棒性
 
-- 机器模式 stdout 零噪音。
-- 失败路径返回结构化错误对象。
+**目标**：在不破坏无头契约的前提下提升可用性。
 
-## Phase 2：人类交互与网络鲁棒性
+**已交付**：
+- TTY 交互流程：Clack 驱动的项目名、模板选择、包管理器选择、确认步骤
+- 模板内置于 CLI npm 包（无网络依赖，离线可用）
 
-目标：在不破坏无头契约的前提下提升可用性。
+**验收结果**：Human/Machine 模式共享同一执行器核心 ✓
 
-交付物：
+---
 
-- TTY 交互流程（仅作为表面层）。
-- 代理、镜像、重试、超时、离线策略。
+## Phase 3 ✅ Agent 投影（MCP）
 
-验收标准：
+**目标**：把 CLI 能力暴露为 AI Agent 可直接调用的工具面。
 
-- Human 模式与 Machine 模式共享同一执行器。
-- 网络异常可恢复且诊断信息可读。
+**已交付**：
+- `agentdock mcp`：MCP Stdio 服务器
+- `list_templates` 工具：列出所有可用模板
+- `scaffold_project` 工具：脚手架项目，支持 name / template / targetDir / packageManager 参数
 
-## Phase 3：Agent 投影（MCP）
+**验收结果**：工具参数可由 schema 约束 ✓，调用失败返回结构化错误 ✓
 
-目标：把 CLI 能力暴露为 Agent 可直接调用的工具面。
+---
 
-交付物：
+## Phase 4 — 高阶能力扩展（规划中）
 
-- mcp 子命令与工具列表。
-- 工具输入输出 schema 与幂等性标注。
+**目标**：在稳定协议上扩展价值密度。
 
-验收标准：
+**待交付**：
+- `agentdock add` — 向现有项目中增量添加能力（如 auth、i18n）
+- `agentdock doctor` — 检查项目配置健康度
+- `agentdock migrate` — 跨版本迁移辅助
+- 远程模板注册表（Giget 接入，支持私有源与镜像）
+- 模板能力与知识资产（SKILL.md、schema、recipe）协同版本发布
 
-- 工具调用参数可由 schema 直接约束。
-- 调用失败可通过 code + suggested_action 做自动恢复。
+**验收标准**：
+- 高阶命令不破坏既有 JSON 协议兼容性
+- 文档、skills、行为三者版本一致
 
-## Phase 4：高阶能力扩展
+---
 
-目标：在稳定协议上扩展价值密度。
+## 度量指标
 
-交付物：
-
-- add/doctor/migrate 等高频组合命令。
-- 模板能力与知识资产（skills/schema/recipes）协同版本发布。
-
-验收标准：
-
-- 高阶命令不破坏既有协议兼容性。
-- 文档、skills、行为三者版本一致。
-
-## 度量指标（建议）
-
-- 解析稳定性：结构化输出解析成功率。
-- 恢复成功率：可自动恢复错误占比。
-- 冷启动性能：常用命令首包时间。
-- 变更可追溯性：能力变更与 OpenSpec 记录关联率。
-
-## 与参考项目的对应关系
-
-- 元数据驱动、双阶段解析、结构化输出、故障恢复导向，均可在 gws README 对应章节找到事实支撑。
-- 本页分阶段路线是 AgentDock 的工程映射，不是 gws 官方 roadmap。
-
-参考：
-
-- [github.com/googleworkspace/cli/blob/main/README.md#architecture](https://github.com/googleworkspace/cli/blob/main/README.md#architecture)
-- [github.com/googleworkspace/cli/blob/main/README.md#exit-codes](https://github.com/googleworkspace/cli/blob/main/README.md#exit-codes)
-- [github.com/googleworkspace/cli/blob/main/README.md#troubleshooting](https://github.com/googleworkspace/cli/blob/main/README.md#troubleshooting)
+| 指标 | 说明 |
+| ---- | ---- |
+| 结构化输出解析成功率 | JSON 输出可被机器稳定解析的比例 |
+| 冷启动性能 | `agentdock init --json` 首次执行时间 |
+| 变更可追溯性 | 能力变更与 OpenSpec 记录关联率 |

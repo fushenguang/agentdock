@@ -6,5 +6,33 @@
   "hello": {
     "title": "hello.title",
     "greeting": "hello.greeting"
+  },
+  "auth": {
+    "loginTitle": "auth.loginTitle",
+    "loginSubtitle": "auth.loginSubtitle",
+    "signupTitle": "auth.signupTitle",
+    "signupSubtitle": "auth.signupSubtitle",
+    "emailLabel": "auth.emailLabel",
+    "emailPlaceholder": "auth.emailPlaceholder",
+    "emailHelperText": "auth.emailHelperText",
+    "passwordLabel": "auth.passwordLabel",
+    "passwordPlaceholder": "auth.passwordPlaceholder",
+    "confirmPasswordLabel": "auth.confirmPasswordLabel",
+    "confirmPasswordPlaceholder": "auth.confirmPasswordPlaceholder",
+    "signInButton": "auth.signInButton",
+    "signUpButton": "auth.signUpButton",
+    "signOutButton": "auth.signOutButton",
+    "githubButton": "auth.githubButton",
+    "noAccountText": "auth.noAccountText",
+    "signUpLink": "auth.signUpLink",
+    "hasAccountText": "auth.hasAccountText",
+    "signInLink": "auth.signInLink",
+    "orContinueWith": "auth.orContinueWith",
+    "verifyEmailTitle": "auth.verifyEmailTitle",
+    "verifyEmailMessage": "auth.verifyEmailMessage",
+    "dashboardTitle": "auth.dashboardTitle",
+    "dashboardWelcome": "auth.dashboardWelcome",
+    "errorInvalidCredentials": "auth.errorInvalidCredentials",
+    "errorGeneric": "auth.errorGeneric"
   }
 }

@@ -6,5 +6,33 @@
   "hello": {
     "title": "Hello Feature",
     "greeting": "Hello, {name}!"
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "loginSubtitle": "Sign in to your account",
+    "signupTitle": "Create an account",
+    "signupSubtitle": "Enter your details to get started",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "emailHelperText": "Use a real email address — you'll need to verify it after sign up.",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "••••••••",
+    "confirmPasswordLabel": "Confirm password",
+    "confirmPasswordPlaceholder": "••••••••",
+    "signInButton": "Sign in",
+    "signUpButton": "Create account",
+    "signOutButton": "Sign out",
+    "githubButton": "Sign in with GitHub",
+    "noAccountText": "Don't have an account?",
+    "signUpLink": "Sign up",
+    "hasAccountText": "Already have an account?",
+    "signInLink": "Sign in",
+    "orContinueWith": "Or continue with",
+    "verifyEmailTitle": "Check your email",
+    "verifyEmailMessage": "We sent a verification link to {email}. Click the link to complete your sign up.",
+    "dashboardTitle": "Dashboard",
+    "dashboardWelcome": "Welcome, {email}",
+    "errorInvalidCredentials": "Invalid email or password.",
+    "errorGeneric": "Something went wrong. Please try again."
   }
 }

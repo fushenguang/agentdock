@@ -1,45 +1,102 @@
 ---
-title: 技术栈：出处、采用理由与核心角色
-description: 以可溯源证据说明 AgentDock CLI 候选技术栈、采用理由与职责分层。
+title: 技术栈与架构
+description: AgentDock CLI 的技术选型依据、已落地实现与分层架构设计。
 ---
 
-# 技术栈：出处、采用理由与核心角色
+# 技术栈与架构
 
-> 说明：以下为目标选型，强调“可溯源依据 + 工程推导”，不表示已全部在本仓库落地。
+## 已落地技术栈
 
-## 分层与角色
+> 以下组件已在 `packages/cli` 中实际使用，均可在源码中验证。
 
-| 组件 | 开源出处 | 可验证依据 | 在 AgentDock CLI 中的核心角色 |
-| --- | --- | --- | --- |
-| Bun | [github.com/oven-sh/bun](https://github.com/oven-sh/bun) | README 明确其为 all-in-one toolkit、单一可执行工具链，并提供 single-file executable 文档路径 | 运行时与分发层：负责启动性能与潜在单文件分发 |
-| Citty | [github.com/unjs/citty](https://github.com/unjs/citty) | README 明确 Zero dependency、Nested sub-commands、Lazy commands、Hooks/Plugins | 命令建模层：命令拓扑、参数 schema、生命周期管理 |
-| Clack | [github.com/bombshell-dev/clack](https://github.com/bombshell-dev/clack) | README 明确 `@clack/prompts`（现成交互）与 `@clack/core`（headless primitives）双层结构 | 人类交互层：提供 TTY 交互，不侵入执行器核心 |
-| MCP TypeScript SDK | [github.com/modelcontextprotocol/typescript-sdk](https://github.com/modelcontextprotocol/typescript-sdk) | README Overview/Packages 指出服务端客户端 SDK、stdio/HTTP 相关传输与工具 schema 支持 | Agent 协议层：把 CLI 能力投影为可被模型稳定调用的工具接口 |
-| Giget | [github.com/unjs/giget](https://github.com/unjs/giget) | README Features 指出 zero dependency、provider、registry、cache/offline、auth | 模板获取层：统一远程模板拉取、镜像与私有源访问策略 |
-| Changesets | [github.com/changesets/changesets](https://github.com/changesets/changesets) | README 指出其核心目标是多包仓库版本与 changelog 管理 | 发布治理层：保障多包语义版本与发布变更可追溯 |
+| 组件 | 版本 | 在本项目中的角色 | 出处 |
+| ---- | ---- | ---------------- | ---- |
+| **Bun** | latest | 构建层：`bun build` 打包为单文件 Node.js 可执行文件 | [github.com/oven-sh/bun](https://github.com/oven-sh/bun) |
+| **Citty** | ^0.1.6 | 命令建模：子命令定义、flag schema、lazy 加载 | [github.com/unjs/citty](https://github.com/unjs/citty) |
+| **Clack** | ^0.9.1 | 人类交互层：`@clack/prompts` 提供 TTY 交互 UI | [github.com/bombshell-dev/clack](https://github.com/bombshell-dev/clack) |
+| **MCP TypeScript SDK** | ^1.0.0 | Agent 协议层：实现 MCP Stdio 服务器，暴露工具接口 | [github.com/modelcontextprotocol/typescript-sdk](https://github.com/modelcontextprotocol/typescript-sdk) |
+| **Changesets** | workspace | 发布治理：语义版本管理与 CHANGELOG 生成 | [github.com/changesets/changesets](https://github.com/changesets/changesets) |
 
-## 为什么是这组组合
+> **Giget**（远程模板拉取）已在选型中，当前版本模板内置于 CLI npm 包，Giget 将在支持远程模板注册表时引入。
 
-这组组合的设计逻辑是“分层解耦”：
+---
 
-- Bun 提供运行时和分发基座。
-- Citty 定义命令语义结构。
-- Clack 专注人类交互，不污染无头执行逻辑。
-- MCP SDK 提供 Agent 原生消费接口。
-- Giget 负责模板供应链。
-- Changesets 负责版本治理闭环。
+## 分层架构
 
-这一分层可以把系统拆成可独立测试的模块，降低后续替换成本。
+CLI 的核心设计约束：**Human / CI / Agent 三种消费者复用同一执行器核心，表面层完全可替换**。
 
-## 证据与推导边界
+```
+┌─────────────────────────────────────────────┐
+│              命令层 (Citty)                  │
+│   src/commands/init.ts  src/commands/mcp.ts  │
+│   - flag schema 定义                         │
+│   - 环境检测，分发到对应适配器               │
+└───────────────┬─────────────────────────────┘
+                │
+    ┌───────────┼────────────┐
+    ▼           ▼            ▼
+┌───────┐ ┌─────────┐ ┌──────────┐
+│ Human │ │  Agent  │ │   MCP    │
+│Adapter│ │ Adapter │ │ Adapter  │
+│(Clack)│ │  (JSON) │ │(Stdio)   │
+└───┬───┘ └────┬────┘ └────┬─────┘
+    └──────────┴────────────┘
+                │
+    ┌───────────▼──────────┐
+    │     执行器核心        │
+    │  src/core/scaffold   │  ← 文件复制、版本检查
+    │  src/core/registry   │  ← 模板注册表读取
+    └──────────────────────┘
+```
 
-- 上表中的“可验证依据”全部来自各项目 README/官方文档对外声明。
-- “在 AgentDock CLI 中的核心角色”属于工程推导，用于指导本项目架构分层，不代表上游项目对 AgentDock 的官方建议。
+### 适配器职责
+
+**Human Adapter** (`src/adapters/human.ts`)
+- 仅在 TTY 环境下启动
+- 使用 Clack 提供可取消的交互式流程
+- 不包含业务逻辑，仅收集参数后调用核心
+
+**Agent Adapter** (`src/adapters/agent.ts`)
+- 在 `--silent` / `--json` / 非 TTY 时启动
+- 所有输出均为结构化 JSON（NDJSON 格式）
+- 失败时输出错误对象 + 非零退出码，便于 CI/Agent 解析
+
+**MCP Adapter** (`src/adapters/mcp/`)
+- 实现 MCP Stdio 服务器规范
+- 将 `list_templates` 和 `scaffold_project` 投影为 MCP 工具
+- AI Agent 可通过 MCP 客户端直接调用，无需解析命令行
+
+---
+
+## 为什么这样分层
+
+### 无头优先（Headless-first）
+
+执行器核心的设计不依赖 TTY，Human Adapter 是在核心之上的一层"外壳"。这意味着：
+
+- 所有核心路径都可以在无 TTY 的 CI/Agent 环境中测试
+- Clack 等交互库的升级/替换不影响核心逻辑
+
+### 结构化输出作为协议
+
+Agent Adapter 把 stdout 限定为可被机器稳定解析的 JSON 对象，而不是自然语言字符串。这遵循 gws CLI 的设计理念：把 CLI 当作机器协议接口，而不仅仅是交互工具。
+
+### 同一能力多态投影
+
+`scaffold_project` 这个核心能力，同时被投影为：
+
+1. `agentdock init`（人类 flag 调用）
+2. `agentdock init --json`（Agent/CI 调用）
+3. MCP 工具 `scaffold_project`（AI Agent 原生调用）
+
+新增能力时，只需在核心实现一次，三种表面层自动具备。
+
+---
 
 ## 参考出处
 
 - Bun: [github.com/oven-sh/bun](https://github.com/oven-sh/bun)
-- Bun docs（single-file executable）: [bun.com/docs/bundler/executables](https://bun.com/docs/bundler/executables)
+- Bun single-file executable: [bun.com/docs/bundler/executables](https://bun.com/docs/bundler/executables)
 - Citty: [github.com/unjs/citty](https://github.com/unjs/citty)
 - Clack: [github.com/bombshell-dev/clack](https://github.com/bombshell-dev/clack)
 - MCP TypeScript SDK: [github.com/modelcontextprotocol/typescript-sdk](https://github.com/modelcontextprotocol/typescript-sdk)

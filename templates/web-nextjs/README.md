@@ -71,7 +71,31 @@ Open `.env.local` and fill in your values:
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Project Settings → API → service_role (server only) |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` for local dev |
 
-### 4. Start development server
+### 4. Set up Supabase Auth (required for login / signup)
+
+**4a. Enable GitHub OAuth provider**
+
+1. Go to **Supabase Dashboard → Authentication → Providers → GitHub**.
+2. Toggle **Enable Sign in with GitHub** on.
+3. Create a GitHub OAuth App at [github.com/settings/developers](https://github.com/settings/developers):
+   - **Homepage URL**: `http://localhost:3000`
+   - **Authorization callback URL**: copy the **Callback URL (for OAuth)** shown in the Supabase GitHub provider dialog (e.g. `https://<project-ref>.supabase.co/auth/v1/callback`)
+4. Paste the GitHub **Client ID** and **Client Secret** back into the Supabase provider settings and click **Save**.
+
+**4b. Add redirect URL**
+
+1. Go to **Supabase Dashboard → Authentication → URL Configuration**.
+2. Under **Redirect URLs**, click **Add URL** and add:
+   - `http://localhost:3000/auth/callback` ← for local development
+   - `https://<your-production-domain>/auth/callback` ← for production
+3. Under **Site URL** set `http://localhost:3000` (or your production URL).
+
+**4c. (Optional) Email confirmation**
+
+By default Supabase requires email confirmation before a user can sign in.  
+To disable during development: **Authentication → Email → Enable email confirmations** → toggle off.
+
+### 5. Start development server
 
 ```bash
 pnpm dev

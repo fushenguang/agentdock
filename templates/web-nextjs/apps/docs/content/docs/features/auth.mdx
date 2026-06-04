@@ -1,0 +1,139 @@
+---
+title: Authentication (auth)
+description: Email/password and GitHub OAuth authentication using Supabase Auth, implemented following the four-layer contract.
+---
+
+## Overview
+
+The `auth` feature provides full authentication using **Supabase Auth**:
+
+- Email + password sign-in and sign-up (with email verification)
+- GitHub OAuth sign-in
+- Session management via `@supabase/ssr` (httpOnly cookies, auto-refresh)
+- Route protection via `(protected)` route group + server-side session check
+
+UI components: **shadcn/ui** blocks (`login-03`, `signup-03`, `dashboard-01`)  
+Forms: **react-hook-form + zod** (all multi-field forms use this pattern)
+
+---
+
+## Architecture: Four-Layer Contract
+
+```
+core/types/auth.ts              ← Domain types (AuthUser, AuthResult, ActionResult)
+core/repositories/IAuthRepository.ts  ← Interface (no Supabase types)
+infra/db/SupabaseAuthRepository.ts    ← Implementation (Supabase SDK)
+infra/providers.ts              ← DI factory: getAuthRepository()
+features/auth/__contract__.ts   ← Public API types
+features/auth/actions.ts        ← Server Actions ('use server')
+features/auth/index.ts          ← Barrel export
+```
+
+### Why the interface layer?
+
+`IAuthRepository` decouples features from the Supabase SDK. To swap to Auth.js:
+1. Implement `IAuthRepository` with Auth.js
+2. Update `infra/providers.ts` to return the new implementation
+3. `features/auth/actions.ts` is unchanged — zero feature churn
+
+---
+
+## Server Actions
+
+Import from the feature barrel:
+
+```ts
+import { signIn, signUp, signOut, signInWithGithub } from '@/features/auth'
+```
+
+| Action | Returns | Side effect |
+|--------|---------|------------|
+| `signIn(prevState, formData)` | `ActionResult` | Redirects to `/${locale}/dashboard` on success |
+| `signUp(prevState, formData)` | `ActionResult<{ success: true; email: string }>` | No redirect — waits for email verification |
+| `signOut()` | `void` | Clears session, redirects to `/${locale}/login` |
+| `signInWithGithub()` | `ActionResult<{ url: string }>` | Returns OAuth URL — caller does `router.push(url)` |
+
+All actions use `useActionState` on the client side:
+
+```tsx
+const [state, formAction, isPending] = useActionState(signIn, null)
+```
+
+---
+
+## Route Structure
+
+```
+src/app/
+  [locale]/
+    (auth)/                  ← Unauthenticated pages (no layout)
+      login/page.tsx
+      signup/page.tsx
+    (protected)/             ← Authenticated pages
+      layout.tsx             ← Server: checks session, redirects to /login if missing
+      dashboard/page.tsx
+  auth/
+    callback/route.ts        ← OAuth + email verification callback (no locale prefix)
+```
+
+### Why no locale prefix on `/auth/callback`?
+
+Supabase callbacks must be registered with a fixed URL. Using `/auth/callback` (without `[locale]`)
+avoids registering multiple locale variants in the Supabase dashboard.
+After a successful callback, the app redirects to `/en/dashboard` (default locale).
+
+---
+
+## Route Protection
+
+Protection happens at the **layout level** (server-side), not middleware-only:
+
+```ts
+// (protected)/layout.tsx
+const { data: { user } } = await supabase.auth.getUser()
+if (!user) redirect(`/${locale}/login`)
+```
+
+`getUser()` is used (not `getSession()`) because it validates the JWT server-side,
+preventing forged tokens.
+
+Middleware additionally:
+1. Refreshes the Supabase session token on every request
+2. Redirects authenticated users away from `/(auth)` pages to `/dashboard`
+
+---
+
+## Zod Schemas
+
+Defined in `src/lib/validations/auth.ts` — shared between Server Actions and UI:
+
+```ts
+import { signInSchema, signUpSchema } from '@/lib/validations/auth'
+```
+
+| Schema | Fields | Rules |
+|--------|--------|-------|
+| `signInSchema` | `email`, `password` | email format, min 8 chars |
+| `signUpSchema` | `email`, `password`, `confirmPassword` | above + passwords match |
+
+---
+
+## Setup Requirements
+
+Before auth works, configure Supabase:
+
+1. **GitHub OAuth** — Supabase Dashboard → Authentication → Providers → GitHub
+2. **Redirect URL** — Supabase Dashboard → Authentication → URL Configuration → add `http://localhost:3000/auth/callback`
+
+See the template `README.md` for the full step-by-step guide.
+
+---
+
+## Non-Goals
+
+This feature intentionally excludes:
+- Password reset / forgot password
+- User profile / avatar / account settings
+- Role-based access control (RBAC)
+- Magic link / OTP / phone login
+- Custom email templates
