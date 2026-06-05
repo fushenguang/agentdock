@@ -1,5 +1,12 @@
 # @cogito.ai/cli
 
+## 0.3.5
+
+### Patch Changes
+
+- 64ef5b6: docs: add release-pitfalls guide covering template packaging trap, Release Bot diverge, and CI-only publish workflow
+- b158ca5: refine CLI commands
+
 ## 0.3.4
 
 ### Patch Changes
