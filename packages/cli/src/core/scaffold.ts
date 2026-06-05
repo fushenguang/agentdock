@@ -8,6 +8,7 @@ import {
 } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { execSync } from "child_process";
 import type { RegistryTemplate } from "./registry.js";
 import { checkVersion } from "./version.js";
 import { VERSION as CLI_VERSION } from "../version.js";
@@ -89,6 +90,31 @@ function rewritePackageJson(
   writeFileSync(pkgJsonPath, JSON.stringify(pkg, null, 2) + "\n", "utf-8");
 }
 
+/**
+ * Detects the user's installed pnpm version and writes it as the
+ * `packageManager` field in the project's root package.json.
+ *
+ * This allows Turborepo to validate the package manager without requiring
+ * `dangerouslyDisablePackageManagerCheck: true` in turbo.json.
+ * If pnpm is not in PATH, the field is left unchanged (template keeps its own value).
+ */
+function injectPackageManager(pkgJsonPath: string): void {
+  if (!existsSync(pkgJsonPath)) return;
+  try {
+    const pnpmVersion = execSync("pnpm --version", {
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    if (!pnpmVersion) return;
+    const raw = readFileSync(pkgJsonPath, "utf-8");
+    const pkg = JSON.parse(raw) as Record<string, unknown>;
+    pkg["packageManager"] = `pnpm@${pnpmVersion}`;
+    writeFileSync(pkgJsonPath, JSON.stringify(pkg, null, 2) + "\n", "utf-8");
+  } catch {
+    // pnpm not found in PATH — skip silently, template's own value remains
+  }
+}
+
 export function scaffoldProject(
   options: ScaffoldOptions
 ): ScaffoldResult | ScaffoldError {
@@ -119,11 +145,15 @@ export function scaffoldProject(
     mkdirSync(targetDir, { recursive: true });
     cpSync(sourceDir, targetDir, { recursive: true });
 
-    // Rewrite package.json
+    // Rewrite root package.json (name, version, remove internal fields)
     const pkgJsonPath = join(targetDir, "package.json");
     if (existsSync(pkgJsonPath)) {
       rewritePackageJson(pkgJsonPath, name, template.resolvedDependencies);
     }
+
+    // Inject detected pnpm version so Turborepo can validate the package manager
+    // without needing dangerouslyDisablePackageManagerCheck in turbo.json.
+    injectPackageManager(pkgJsonPath);
 
     return {
       ok: true,

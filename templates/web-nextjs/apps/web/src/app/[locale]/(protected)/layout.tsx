@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getServerClient } from '@/infra/db/client'
+import { getCurrentUser } from '@/features/auth/server'
 
 export default async function ProtectedLayout({
   children,
@@ -9,10 +9,7 @@ export default async function ProtectedLayout({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
-  const supabase = await getServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect(`/${locale}/login`)

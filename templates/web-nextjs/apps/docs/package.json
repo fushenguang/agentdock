@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
-    "docs:sync": "openspec-docs-sync",
+    "docs:sync": "pnpm --filter @cogito.ai/openspec-docs-sync run build && node ../../packages/openspec-docs-sync/dist/index.js",
     "postinstall": "fumadocs-mdx"
   },
   "dependencies": {

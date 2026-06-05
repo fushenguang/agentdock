@@ -6,18 +6,17 @@ import { useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { GalleryVerticalEnd } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field'
 import { signUp } from '@/features/auth'
 import { signUpSchema, type SignUpInput } from '@/lib/validations/auth'
 import type { ActionResult } from '@/core/types/auth'
@@ -29,7 +28,7 @@ export default function SignupPage() {
   const locale = routeParams.locale ?? 'en'
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null)
 
-  const form = useForm<SignUpInput>({
+  const { register, formState: { errors } } = useForm<SignUpInput>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { email: '', password: '', confirmPassword: '' },
   })
@@ -40,111 +39,130 @@ export default function SignupPage() {
   )
 
   useEffect(() => {
-    if (state?.error) {
-      toast.error(state.error)
-    }
-    if (state?.data?.success) {
-      setVerifyEmail(state.data.email)
-    }
+    if (state?.error) toast.error(state.error)
+    if (state?.data?.success) setVerifyEmail(state.data.email)
   }, [state])
 
   if (verifyEmail) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4 py-12">
-        <div className="w-full max-w-sm space-y-4 text-center">
-          <h1 className="text-2xl font-bold">{t('verifyEmailTitle')}</h1>
-          <p className="text-muted-foreground">
-            {t('verifyEmailMessage', { email: verifyEmail })}
-          </p>
-          <Link href={`/${locale}/login`} className="text-sm underline underline-offset-4">
-            {t('signInLink')}
+      <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+        <div className="flex w-full max-w-sm flex-col gap-6">
+          <Link href={`/${locale}`} className="flex items-center gap-2 self-center font-medium">
+            <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <GalleryVerticalEnd className="size-4" />
+            </div>
+            AgentDock
           </Link>
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-xl">{t('verifyEmailTitle')}</CardTitle>
+              <CardDescription>
+                {t('verifyEmailMessage', { email: verifyEmail })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <Link href={`/${locale}/login`} className="underline underline-offset-4 text-sm">
+                  {t('signInLink')}
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">{t('signupTitle')}</h1>
-          <p className="text-muted-foreground">{t('signupSubtitle')}</p>
-        </div>
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <Link href={`/${locale}`} className="flex items-center gap-2 self-center font-medium">
+          <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <GalleryVerticalEnd className="size-4" />
+          </div>
+          AgentDock
+        </Link>
 
-        <Form {...form}>
-          <form action={formAction} className="space-y-4">
-            <input type="hidden" name="locale" value={locale} />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('emailLabel')}</FormLabel>
-                  <FormControl>
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-xl">{t('signupTitle')}</CardTitle>
+              <CardDescription>{t('signupSubtitle')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form action={formAction}>
+                <input type="hidden" name="locale" value={locale} />
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="email">{t('emailLabel')}</FieldLabel>
                     <Input
+                      id="email"
                       type="email"
                       placeholder={t('emailPlaceholder')}
-                      {...field}
+                      autoComplete="email"
+                      {...register('email')}
                     />
-                  </FormControl>
-                  <FormDescription>{t('emailHelperText')}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('passwordLabel')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder={t('passwordPlaceholder')}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('confirmPasswordLabel')}</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder={t('confirmPasswordPlaceholder')}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? '...' : t('signUpButton')}
-            </Button>
-          </form>
-        </Form>
-
-        <p className="text-center text-sm text-muted-foreground">
-          {t('hasAccountText')}{' '}
-          <Link
-            href={`/${locale}/login`}
-            className="underline underline-offset-4 hover:text-primary"
-          >
-            {t('signInLink')}
-          </Link>
-        </p>
+                    {errors.email && (
+                      <FieldDescription className="text-destructive">
+                        {errors.email.message}
+                      </FieldDescription>
+                    )}
+                    <FieldDescription>{t('emailHelperText')}</FieldDescription>
+                  </Field>
+                  <Field className="grid grid-cols-2 gap-4">
+                    <Field>
+                      <FieldLabel htmlFor="password">{t('passwordLabel')}</FieldLabel>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder={t('passwordPlaceholder')}
+                        autoComplete="new-password"
+                        {...register('password')}
+                      />
+                      {errors.password && (
+                        <FieldDescription className="text-destructive">
+                          {errors.password.message}
+                        </FieldDescription>
+                      )}
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="confirmPassword">{t('confirmPasswordLabel')}</FieldLabel>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder={t('confirmPasswordPlaceholder')}
+                        autoComplete="new-password"
+                        {...register('confirmPassword')}
+                      />
+                      {errors.confirmPassword && (
+                        <FieldDescription className="text-destructive">
+                          {errors.confirmPassword.message}
+                        </FieldDescription>
+                      )}
+                    </Field>
+                  </Field>
+                  <Field>
+                    <Button type="submit" className="w-full" disabled={isPending}>
+                      {isPending ? '\u2026' : t('signUpButton')}
+                    </Button>
+                    <FieldDescription className="text-center">
+                      {t('hasAccountText')}{' '}
+                      <Link href={`/${locale}/login`} className="underline underline-offset-4">
+                        {t('signInLink')}
+                      </Link>
+                    </FieldDescription>
+                  </Field>
+                </FieldGroup>
+              </form>
+            </CardContent>
+          </Card>
+          <FieldDescription className="px-6 text-center">
+            {t('termsText')}{' '}
+            <Link href={`/${locale}/terms`} className="underline underline-offset-4">{t('termsLink')}</Link>
+            {' '}{t('andText')}{' '}
+            <Link href={`/${locale}/privacy`} className="underline underline-offset-4">{t('privacyLink')}</Link>.
+          </FieldDescription>
+        </div>
       </div>
     </div>
   )

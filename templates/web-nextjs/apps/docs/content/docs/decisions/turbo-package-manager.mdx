@@ -1,0 +1,70 @@
+---
+title: "Turbo & Package Manager"
+description: "Why dangerouslyDisablePackageManagerCheck exists, its tradeoffs, and how to properly configure packageManager for your team."
+---
+
+# Turborepo & Package Manager Configuration
+
+## Why `dangerouslyDisablePackageManagerCheck` is enabled
+
+This template ships with `dangerouslyDisablePackageManagerCheck: true` in `turbo.json` to avoid an out-of-the-box failure:
+
+```json
+// turbo.json
+{
+  "dangerouslyDisablePackageManagerCheck": true
+}
+```
+
+**Root cause:** Turborepo 2.0+ requires the `packageManager` field in `package.json` to identify your package manager and version. Without it, Turbo refuses to run:
+
+```
+× Could not resolve workspaces.
+╰─▶ Missing `packageManager` field in package.json
+```
+
+Since users may have different pnpm versions installed, the template cannot hard-code a specific version without risking the same `Corepack PATH` error that plagues a pinned `packageManager` field. `dangerouslyDisablePackageManagerCheck` lets Turbo skip this validation so the template works on first `pnpm dev`.
+
+## What `dangerouslyDisablePackageManagerCheck` actually disables
+
+| What Turbo normally does | What is skipped |
+| --- | --- |
+| Reads `packageManager` to identify which lockfile to hash | Cache hashing falls back to a less-precise strategy |
+| Validates that the running package manager matches the declared one | No mismatch detection (could build with wrong PM) |
+| Optimizes workspace discovery per package manager | Slightly slower workspace graph resolution |
+
+**In practice:** for most single-developer or small team projects, the only noticeable difference is that Turbo cache keys are slightly less precise — you might get a cache miss that would otherwise be a hit. This is a minor inconvenience, not a correctness issue.
+
+## How to remove the flag (recommended for team projects)
+
+**Step 1 — Find your installed pnpm version:**
+
+```bash
+pnpm --version
+# e.g. 11.5.1
+```
+
+**Step 2 — Add `packageManager` to your root `package.json`:**
+
+```json
+{
+  "packageManager": "pnpm@11.5.1"
+}
+```
+
+**Step 3 — Remove `dangerouslyDisablePackageManagerCheck` from `turbo.json`:**
+
+```json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    ...
+  }
+}
+```
+
+**Step 4 — Commit both files.** All developers cloning the repo will now use the same pnpm version enforced by Corepack, and Turbo's cache hashing is fully accurate.
+
+## Automatic injection (CLI 0.3.6+)
+
+Starting with `@cogito.ai/cli@0.3.6`, the `agentdock init` command automatically detects your installed pnpm version and injects `packageManager: "pnpm@X.Y.Z"` into the scaffolded project's root `package.json`. This means new projects are created with the correct field pre-filled, and you can immediately remove `dangerouslyDisablePackageManagerCheck` from `turbo.json` after scaffolding.

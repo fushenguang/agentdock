@@ -1,7 +1,12 @@
-import { getTranslations } from 'next-intl/server'
-import { getServerClient } from '@/infra/db/client'
-import { signOut } from '@/features/auth'
-import { Button } from '@/components/ui/button'
+import { AppSidebar } from '@/components/dashboard/app-sidebar'
+import { ChartAreaInteractive } from '@/components/dashboard/chart-area-interactive'
+import { DataTable } from '@/components/dashboard/data-table'
+import { SectionCards } from '@/components/dashboard/section-cards'
+import { SiteHeader } from '@/components/dashboard/site-header'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { getCurrentUser } from '@/features/auth/server'
+
+import data from '@/components/dashboard/data.json'
 
 export default async function DashboardPage({
   params,
@@ -9,34 +14,38 @@ export default async function DashboardPage({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
-  const t = await getTranslations({ locale, namespace: 'auth' })
-  const supabase = await getServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
+
+  const userInfo = {
+    name: user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'User',
+    email: user?.email ?? '',
+    avatar: user?.user_metadata?.avatar_url ?? '',
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <h1 className="text-xl font-semibold">{t('dashboardTitle')}</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{user?.email}</span>
-            <form action={signOut}>
-              <input type="hidden" name="locale" value={locale} />
-              <Button type="submit" variant="outline" size="sm">
-                {t('signOutButton')}
-              </Button>
-            </form>
+    <SidebarProvider
+      style={
+        {
+          '--sidebar-width': 'calc(var(--spacing) * 72)',
+          '--header-height': 'calc(var(--spacing) * 12)',
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar variant="inset" user={userInfo} locale={locale} />
+      <SidebarInset>
+        <SiteHeader />
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              <SectionCards />
+              <div className="px-4 lg:px-6">
+                <ChartAreaInteractive />
+              </div>
+              <DataTable data={data} />
+            </div>
           </div>
         </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-8">
-        <p className="text-muted-foreground">
-          {t('dashboardWelcome', { email: user?.email ?? '' })}
-        </p>
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

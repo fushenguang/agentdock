@@ -3,9 +3,6 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "bin": {
-    "openspec-docs-sync": "./dist/index.js"
-  },
   "scripts": {
     "build": "tsc",
     "prepare": "tsc",
