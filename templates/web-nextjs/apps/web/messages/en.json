@@ -29,6 +29,10 @@
     "dashboardTitle": "Dashboard",
     "dashboardWelcome": "Welcome, {email}",
     "errorInvalidCredentials": "Invalid email or password.",
-    "errorGeneric": "Something went wrong. Please try again."
+    "errorGeneric": "Something went wrong. Please try again.",
+    "termsText": "By clicking continue, you agree to our",
+    "termsLink": "Terms of Service",
+    "andText": "and",
+    "privacyLink": "Privacy Policy"
   }
 }

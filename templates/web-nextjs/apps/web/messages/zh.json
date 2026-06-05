@@ -29,6 +29,10 @@
     "dashboardTitle": "控制台",
     "dashboardWelcome": "欢迎，{email}",
     "errorInvalidCredentials": "邮箱或密码错误。",
-    "errorGeneric": "出现错误，请稍后重试。"
+    "errorGeneric": "出现错误，请稍后重试。",
+    "termsText": "点击继续即表示您同意我们的",
+    "termsLink": "服务条款",
+    "andText": "和",
+    "privacyLink": "隐私政策"
   }
 }
