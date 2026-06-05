@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.4.0
+
+### Minor Changes
+
+- dff1e2b: refine web-nextjs template
+
 ## 0.3.5
 
 ### Patch Changes
