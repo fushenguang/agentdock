@@ -1,5 +1,13 @@
 # @cogito.ai/cli
 
+## 0.3.4
+
+### Patch Changes
+
+- fixed template issues: remove hello route, fix zh.json translations, fix dashboard getTranslations, add ThemeProvider and Toaster
+
+## 0.3.3
+
 ## 0.3.2
 
 ### Patch Changes
