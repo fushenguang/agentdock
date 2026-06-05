@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.4.1
+
+### Patch Changes
+
+- 83a32e7: resolve web-nextjs template css issues
+
 ## 0.4.0
 
 ### Minor Changes
