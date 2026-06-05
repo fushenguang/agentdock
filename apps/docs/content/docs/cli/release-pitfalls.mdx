@@ -1,0 +1,233 @@
+---
+title: 发布陷阱与实践经验
+description: CLI 发布流程中真实踩过的坑、根因分析、以及避免同样问题再次出现的操作规范。
+---
+
+# 发布陷阱与实践经验
+
+本页记录在混合自动化（GitHub Actions + Changesets Release Bot）与手动操作共存场景下，
+真实踩过的问题及其根因，帮助后续维护者避免重复犯同样的错误。
+
+---
+
+## 陷阱一：用户安装 `@latest` 但得到旧模板
+
+### 现象
+
+```bash
+npm install -g @cogito.ai/cli@latest
+agentdock init
+# 生成的项目仍然是旧模板（bug 未修复）
+```
+
+### 根因
+
+```
+时间轴（错误操作顺序）：
+
+T1: 提交 .changeset/xxx.md（描述"修复模板问题"）
+T2: Release Bot 检测到 changeset → 自动合并 "Version Packages" PR
+T3: CI 构建并发布 0.3.3 ← 此时 templates/ 还是旧的，或修复尚未在 main 上
+T4: 提交模板 bug 修复 → 代码在 main，但 0.3.3 已经发布
+T5: 用户 npm install @latest → 拿到的是 T3 时刻的旧模板
+```
+
+**本质原因**：Changeset 文件与模板修复代码不在同一个原子提交/PR 里。Release Bot 在 T2-T3 时刻触发，打包的是 T3 时刻的代码快照，而模板修复在 T4 才落地。
+
+### CLI 打包机制（为何模板变更必须同步发布）
+
+CLI npm 包的 `dist/` 目录结构：
+
+```
+dist/
+  index.js          ← 编译后的 CLI 可执行文件
+  registry.json     ← 模板注册表（generate-registry 生成）
+  templates/
+    web-nextjs/     ← templates/ 目录全量 rsync 进来
+```
+
+构建脚本中的关键步骤：
+
+```bash
+rsync -a --exclude='node_modules/' --exclude='.next/' --exclude='.turbo/' \
+  ../../templates/ dist/templates/
+```
+
+**这意味着**：`npm publish` 执行时 `templates/` 目录是什么状态，用户拿到的就是什么。
+模板的任何变更都需要一次新的 `npm publish` 才能送达用户。
+
+### 解决方案（事后补救）
+
+当发现模板修复遗漏在已发布版本之外时：
+
+```bash
+# 1. 手动 bump 到下一个 patch 版本（跳过冲突的自动版本）
+# 修改 packages/cli/package.json: "version": "x.y.z+1"
+# 同步更新 packages/cli/CHANGELOG.md
+
+# 2. 重新构建（确保 dist/templates/ 是最新的）
+pnpm --filter @cogito.ai/cli build
+
+# 3. 提交版本变更
+git add packages/cli/package.json packages/cli/CHANGELOG.md
+git commit -m "chore(cli): release vX.Y.Z+1 — <描述>"
+git push
+# → CI 检测到新版本未发布，自动 publish
+```
+
+### 预防措施（日常规范）
+
+<Callout type="warn">
+**黄金规则**：模板变更 和 changeset 文件必须在同一个 PR/push 中提交。
+不允许先提 changeset、再提模板修复。
+</Callout>
+
+正确的操作顺序：
+
+```bash
+# 1. 先完成所有模板变更，确认本地 build 和 dev server 工作正常
+pnpm --filter @cogito.ai/web build
+
+# 2. 在同一个工作分支上创建 changeset
+pnpm changeset
+# 选择 @cogito.ai/cli，patch/minor/major，填写变更说明
+
+# 3. 一次性提交（模板变更 + changeset 在同一 commit 或同一 PR）
+git add templates/ .changeset/
+git commit -m "fix(template): <描述>
+
+changeset included"
+
+# 4. 推送 → Release Bot 看到 changeset + 已有最终模板代码 → 发布正确
+git push
+```
+
+---
+
+## 陷阱二：Release Bot PR 与本地分支 diverged
+
+### 现象
+
+```
+error: failed to push some refs to 'github.com:...'
+hint: Updates were rejected because the remote contains work that you do not have locally.
+```
+
+执行 `git pull --rebase` 或 `git pull` 后出现 CONFLICT。
+
+### 根因
+
+Changesets Release Bot 会在检测到 `.changeset/*.md` 文件后，自动在 GitHub 上创建或更新
+`changeset-release/main` 分支并向 `main` 提 PR。当该 PR 被合并时，remote `main` 向前走了。
+如果本地同时有提交（比如手动 version bump），就会产生 diverge 和冲突。
+
+### 正确处理
+
+冲突只会出现在 `package.json`（version 字段）和 `CHANGELOG.md` 中：
+
+```bash
+# 终止 rebase
+git rebase --abort
+# 或终止 merge
+git merge --abort
+
+# 使用 merge（不用 rebase）整合远端
+git merge origin/main --no-edit
+# 手动解决 package.json 和 CHANGELOG.md 冲突：
+#   - version 取较大的那个（我们的 bump 版本）
+#   - CHANGELOG 合并两段内容，本地版本在上，远端版本在下
+git add packages/cli/package.json packages/cli/CHANGELOG.md
+git commit  # 完成 merge commit
+git push
+```
+
+### 预防措施
+
+**最根本的预防**：遵循陷阱一的黄金规则——模板和 changeset 同 PR。
+Release Bot 合并 PR 后，本地不应该再有新的版本 bump 提交，因为发布已经自动完成。
+
+如果确实需要紧急发布（比如 Release Bot 的 PR 已合并但模板是旧的），在开始之前先 pull：
+
+```bash
+git fetch origin
+git merge origin/main  # 先同步，再做手动 bump
+```
+
+---
+
+## 陷阱三：本地 `npm publish` 失败（401 Unauthorized）
+
+### 现象
+
+```
+npm error code E401
+npm error 401 Unauthorized - PUT https://registry.npmjs.org/...
+```
+
+### 根因
+
+本项目的 npm 发布凭证（`NPM_TOKEN`）存储在 GitHub repository secrets 中，
+仅供 GitHub Actions 使用。本地机器没有 npm 登录态。
+
+### 解决方案
+
+**不要在本地发布**。正确流程是：
+
+1. 推送包含版本 bump 的 commit 到 `main`
+2. GitHub Actions `.github/workflows/release.yml` 自动触发
+3. CI 执行 `pnpm build`（含 rsync 最新模板）再 `changeset publish`
+
+在 GitHub Actions 页面可以查看发布进度：`Actions → Release → 最新一次运行`
+
+验证是否发布成功：
+
+```bash
+npm view @cogito.ai/cli version
+# 或
+npm view @cogito.ai/cli versions --json
+```
+
+---
+
+## 发布流程完整参考图
+
+```
+开发者本地                          GitHub                        npm registry
+─────────────                       ──────                        ────────────
+修改 templates/
+创建 changeset
+git push ──────────────────────→ main 分支
+                                      │
+                                      ├── CI: pnpm build
+                                      │   （rsync templates → dist）
+                                      │
+                        Release Bot 检测 .changeset/*.md
+                                      │
+                              创建 "Version Packages" PR
+                                      │
+                           PR 审核合并（或自动合并）
+                                      │
+                                 CI 再次触发
+                                      │
+                              pnpm build（含最新代码）
+                                      │
+                         changeset publish ────────────→ @cogito.ai/cli@x.y.z
+```
+
+**关键保证**：Release Bot PR 合并时，`main` 上的代码必须已经是最终状态（含模板修复），
+CI 构建才能打包到正确的模板。
+
+---
+
+## 快速检查清单
+
+发布前必过的检查项：
+
+- [ ] 所有模板变更已提交到 `main`（`git status` 干净）
+- [ ] 本地 `pnpm --filter @cogito.ai/web build` 通过
+- [ ] `pnpm check-types` 通过
+- [ ] `pnpm lint` 通过
+- [ ] `.changeset/*.md` 与模板变更在同一 PR（不分开提交）
+- [ ] 推送后在 GitHub Actions 确认 CI 绿色
+- [ ] `npm view @cogito.ai/cli version` 显示预期版本号
+- [ ] 本地 `npx @cogito.ai/cli@latest init` 验证生成的模板正确

@@ -165,42 +165,36 @@ packages/cli/dist/
 
 ## 版本发布
 
-项目使用 [Changesets](https://github.com/changesets/changesets) 进行版本管理。
+项目使用 [Changesets](https://github.com/changesets/changesets) + GitHub Actions 实现**自动化发布**。
+本地无需也不应该手动执行 `npm publish`（npm token 仅存在于 CI secrets 中）。
 
-### 发布流程
+### 自动化发布流程（正常路径）
 
-**1. 创建 changeset**（描述本次变更）：
-
-```bash
-pnpm changeset
-# 选择 @cogito.ai/cli，选择变更类型（patch/minor/major），填写变更说明
+```
+1. 完成所有代码和模板变更（在同一 PR/branch 上）
+2. 创建 changeset（pnpm changeset）
+3. 将 changeset 文件与代码变更一起提交，push 到 main
+4. Release Bot 自动开 "Version Packages" PR（含版本 bump + CHANGELOG）
+5. 合并该 PR → CI 触发 pnpm build（rsync 最新模板）+ changeset publish
+6. npm registry 上出现新版本
 ```
 
-**2. 提交 changeset 文件**：
+### 黄金规则
+
+> **模板变更 和 changeset 文件必须在同一个 PR/push 中提交。**  
+> 先提 changeset、再提模板修复会导致 Release Bot 在模板修复落地前就触发发布，用户拿到旧模板。
 
 ```bash
-git add .changeset/
-git commit -m "chore: add changeset for <描述>"
-```
+# ✅ 正确：一次性提交
+git add templates/ .changeset/
+git commit -m "fix(template): 修复多语言 key 显示问题"
+git push
 
-**3. 更新版本号并生成 changelog**：
-
-```bash
-pnpm changeset version
-# 自动更新 packages/cli/package.json 版本号
-# 自动更新 packages/cli/CHANGELOG.md
-```
-
-**4. 构建**：
-
-```bash
-pnpm --filter @cogito.ai/cli build
-```
-
-**5. 发布到 npm**：
-
-```bash
-pnpm --filter @cogito.ai/cli publish
+# ❌ 错误：分开提交
+git add .changeset/ && git commit -m "chore: add changeset"
+git push
+# ... 此时 Release Bot 可能已经开 PR ...
+git add templates/ && git commit -m "fix: 修复模板"  # 太晚了
 ```
 
 ### 版本号语义
@@ -213,10 +207,14 @@ pnpm --filter @cogito.ai/cli publish
 
 ### 模板更新与 CLI 版本的关系
 
-模板文件与 CLI 可执行文件打包在同一 npm 包中。因此：
+模板文件与 CLI 可执行文件打包在同一 npm 包中。构建时通过 rsync 将 `templates/` 全量打入 `dist/templates/`。因此：
 
 - **修改 `templates/` 下的任何内容**都需要发布新版本的 CLI 才能让终端用户获取到最新模板
 - `agentdock.minCliVersion` 字段用于声明模板所需的最低 CLI 版本，脚手架时会自动检查
+
+<Callout>
+踩过的陷阱和详细操作规范，见 [发布陷阱与实践经验](/docs/cli/release-pitfalls)。
+</Callout>
 
 ---
 

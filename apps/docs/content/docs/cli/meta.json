@@ -1,4 +1,4 @@
 {
   "title": "CLI 工具链",
-  "pages": ["index", "usage", "development", "tech-stack", "gws-methodology", "implementation-roadmap"]
+  "pages": ["index", "usage", "development", "release-pitfalls", "tech-stack", "gws-methodology", "implementation-roadmap"]
 }
