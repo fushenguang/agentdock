@@ -88,16 +88,16 @@
 - [x] 10.1 `pnpm lint`：`features/auth/` 无 `no-direct-db-in-features` 违规
 - [x] 10.2 `pnpm check-types`：无 TS error（含 shadcn 生成的组件）
 - [x] 10.3 `pnpm build`：`apps/web` 构建成功
-- [ ] 10.4 端到端验证（本地 + 真实 Supabase）：
-  - [ ] 邮箱/密码注册 → 收到验证邮件 → 点击链接 → 跳转 dashboard ✓
-  - [ ] 邮箱/密码登录 → 跳转 dashboard ✓
-  - [ ] GitHub OAuth 登录全流程 ✓
-  - [ ] 未登录访问 `/en/dashboard` → 重定向 `/en/login` ✓
-  - [ ] 已登录访问 `/en/login` → 重定向 `/en/dashboard` ✓
-  - [ ] 退出登录 → 再访问 dashboard → 重定向 login ✓
-- [ ] 10.5 表单验证验收：
-  - [ ] login：无效邮箱格式 → inline 错误 ✓；密码 < 8 位 → inline 错误 ✓；密码错误 → server error 提示 ✓
-  - [ ] signup：confirmPassword 不一致 → inline 错误 ✓；注册成功 → 显示查收邮件提示 ✓
+- [x] 10.4 端到端验证（本地 + 真实 Supabase）：
+  - [x] 邮箱/密码注册 → 收到验证邮件 → 点击链接 → 跳转 dashboard ✓
+  - [x] 邮箱/密码登录 → 跳转 dashboard ✓
+  - [x] GitHub OAuth 登录全流程 ✓
+  - [x] 未登录访问 `/en/dashboard` → 重定向 `/en/login` ✓
+  - [x] 已登录访问 `/en/login` → 重定向 `/en/dashboard` ✓
+  - [x] 退出登录 → 再访问 dashboard → 重定向 login ✓
+- [x] 10.5 表单验证验收：
+  - [x] login：无效邮箱格式 → inline 错误 ✓；密码 < 8 位 → inline 错误 ✓；密码错误 → server error 提示 ✓
+  - [x] signup：confirmPassword 不一致 → inline 错误 ✓；注册成功 → 显示查收邮件提示 ✓
 - [x] 10.6 无自写 SVG icon（只用 `lucide-react`）
 - [x] 10.7 `openspec validate add-auth-to-web-nextjs` 通过
 - [x] 10.8 自检：未触及 Non-goals（无忘记密码 / 用户资料 / RBAC / 自定义邮件模板）
