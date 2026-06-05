@@ -20,20 +20,13 @@ function copyCookies(from: NextResponse, to: NextResponse) {
 export default async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
-  if (pathname === '/') {
-    const url = request.nextUrl.clone()
-    url.pathname = `/${defaultLocale}`
-    return NextResponse.redirect(url)
-  }
-
-  // Skip Supabase session refresh for the auth callback route
-  // (it's handled by the route handler itself)
+  // Auth callback is handled by its own route handler — skip all middleware processing
   if (pathname.startsWith('/auth/')) {
     return NextResponse.next()
   }
 
-  // 1. Let next-intl build the final response first.
-  // Supabase cookie refresh should write into this response to avoid cookie loss.
+  // 1. Let next-intl handle locale routing.
+  //    With localePrefix: 'always' (default), this also redirects / → /${defaultLocale}.
   const response = handleI18nRouting(request)
 
   // 2. Refresh the Supabase session (keeps token alive, writes updated cookie)
@@ -54,7 +47,7 @@ export default async function middleware(request: NextRequest) {
     return redirectResponse
   }
 
-  // 4. Normalize unknown locale-like prefixes: /fr/hello -> /en/hello
+  // 4. Normalize unknown locale-like prefixes: /fr/hello → /zh/hello
   const segments = pathname.split('/').filter(Boolean)
   const firstSegment = segments[0]
 
@@ -74,6 +67,6 @@ export default async function middleware(request: NextRequest) {
 
 export const config = {
   // Match all pathnames except Next.js internals, static files, and auth callback.
-  // The explicit '/' entry ensures the root redirect to the default locale always fires.
-  matcher: ['/', '/((?!_next|_vercel|auth/callback|.*\\..*).*)'],
+  // The regex also matches '/' so next-intl handles the root → /${defaultLocale} redirect.
+  matcher: ['/((?!_next|_vercel|auth/callback|.*\\..*).*)'],
 }

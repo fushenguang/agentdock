@@ -10,8 +10,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import type { RegistryTemplate } from "./registry.js";
 import { checkVersion } from "./version.js";
-
-const CLI_VERSION = "0.1.0";
+import { VERSION as CLI_VERSION } from "../version.js";
 
 export interface ScaffoldOptions {
   /** Target directory path (absolute or relative to cwd) */
@@ -71,6 +70,10 @@ function rewritePackageJson(
   delete pkg["private"];
   // Remove the agentdock meta field from generated projects
   delete pkg["agentdock"];
+  // Remove packageManager — Corepack enforcement on a pinned old version causes
+  // PATH errors for users on newer pnpm versions. engines.pnpm already documents
+  // the version requirement without enforcing a specific patch version.
+  delete pkg["packageManager"];
 
   // Rewrite workspace:* deps with resolved versions
   for (const key of ["dependencies", "devDependencies", "peerDependencies"] as const) {

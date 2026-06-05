@@ -5,12 +5,11 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { ALL_TOOLS } from "./tools.js";
-
-const PKG_VERSION = "0.1.0";
+import { VERSION } from "../../version.js";
 
 export async function startMcpServer(): Promise<void> {
   const server = new Server(
-    { name: "agentdock", version: PKG_VERSION },
+    { name: "agentdock", version: VERSION },
     {
       capabilities: {
         tools: {},
