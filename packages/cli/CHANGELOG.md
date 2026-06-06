@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.4.2
+
+### Patch Changes
+
+- c94deed: refine web-nextjs and docs app
+
 ## 0.4.1
 
 ### Patch Changes
