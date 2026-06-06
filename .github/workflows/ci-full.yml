@@ -7,6 +7,8 @@
 # Jobs:
 #   secretlint     — scan entire repo for leaked credentials (hard failure)
 #   dep-health-check — warn on low-download-count or deprecated packages
+#   docs-build      — build docs site (only when docs-related files change)
+#   template-build  — build templates (only when template files change)
 #
 # See: openspec/changes/add-layer2-constraint-gates/specs/ci-gates/spec.md
 
@@ -16,6 +18,12 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.mdx'
+      - '.changeset/**'
+      - 'LICENSE'
+      - '.gitignore'
 
 jobs:
   secretlint:
@@ -182,6 +190,7 @@ jobs:
   docs-build:
     name: Docs Build
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     steps:
       - uses: actions/checkout@v4
 
@@ -204,6 +213,7 @@ jobs:
   template-web-nextjs-build:
     name: Template web-nextjs Build
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     defaults:
       run:
         working-directory: templates/web-nextjs
@@ -221,4 +231,3 @@ jobs:
 
       - name: Build template
         run: pnpm build
-
