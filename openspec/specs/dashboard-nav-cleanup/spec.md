@@ -1,5 +1,8 @@
-## MODIFIED Requirements
+# dashboard-nav-cleanup Specification
 
+## Purpose
+TBD - created by archiving change add-user-account-features. Update Purpose after archive.
+## Requirements
 ### Requirement: 侧边栏导航清理（app-sidebar）
 `src/components/dashboard/app-sidebar.tsx` MUST 移除 demo 内容，重构为通用 web 应用导航结构。
 
@@ -51,3 +54,4 @@ navSecondary: [
 #### Scenario: 三个页面出现在 llms.txt（如 apps/docs 接入）
 - **WHEN** 模板配置了 docs 站并运行 docs:sync
 - **THEN** help/privacy/about 页不影响 docs 站（它们是 apps/web 的页面，与 apps/docs 隔离）
+
