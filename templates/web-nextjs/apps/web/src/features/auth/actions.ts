@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { getAuthRepository } from '@/infra/providers'
-import { signInSchema, signUpSchema, forgotPasswordSchema, resetPasswordSchema, displayNameSchema } from '@/lib/validations/auth'
+import { signInSchema, signUpSchema, forgotPasswordSchema, resetPasswordWithOTPSchema, resetPasswordSchema, displayNameSchema } from '@/lib/validations/auth'
 import type { ActionResult } from '@/core/types/auth'
 import { defaultLocale, isLocale } from '@/i18n/config'
 import type { SignUpSuccessData, OAuthData } from './__contract__'
@@ -152,4 +152,53 @@ export async function updateDisplayName(
   }
 
   return { data: undefined as void, error: null }
+}
+
+export async function sendPasswordResetOTP(
+  _prevState: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult<void>> {
+  const email = formData.get('email')
+  if (!email || typeof email !== 'string') {
+    return { data: null, error: '邮箱不能为空' }
+  }
+
+  const repo = getAuthRepository()
+  const result = await repo.sendPasswordResetOTP(email)
+
+  if (result.error) {
+    return { data: null, error: result.error }
+  }
+
+  return { data: undefined as void, error: null }
+}
+
+export async function resetPasswordWithOTP(
+  _prevState: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult<void>> {
+  const parsed = resetPasswordWithOTPSchema.safeParse({
+    email: formData.get('email'),
+    token: formData.get('token'),
+    password: formData.get('password'),
+    confirmPassword: formData.get('confirmPassword'),
+  })
+
+  if (!parsed.success) {
+    return { data: null, error: parsed.error.issues[0]?.message ?? '输入无效' }
+  }
+
+  const repo = getAuthRepository()
+  const result = await repo.verifyPasswordResetOTP(
+    parsed.data.email,
+    parsed.data.token,
+    parsed.data.password,
+  )
+
+  if (result.error) {
+    return { data: null, error: result.error }
+  }
+
+  const locale = normalizeLocale(formData.get('locale'))
+  redirect(`/${locale}/login`)
 }

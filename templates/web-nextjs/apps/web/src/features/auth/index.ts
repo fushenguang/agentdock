@@ -7,4 +7,6 @@ export {
   requestPasswordReset,
   resetPassword,
   updateDisplayName,
+  sendPasswordResetOTP,
+  resetPasswordWithOTP,
 } from './actions'

@@ -20,6 +20,18 @@ export const forgotPasswordSchema = z.object({
   email: z.string().email('请输入有效邮箱'),
 })
 
+export const resetPasswordWithOTPSchema = z
+  .object({
+    email: z.string().email('请输入有效邮箱'),
+    token: z.string().min(6, '验证码至少 6 位'),
+    password: z.string().min(8, '密码至少 8 位'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: '两次密码不一致',
+    path: ['confirmPassword'],
+  })
+
 export const resetPasswordSchema = z
   .object({
     password: z.string().min(8, '密码至少 8 位'),
@@ -37,5 +49,6 @@ export const displayNameSchema = z.object({
 export type SignInInput = z.infer<typeof signInSchema>
 export type SignUpInput = z.infer<typeof signUpSchema>
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>
+export type ResetPasswordWithOTPInput = z.infer<typeof resetPasswordWithOTPSchema>
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>
 export type DisplayNameInput = z.infer<typeof displayNameSchema>

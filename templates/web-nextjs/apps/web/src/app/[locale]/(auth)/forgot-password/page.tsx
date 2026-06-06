@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useEffect, useState, startTransition } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -12,42 +12,93 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { requestPasswordReset } from '@/features/auth'
-import { forgotPasswordSchema, type ForgotPasswordInput } from '@/lib/validations/auth'
+import { sendPasswordResetOTP, resetPasswordWithOTP } from '@/features/auth'
+import { resetPasswordWithOTPSchema, type ResetPasswordWithOTPInput } from '@/lib/validations/auth'
 import type { ActionResult } from '@/core/types/auth'
 
 export default function ForgotPasswordPage() {
   const t = useTranslations('auth')
   const routeParams = useParams<{ locale: string }>()
   const locale = routeParams.locale ?? 'en'
-  const [isSent, setIsSent] = useState(false)
-  const [submittedEmail, setSubmittedEmail] = useState('')
+  const [step, setStep] = useState<'send' | 'verify'>('send')
+  const [email, setEmail] = useState('')
+  const [countdown, setCountdown] = useState(0)
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<ForgotPasswordInput>({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: { email: '' },
+  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<ResetPasswordWithOTPInput>({
+    resolver: zodResolver(resetPasswordWithOTPSchema),
+    defaultValues: { email: '', token: '', password: '', confirmPassword: '' },
   })
 
-  const [state, formAction, isPending] = useActionState<ActionResult | null, FormData>(
-    requestPasswordReset,
+  const [sendState, sendAction, isSendPending] = useActionState<ActionResult | null, FormData>(
+    sendPasswordResetOTP,
+    null,
+  )
+
+  const [verifyState, verifyAction, isVerifyPending] = useActionState<ActionResult | null, FormData>(
+    resetPasswordWithOTP,
     null,
   )
 
   useEffect(() => {
-    if (state?.error) toast.error(state.error)
-  }, [state])
+    if (sendState?.error) {
+      toast.error(sendState.error)
+    } else if (sendState?.data !== undefined && sendState.error === null) {
+      toast.success('验证码已发送，请检查邮箱')
+      setStep('verify')
+      startCountdown()
+    }
+  }, [sendState])
 
-  async function onSubmit(data: ForgotPasswordInput) {
-    const formData = new FormData()
-    formData.append('email', data.email)
-    formData.append('locale', locale)
-    await formAction(formData)
-    setSubmittedEmail(data.email)
-    setIsSent(true)
-    reset()
+  useEffect(() => {
+    if (verifyState?.error) {
+      toast.error(verifyState.error)
+    }
+  }, [verifyState])
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+    return undefined
+  }, [countdown])
+
+  function startCountdown() {
+    setCountdown(60)
   }
 
-  if (isSent) {
+  async function onSendOTP(data: { email: string }) {
+    const formData = new FormData()
+    formData.append('email', data.email)
+    setEmail(data.email)
+    setValue('email', data.email)
+    startTransition(async () => {
+      await sendAction(formData)
+    })
+  }
+
+  async function onResendOTP() {
+    if (countdown > 0) return
+    const formData = new FormData()
+    formData.append('email', email)
+    startTransition(async () => {
+      await sendAction(formData)
+    })
+  }
+
+  async function onSubmit(data: ResetPasswordWithOTPInput) {
+    const formData = new FormData()
+    formData.append('email', data.email)
+    formData.append('token', data.token)
+    formData.append('password', data.password)
+    formData.append('confirmPassword', data.confirmPassword)
+    formData.append('locale', locale)
+    startTransition(async () => {
+      await verifyAction(formData)
+    })
+  }
+
+  if (step === 'send') {
     return (
       <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
         <div className="flex w-full max-w-sm flex-col gap-6">
@@ -61,14 +112,38 @@ export default function ForgotPasswordPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-xl">{t('forgotPasswordTitle')}</CardTitle>
+              <CardDescription>{t('forgotPasswordSubtitle')}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-center text-sm text-muted-foreground">
-                {t('forgotPasswordSent', { email: submittedEmail })}
-              </p>
-              <Button asChild variant="outline" className="w-full">
-                <Link href={`/${locale}/login`}>{t('backToLogin')}</Link>
-              </Button>
+            <CardContent>
+              <form onSubmit={handleSubmit(onSendOTP)}>
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="email">{t('emailLabel')}</FieldLabel>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder={t('emailPlaceholder')}
+                      autoComplete="email"
+                      {...register('email')}
+                    />
+                    {errors.email && (
+                      <FieldDescription className="text-destructive">
+                        {errors.email.message}
+                      </FieldDescription>
+                    )}
+                  </Field>
+                  <Field>
+                    <Button type="submit" className="w-full" disabled={isSendPending}>
+                      {isSendPending ? '\u2026' : t('sendVerificationCode')}
+                    </Button>
+                    <FieldDescription className="text-center">
+                      <Link href={`/${locale}/login`} className="underline underline-offset-4">
+                        {t('backToLogin')}
+                      </Link>
+                    </FieldDescription>
+                  </Field>
+                </FieldGroup>
+              </form>
             </CardContent>
           </Card>
         </div>
@@ -76,6 +151,7 @@ export default function ForgotPasswordPage() {
     )
   }
 
+  // step === 'verify'
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
@@ -88,8 +164,8 @@ export default function ForgotPasswordPage() {
 
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-xl">{t('forgotPasswordTitle')}</CardTitle>
-            <CardDescription>{t('forgotPasswordSubtitle')}</CardDescription>
+            <CardTitle className="text-xl">{t('resetPasswordTitle')}</CardTitle>
+            <CardDescription>{t('resetPasswordSubtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)}>
@@ -100,24 +176,83 @@ export default function ForgotPasswordPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder={t('emailPlaceholder')}
-                    autoComplete="email"
+                    readOnly
+                    value={email}
                     {...register('email')}
                   />
-                  {errors.email && (
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="token">{t('verificationCodeLabel')}</FieldLabel>
+                  <Input
+                    id="token"
+                    type="text"
+                    placeholder={t('verificationCodePlaceholder')}
+                    maxLength={6}
+                    {...register('token')}
+                  />
+                  {errors.token && (
                     <FieldDescription className="text-destructive">
-                      {errors.email.message}
+                      {errors.token.message}
+                    </FieldDescription>
+                  )}
+                  <FieldDescription className="mt-1">
+                    {countdown > 0 ? (
+                      <span className="text-muted-foreground">
+                        {t('resendIn', { seconds: countdown })}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={onResendOTP}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        {t('resendCode')}
+                      </button>
+                    )}
+                  </FieldDescription>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="password">{t('newPasswordLabel')}</FieldLabel>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder={t('newPasswordPlaceholder')}
+                    autoComplete="new-password"
+                    {...register('password')}
+                  />
+                  {errors.password && (
+                    <FieldDescription className="text-destructive">
+                      {errors.password.message}
                     </FieldDescription>
                   )}
                 </Field>
                 <Field>
-                  <Button type="submit" className="w-full" disabled={isPending}>
-                    {isPending ? '\u2026' : t('sendResetLink')}
+                  <FieldLabel htmlFor="confirmPassword">{t('confirmPasswordLabel')}</FieldLabel>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder={t('confirmPasswordPlaceholder')}
+                    autoComplete="new-password"
+                    {...register('confirmPassword')}
+                  />
+                  {errors.confirmPassword && (
+                    <FieldDescription className="text-destructive">
+                      {errors.confirmPassword.message}
+                    </FieldDescription>
+                  )}
+                </Field>
+                <Field>
+                  <Button type="submit" className="w-full" disabled={isVerifyPending}>
+                    {isVerifyPending ? '\u2026' : t('resetPassword')}
                   </Button>
                   <FieldDescription className="text-center">
-                    <Link href={`/${locale}/login`} className="underline underline-offset-4">
-                      {t('backToLogin')}
-                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setStep('send')}
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      {t('changeEmail')}
+                    </button>
                   </FieldDescription>
                 </Field>
               </FieldGroup>

@@ -9,4 +9,6 @@ export interface IAuthRepository {
   updateDisplayName(name: string): Promise<AuthResult>
   requestPasswordReset(email: string, redirectTo: string): Promise<void>
   resetPassword(password: string): Promise<AuthResult>
+  sendPasswordResetOTP(email: string): Promise<AuthResult>
+  verifyPasswordResetOTP(email: string, token: string, newPassword: string): Promise<AuthResult>
 }
