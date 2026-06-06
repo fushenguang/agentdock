@@ -6,4 +6,7 @@ export interface IAuthRepository {
   signOut(): Promise<void>
   getSession(): Promise<AuthUser | null>
   signInWithOAuth(provider: 'github', nextPath?: string): Promise<{ url: string }>
+  updateDisplayName(name: string): Promise<AuthResult>
+  requestPasswordReset(email: string, redirectTo: string): Promise<void>
+  resetPassword(password: string): Promise<AuthResult>
 }

@@ -60,4 +60,29 @@ export class SupabaseAuthRepository implements IAuthRepository {
     }
     return { url: data.url }
   }
+
+  async updateDisplayName(name: string): Promise<AuthResult> {
+    const supabase = await getServerClient()
+    const { error } = await supabase.auth.updateUser({
+      data: { display_name: name },
+    })
+    if (error) {
+      return { user: null, error: error.message }
+    }
+    return { user: null, error: null }
+  }
+
+  async requestPasswordReset(email: string, redirectTo: string): Promise<void> {
+    const supabase = await getServerClient()
+    await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+  }
+
+  async resetPassword(password: string): Promise<AuthResult> {
+    const supabase = await getServerClient()
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) {
+      return { user: null, error: error.message }
+    }
+    return { user: null, error: null }
+  }
 }

@@ -1,0 +1,145 @@
+{
+  "templateTestingChecklist": {
+    "version": "1.0.0",
+    "phases": [
+      {
+        "name": "Phase 1: Static Checks",
+        "tests": [
+          {
+            "id": "lint",
+            "name": "ESLint",
+            "command": "npx eslint 'src/**/*.{ts,tsx}'",
+            "expectedExitCode": 0,
+            "critical": true,
+            "description": "No linting errors, Layer 2 constraints enforced"
+          },
+          {
+            "id": "typescript",
+            "name": "TypeScript Compilation",
+            "command": "npx tsc --noEmit",
+            "expectedExitCode": 0,
+            "critical": true,
+            "description": "All types resolve correctly"
+          },
+          {
+            "id": "build",
+            "name": "Production Build",
+            "command": "npx next build",
+            "expectedExitCode": 0,
+            "critical": true,
+            "description": "Build succeeds and generates .next output"
+          }
+        ]
+      },
+      {
+        "name": "Phase 2: Runtime Tests",
+        "tests": [
+          {
+            "id": "dev-server",
+            "name": "Dev Server Start",
+            "timeout": 60,
+            "expectedStatus": "ready",
+            "critical": true,
+            "description": "Server starts within 60 seconds"
+          },
+          {
+            "id": "homepage",
+            "name": "Homepage Accessible",
+            "endpoint": "/en",
+            "expectedStatus": 200,
+            "critical": true,
+            "description": "Root page loads successfully"
+          }
+        ]
+      },
+      {
+        "name": "Phase 3: New Features",
+        "tests": [
+          {
+            "id": "forgot-password",
+            "name": "Forgot Password Page",
+            "endpoint": "/en/forgot-password",
+            "expectedStatus": 200,
+            "critical": true,
+            "description": "Password reset request page exists"
+          },
+          {
+            "id": "reset-password",
+            "name": "Reset Password Page",
+            "endpoint": "/en/reset-password",
+            "expectedStatus": 200,
+            "critical": true,
+            "description": "Password reset form page exists"
+          },
+          {
+            "id": "profile-settings",
+            "name": "Profile Settings Page",
+            "endpoint": "/en/settings/profile",
+            "expectedStatus": [200, 500],
+            "critical": false,
+            "description": "Profile management page (may require auth)"
+          }
+        ]
+      },
+      {
+        "name": "Phase 4: Security & Architecture",
+        "tests": [
+          {
+            "id": "layer2-check",
+            "name": "Layer 2 Architecture Compliance",
+            "command": "grep -r \"from '@/infra/db/client'\" src/features/*/actions.ts",
+            "expectedResult": "empty",
+            "critical": true,
+            "description": "No direct DB imports in features layer"
+          },
+          {
+            "id": "open-redirect",
+            "name": "Open Redirect Protection",
+            "checkFile": "src/app/auth/callback/route.ts",
+            "expectedPattern": "ALLOWED_NEXT",
+            "critical": true,
+            "description": "Whitelist-based redirect validation"
+          },
+          {
+            "id": "hardcoded-secrets",
+            "name": "No Hardcoded Secrets",
+            "command": "grep -rE \"sb-[a-z0-9]{20,}\" src/ | grep -v process.env",
+            "expectedResult": "empty",
+            "critical": true,
+            "description": "No Supabase credentials in source code"
+          }
+        ]
+      }
+    ],
+    "acceptanceCriteria": {
+      "mustPass": [
+        "lint",
+        "typescript",
+        "build",
+        "dev-server",
+        "homepage",
+        "forgot-password",
+        "reset-password",
+        "layer2-check",
+        "open-redirect",
+        "hardcoded-secrets"
+      ],
+      "shouldPass": [
+        "login-page",
+        "signup-page",
+        "help-page",
+        "privacy-page",
+        "about-page"
+      ],
+      "optional": [
+        "profile-settings",
+        "dashboard-redirect"
+      ]
+    },
+    "cleanupSteps": [
+      "Kill dev server on port 3000",
+      "Remove temporary test projects",
+      "Clear Turbopack cache if corrupted"
+    ]
+  }
+}

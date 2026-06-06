@@ -4,7 +4,11 @@
     "index",
     "builder-workflow",
     "cli",
+    "templates",
+    "skills",
+    "testing",
     "roadmap",
-    "changelog"
+    "changelog",
+    "llm-eval"
   ]
 }

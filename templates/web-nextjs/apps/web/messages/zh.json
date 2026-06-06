@@ -33,6 +33,56 @@
     "termsText": "点击继续即表示您同意我们的",
     "termsLink": "服务条款",
     "andText": "和",
-    "privacyLink": "隐私政策"
+    "privacyLink": "隐私政策",
+    "forgotPasswordLink": "忘记密码？",
+    "forgotPasswordTitle": "重置密码",
+    "forgotPasswordSubtitle": "输入您的邮箱，我们将发送重置链接。",
+    "forgotPasswordSent": "重置链接已发送至 {email}，请查收邮件。",
+    "sendResetLink": "发送重置链接",
+    "backToLogin": "返回登录",
+    "resetPasswordTitle": "设置新密码",
+    "resetPasswordSubtitle": "在下方输入您的新密码。",
+    "newPasswordLabel": "新密码",
+    "resetPasswordButton": "重置密码",
+    "resetLinkExpired": "重置链接已过期，请重新申请。",
+    "resetPasswordSuccess": "密码已更新，请登录。"
+  },
+  "settings": {
+    "profile": {
+      "title": "个人资料设置",
+      "subtitle": "管理您的账号设置和偏好。",
+      "profileCardTitle": "个人资料",
+      "profileCardDescription": "您的公开资料信息。",
+      "avatarUploadComingSoon": "头像上传功能即将推出。",
+      "displayNameCardTitle": "显示名",
+      "displayNameCardDescription": "更新您在应用中显示的昵称。",
+      "displayNameLabel": "显示名",
+      "displayNamePlaceholder": "输入您的显示名",
+      "saveChanges": "保存更改",
+      "displayNameUpdated": "显示名已更新",
+      "emailCardTitle": "邮箱地址",
+      "emailCardDescription": "您的主要邮箱地址。",
+      "contactSupportToChange": "如需修改邮箱，请联系支持。",
+      "passwordCardTitle": "密码",
+      "passwordCardDescription": "修改您的密码。",
+      "changePassword": "修改密码"
+    }
+  },
+  "pages": {
+    "help": {
+      "title": "帮助中心",
+      "description": "查找常见问题的答案。",
+      "placeholder": "我们正在整理帮助文档，请稍后查看。"
+    },
+    "privacy": {
+      "title": "隐私政策",
+      "description": "我们如何处理您的数据。",
+      "placeholder": "此页面为占位符。在发布前请替换为实际的隐私政策。"
+    },
+    "about": {
+      "title": "关于我们",
+      "description": "了解更多关于 AgentDock 的信息。",
+      "placeholder": "此页面为占位符。在发布前请替换为实际的关于我们信息。"
+    }
   }
 }

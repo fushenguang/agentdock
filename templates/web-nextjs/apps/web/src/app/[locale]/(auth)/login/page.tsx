@@ -98,8 +98,14 @@ export default function LoginPage() {
                     )}
                   </Field>
                   <Field>
-                    <div className="flex items-center">
+                    <div className="flex items-center justify-between">
                       <FieldLabel htmlFor="password">{t('passwordLabel')}</FieldLabel>
+                      <Link
+                        href={`/${locale}/forgot-password`}
+                        className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                      >
+                        {t('forgotPasswordLink')}
+                      </Link>
                     </div>
                     <Input
                       id="password"

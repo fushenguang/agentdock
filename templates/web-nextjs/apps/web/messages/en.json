@@ -33,6 +33,56 @@
     "termsText": "By clicking continue, you agree to our",
     "termsLink": "Terms of Service",
     "andText": "and",
-    "privacyLink": "Privacy Policy"
+    "privacyLink": "Privacy Policy",
+    "forgotPasswordLink": "Forgot password?",
+    "forgotPasswordTitle": "Reset your password",
+    "forgotPasswordSubtitle": "Enter your email and we'll send you a reset link.",
+    "forgotPasswordSent": "A reset link has been sent to {email}. Please check your inbox.",
+    "sendResetLink": "Send reset link",
+    "backToLogin": "Back to login",
+    "resetPasswordTitle": "Set new password",
+    "resetPasswordSubtitle": "Enter your new password below.",
+    "newPasswordLabel": "New password",
+    "resetPasswordButton": "Reset password",
+    "resetLinkExpired": "The reset link has expired. Please request a new one.",
+    "resetPasswordSuccess": "Password updated. Please log in."
+  },
+  "settings": {
+    "profile": {
+      "title": "Profile Settings",
+      "subtitle": "Manage your account settings and preferences.",
+      "profileCardTitle": "Profile",
+      "profileCardDescription": "Your public profile information.",
+      "avatarUploadComingSoon": "Avatar upload feature coming soon.",
+      "displayNameCardTitle": "Display Name",
+      "displayNameCardDescription": "Update your display name shown across the app.",
+      "displayNameLabel": "Display Name",
+      "displayNamePlaceholder": "Enter your display name",
+      "saveChanges": "Save Changes",
+      "displayNameUpdated": "Display name updated successfully",
+      "emailCardTitle": "Email Address",
+      "emailCardDescription": "Your primary email address.",
+      "contactSupportToChange": "To change your email, please contact support.",
+      "passwordCardTitle": "Password",
+      "passwordCardDescription": "Change your password.",
+      "changePassword": "Change Password"
+    }
+  },
+  "pages": {
+    "help": {
+      "title": "Help Center",
+      "description": "Find answers to common questions.",
+      "placeholder": "We are currently compiling our help documentation. Please check back later."
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "description": "How we handle your data.",
+      "placeholder": "This template page is a placeholder. Replace it with your actual privacy policy before shipping."
+    },
+    "about": {
+      "title": "About Us",
+      "description": "Learn more about AgentDock.",
+      "placeholder": "This page is a placeholder. Replace it with your actual about information before shipping."
+    }
   }
 }

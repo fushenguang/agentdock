@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-export default async function PrivacyPage({
+export default async function HelpPage({
   params,
 }: {
   params: Promise<{ locale: string }>
@@ -11,12 +11,12 @@ export default async function PrivacyPage({
     <main className="mx-auto max-w-3xl px-4 py-10">
       <Card>
         <CardHeader>
-          <CardTitle>Privacy Policy</CardTitle>
-          <CardDescription>How we handle your data.</CardDescription>
+          <CardTitle>Help Center</CardTitle>
+          <CardDescription>Find answers to common questions.</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            This template page is a placeholder. Replace it with your actual privacy policy before shipping.
+            We are currently compiling our help documentation. Please check back later.
           </p>
         </CardContent>
       </Card>

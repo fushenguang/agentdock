@@ -1,0 +1,299 @@
+# web-nextjs Template
+
+A production-ready Next.js 16 web application template with Supabase Auth, shadcn/ui, and internationalization support.
+
+## What Is It?
+
+`web-nextjs` is a full-stack web application scaffold built on the AgentDock four-layer architecture. It provides:
+
+- **Authentication** — Email/password + GitHub OAuth via Supabase Auth
+- **UI Components** — shadcn/ui with dark mode support
+- **Internationalization** — next-intl for multi-language apps (en/zh)
+- **Form Handling** — react-hook-form + Zod validation
+- **Four-Layer Architecture** — Clear separation of concerns (features → core → infra → app)
+
+## Problem It Solves
+
+Building a modern web app from scratch involves many repetitive decisions:
+
+| Pain Point | How web-nextjs Helps |
+|---|---|
+| Auth setup | Pre-configured Supabase Auth with email/password + OAuth |
+| UI consistency | shadcn/ui components with unified design tokens |
+| i18n complexity | next-intl with locale-based routing |
+| Architecture drift | Four-layer structure enforced by ESLint rules |
+| Form validation | react-hook-form + Zod schemas in a shared location |
+| AI agent confusion | Clear directory contracts and `AGENTS.md` for Copilot |
+
+## Why This Template?
+
+### For Solo Developers
+- Start building features immediately — no boilerplate setup
+- Auth, i18n, and UI are pre-integrated
+- Layer 2 rules prevent architectural mistakes
+
+### For Teams
+- Consistent structure across projects
+- Easy onboarding — new devs learn one pattern
+- AI agents can navigate the codebase reliably
+
+### For AI Coding Assistants
+- `AGENTS.md` defines execution boundaries
+- Directory contract tells agents where to put code
+- OpenSpec changes provide structured planning
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router, Turbopack) |
+| Language | TypeScript 5.9 |
+| Auth | Supabase Auth (email/password + GitHub OAuth) |
+| UI | shadcn/ui + Tailwind CSS 4 |
+| Forms | react-hook-form + Zod |
+| i18n | next-intl |
+| State | React Server Components + Server Actions |
+| Icons | @tabler/icons-react, lucide-react |
+| Notifications | sonner (toast) |
+| Linting | ESLint 9 (flat config) + Prettier |
+| Package Manager | pnpm 9+ |
+
+## Architecture
+
+```
+src/
+├── app/                    # App layer - routes, layouts, pages
+│   ├── [locale]/          # Locale-scoped routes
+│   │   ├── (auth)/        # Public auth routes (login, signup)
+│   │   └── (protected)/   # Authenticated routes (dashboard, settings)
+│   └── auth/              # Auth callback handlers
+├── components/            # Shared UI components
+│   ├── ui/               # shadcn/ui primitives
+│   ├── dashboard/         # Dashboard-specific components
+│   └── profile/           # Profile form components
+├── core/                  # Core layer - types, interfaces, domain logic
+│   ├── types/            # TypeScript types (AuthUser, ActionResult, etc.)
+│   └── repositories/     # Repository interfaces (IAuthRepository)
+├── features/             # Feature layer - use cases, server actions
+│   └── auth/             # Auth feature (actions, contract, index)
+├── infra/                # Infrastructure layer - external services
+│   ├── db/              # Supabase client & repository implementations
+│   └── providers.ts     # DI factory (getAuthRepository)
+└── lib/                  # Shared utilities
+    └── validations/      # Zod schemas
+```
+
+### Four-Layer Flow
+
+```
+User Request
+    ↓
+app/ (Route Handler / Page)
+    ↓
+features/ (Server Action - use case orchestration)
+    ↓
+core/ (Repository Interface - contract)
+    ↓
+infra/ (Repository Implementation - Supabase SDK)
+```
+
+### Layer 2 Constraint
+
+The template enforces a critical rule via ESLint:
+
+> **Features must NOT import from `@/infra/*` directly.**
+
+This ensures business logic stays independent of infrastructure details. Use repository interfaces from `core/repositories` instead.
+
+## Completed Features
+
+### Authentication
+- [x] Email/password sign-in
+- [x] Email/password sign-up with verification flow
+- [x] GitHub OAuth integration
+- [x] Password reset (forgot-password → email → reset-password)
+- [x] Session management (getCurrentUser helper)
+- [x] Protected route groups (`(protected)` layout)
+- [x] Auth middleware (session refresh + locale detection)
+
+### User Account
+- [x] Profile page with avatar display
+- [x] Display name update
+- [x] Email display (read-only)
+- [x] Password change entry point (redirects to forgot-password)
+
+### Navigation
+- [x] Collapsible sidebar with user menu
+- [x] Settings navigation (profile, help, privacy, about)
+- [x] Clean nav-user dropdown (Account link, Log out)
+- [x] No placeholder `#` links
+
+### Pages
+- [x] Login page
+- [x] Sign-up page with email verification state
+- [x] Dashboard page
+- [x] Forgot password page
+- [x] Reset password page
+- [x] Profile settings page
+- [x] Help page (placeholder)
+- [x] Privacy policy page (placeholder)
+- [x] About page (placeholder)
+
+### Internationalization
+- [x] English (en) and Chinese (zh) locales
+- [x] Locale-based URL routing (`/[locale]/...`)
+- [x] next-intl translation hooks
+- [x] Translation files in `messages/`
+
+## Development Workflow
+
+### Local Setup
+
+```bash
+# Install dependencies
+pnpm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your Supabase credentials:
+# NEXT_PUBLIC_SUPABASE_URL=your-project-url
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+# SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+# NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Run development server
+pnpm dev
+```
+
+### Verification Commands
+
+```bash
+# Type check
+pnpm check-types
+
+# Lint (includes Layer 2 constraint checks)
+pnpm lint
+
+# Build for production
+pnpm build
+
+# Format check
+pnpm format
+```
+
+### Using CLI for Real-Environment Validation
+
+The AgentDock CLI can create a new project from this template and deploy it:
+
+```bash
+# Create a new project from the template
+npx @cogito.ai/cli create my-app --template web-nextjs
+
+# Navigate to the project
+cd my-app
+
+# Install and configure Supabase
+# Follow the prompts to set up your Supabase project
+
+# Deploy to Vercel
+npx vercel deploy --prod
+```
+
+## Configuration
+
+### Supabase Setup
+
+1. Create a new Supabase project at [supabase.com](https://supabase.com)
+2. Enable Email provider in Authentication → Providers
+3. Enable GitHub OAuth (optional):
+   - Register a GitHub OAuth app
+   - Add Client ID and Secret to Supabase
+4. Configure redirect URLs:
+   - `http://localhost:3000/auth/callback`
+   - `https://your-domain.com/auth/callback`
+
+### Adding New Locales
+
+1. Add locale to `src/i18n/config.ts`:
+   ```ts
+   export const locales = ['en', 'zh', 'ja'] as const
+   ```
+2. Create translation file: `messages/ja.json`
+3. Update middleware if needed
+
+### Adding New Features
+
+Follow the four-layer pattern:
+
+1. **Define types** in `src/core/types/`
+2. **Define repository interface** in `src/core/repositories/` (if needed)
+3. **Implement repository** in `src/infra/db/`
+4. **Create Server Actions** in `src/features/<feature>/actions.ts`
+5. **Create pages** in `src/app/[locale]/...`
+6. **Add translations** in `messages/en.json` and `messages/zh.json`
+
+## Non-Goals (Intentionally Excluded)
+
+These features are deliberately NOT included to keep the template focused:
+
+- Database ORM (Prisma, Drizzle) — use Supabase PostgREST directly or add your own
+- Testing framework — add Vitest/Jest as needed
+- E2E testing — add Playwright/Cypress as needed
+- Analytics — integrate PostHog, Plausible, etc. as needed
+- Payment/Billing — add Stripe when required
+- Real-time features — add Supabase Realtime when needed
+- Admin panel — build separately or add when needed
+
+## Migration Guide
+
+### From Create Next App
+
+1. Copy your `app/` pages into `src/app/[locale]/`
+2. Move shared components to `src/components/`
+3. Extract business logic into `src/features/`
+4. Move types to `src/core/types/`
+5. Wrap external services in `src/infra/`
+
+### From Other Templates
+
+1. Review the four-layer architecture
+2. Map your existing structure to the layer contract
+3. Add repository interfaces for external services
+4. Move Server Actions to `src/features/`
+5. Update imports to follow layer boundaries
+
+## Troubleshooting
+
+### "Direct DB access in features is not allowed"
+
+You're importing from `@/infra/db/client` in a feature file. Use the repository pattern instead:
+
+```ts
+// Wrong - in src/features/auth/actions.ts
+import { getServerClient } from '@/infra/db/client'
+
+// Correct
+import { getAuthRepository } from '@/infra/providers'
+const repo = getAuthRepository()
+await repo.someMethod()
+```
+
+### "Module not found: Can't resolve '@/xxx'"
+
+Check your `tsconfig.json` paths configuration:
+
+```json
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+### Auth callback returns error
+
+Verify your Supabase redirect URLs include:
+- `http://localhost:3000/auth/callback`
+- `https://your-domain.com/auth/callback`

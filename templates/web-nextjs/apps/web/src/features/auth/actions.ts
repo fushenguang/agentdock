@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { getAuthRepository } from '@/infra/providers'
-import { signInSchema, signUpSchema } from '@/lib/validations/auth'
+import { signInSchema, signUpSchema, forgotPasswordSchema, resetPasswordSchema, displayNameSchema } from '@/lib/validations/auth'
 import type { ActionResult } from '@/core/types/auth'
 import { defaultLocale, isLocale } from '@/i18n/config'
 import type { SignUpSuccessData, OAuthData } from './__contract__'
@@ -83,4 +83,73 @@ export async function signInWithGithubForLocale(
     const msg = err instanceof Error ? err.message : 'OAuth 初始化失败'
     return { data: null, error: msg }
   }
+}
+
+export async function requestPasswordReset(
+  _prevState: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult<void>> {
+  const parsed = forgotPasswordSchema.safeParse({
+    email: formData.get('email'),
+  })
+
+  if (!parsed.success) {
+    return { data: null, error: parsed.error.issues[0]?.message ?? '输入无效' }
+  }
+
+  const repo = getAuthRepository()
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const locale = normalizeLocale(formData.get('locale'))
+  const redirectTo = `${appUrl}/auth/callback?next=/${locale}/reset-password`
+
+  // Always return success to prevent email enumeration
+  await repo.requestPasswordReset(parsed.data.email, redirectTo)
+
+  return { data: undefined as void, error: null }
+}
+
+export async function resetPassword(
+  _prevState: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult<void>> {
+  const parsed = resetPasswordSchema.safeParse({
+    password: formData.get('password'),
+    confirmPassword: formData.get('confirmPassword'),
+  })
+
+  if (!parsed.success) {
+    return { data: null, error: parsed.error.issues[0]?.message ?? '输入无效' }
+  }
+
+  const repo = getAuthRepository()
+  const result = await repo.resetPassword(parsed.data.password)
+
+  if (result.error) {
+    return { data: null, error: result.error }
+  }
+
+  const locale = normalizeLocale(formData.get('locale'))
+  redirect(`/${locale}/login`)
+}
+
+export async function updateDisplayName(
+  _prevState: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult<void>> {
+  const parsed = displayNameSchema.safeParse({
+    name: formData.get('name'),
+  })
+
+  if (!parsed.success) {
+    return { data: null, error: parsed.error.issues[0]?.message ?? '输入无效' }
+  }
+
+  const repo = getAuthRepository()
+  const result = await repo.updateDisplayName(parsed.data.name)
+
+  if (result.error) {
+    return { data: null, error: result.error }
+  }
+
+  return { data: undefined as void, error: null }
 }

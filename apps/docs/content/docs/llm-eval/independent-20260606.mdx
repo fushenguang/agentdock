@@ -1,0 +1,143 @@
+---
+title: 独立评测：迁移到中国 LLM（2026-06-06）
+description: 基于 add-user-account-features 实际改动的独立代码生产力与代码质量评测
+---
+
+# 独立评测报告（用于横向对比）
+
+> 本报告与现有 [llm-eval/index.mdx] 无依赖关系，结论仅基于本次重新取证。
+
+## 1) 评测目标与边界
+
+评测目标：判断在 2026-06-06 时间点，从「GitHub Copilot + Claude Sonnet 4.6 + GPT-5.3-Codex review」迁移到「Claude Code / Codex + 中国 LLM（Lingma + Qwen / DeepSeek）」是否可行，尤其是**生产级编码能力与代码质量**。
+
+边界说明（实事求是）：
+
+- 仅使用当前仓库可验证证据，不使用外部营销数据。
+- 仅评估一个真实变更样本：`add-user-account-features`。
+- 旧报告不作为输入，避免自我引用偏差。
+
+## 2) 模型、数据、时间三因素
+
+### 模型因素
+
+- 规划模型（由文档声明）：Claude（`design.md` 写明“规划（Claude）→ 实现（deepseek v4 pro / qwen max）”）。
+- 执行模型（由文档声明）：deepseek v4 pro / qwen max。
+- 工具链背景（由仓库历史声明）：原流程包含 Sonnet 实现、codex review。
+
+### 数据因素
+
+本次取证的数据源：
+
+- OpenSpec 变更文档：proposal/design/tasks/specs。
+- 实际代码改动：templates/web-nextjs 下 auth/profile/sidebar/页面/i18n 相关文件。
+- 机器验证记录：`openspec validate`、`pnpm` 验证尝试结果。
+- 配置资产：`.claude/`、`.codex/`、`.lingma/` skills/commands 覆盖。
+
+### 时间因素
+
+- 评测日期：2026-06-06。
+- 成本冲击窗口：2026-06-01（团队迁移动机时间点）。
+- 结论时效：对当前仓库与当前分支有效，不外推长期表现。
+
+## 3) 证据清单（可复核）
+
+1. OpenSpec 一致性：`openspec validate add-user-account-features` 返回 `Change is valid`。
+2. 规划与执行分工证据：`openspec/changes/add-user-account-features/design.md`。
+3. 功能实现证据：
+   - callback 安全白名单：`templates/web-nextjs/apps/web/src/app/auth/callback/route.ts`
+   - auth actions：`templates/web-nextjs/apps/web/src/features/auth/actions.ts`
+   - 数据层扩展：`templates/web-nextjs/apps/web/src/core/repositories/IAuthRepository.ts`、`templates/web-nextjs/apps/web/src/infra/db/SupabaseAuthRepository.ts`
+   - 输入校验：`templates/web-nextjs/apps/web/src/lib/validations/auth.ts`
+   - 导航清理：`templates/web-nextjs/apps/web/src/components/dashboard/app-sidebar.tsx`、`templates/web-nextjs/apps/web/src/components/dashboard/nav-user.tsx`
+4. 样本规模（工作区快照）：
+   - tracked 改动：18 文件，`337 insertions / 187 deletions`。
+   - untracked 新增：forgot/reset/settings/help/about/profile 等目录及文档/脚本目录。
+5. AI 编辑器资产规模（代码库内统计）：
+   - `.claude`：20 文件，约 3847 行
+   - `.codex`：10 文件，约 1976 行
+   - `.lingma`：26 文件，约 4703 行
+6. 测试覆盖证据：当前未检索到与 forgot/reset/profile/callback 直接相关的测试文件命中。
+
+## 4) 代码质量评估（按维度）
+
+### A. 安全正确性（结论：中高，带边界）
+
+已验证亮点：
+
+- Open redirect 防护：callback 采用 `ALLOWED_NEXT` 白名单，不接受任意 next 跳转。
+- 邮箱枚举防护：forgot-password action 始终返回成功路径，避免暴露邮箱是否注册。
+- 输入验证：密码重置/显示名/邮箱均由 Zod 在服务端 action 做校验。
+
+边界：
+
+- 尚无自动化安全测试（仅代码审阅证据）。
+
+### B. 架构与可维护性（结论：中高）
+
+已验证亮点：
+
+- `IAuthRepository` 抽象与 `SupabaseAuthRepository` 实现同步扩展，职责分层清晰。
+- Server Action 与 repository 分工明确，符合模板分层习惯。
+- `features/auth/server.ts` 对 infra import 有理由注释，非静默绕规。
+
+风险：
+
+- 新增能力跨 auth + dashboard + i18n + settings，多点改动会增加回归面；当前缺回归自动化。
+
+### C. 工程质量门禁（结论：证据不足，需补）
+
+已验证：
+
+- OpenSpec 校验通过。
+
+未完成（受环境门禁影响）：
+
+- `pnpm --filter @cogito.ai/web check-types` 未执行到业务检查阶段。
+- `pnpm --filter @cogito.ai/web lint` 未执行到业务检查阶段。
+- `pnpm --filter @cogito.ai/web test` 未执行到业务检查阶段。
+
+阻塞原因：`ERR_PNPM_IGNORED_BUILDS`（需 `pnpm approve-builds`）。
+
+### D. 测试完备度（结论：偏弱）
+
+- 未检索到本次核心新增流程（forgot/reset/profile/callback）的直接自动化测试。
+- 这意味着目前“功能正确性”主要靠代码审阅与手工验收，不足以支撑高置信度生产发布。
+
+## 5) 迁移优势（有证据支撑）
+
+1. **可执行的分工模式已落地**：规划与实现在文档和代码中呈现清晰分工，不是概念讨论。
+2. **跨编辑器资产齐备**：Claude/Codex/Lingma 三套 skills/commands 已沉淀，降低工具切换摩擦。
+3. **真实业务功能已完成到可用形态**：不是 toy 示例，而是 auth/profile/sidebar/i18n 的联动改造。
+
+## 6) 未知风险（团队容易低估）
+
+1. **“可写代码”不等于“可持续交付”**：当前自动化测试证据薄弱，后续回归成本可能高于模型调用成本节省。
+2. **环境门禁依赖风险**：`pnpm approve-builds` 未统一时，CI 与本地验证结果可能分叉，影响交付节奏。
+3. **样本偏差风险**：当前只评估一个 change，尚不足以代表复杂领域（支付、并发、数据迁移、性能）。
+4. **评审负担转移风险**：若改用更便宜模型但缺少稳定 review 闸门，人工 review 负担会回流到团队。
+5. **供应链与合规风险**：多模型多编辑器引入后，日志留存、数据出境、审计策略需要统一，否则后期整改代价高。
+
+## 7) 决策建议（面向 2026-06-06）
+
+结论：**可以迁移，但应按“分层迁移 + 证据门禁”推进，而不是一次性替换。**
+
+建议执行顺序：
+
+1. 保留“强模型规划 + 多模型实现”结构（当前已被样本验证可运转）。
+2. 在迁移前先补齐 3 类自动化：
+   - auth callback next 白名单测试
+   - forgot/reset 主流程测试
+   - profile 修改显示名测试
+3. 在 CI 固化环境前置：明确 `pnpm approve-builds` 策略，避免本地/CI 不一致。
+4. 再做第二个不同类型样本（例如数据层复杂变更）后，才做最终工具链替换决策。
+
+## 8) 本报告的可信度分级
+
+- 高可信：代码存在性、分层结构、安全防护实现、OpenSpec 合法性。
+- 中可信：当前样本对“中等复杂度全栈任务”的代表性。
+- 低可信：成本收益比、长期维护效率、跨项目泛化能力（缺多样本与长期数据）。
+
+---
+
+若要做最终采购/迁移决策，本报告建议与后续至少 1 份“不同任务类型”的同框架评测并列，避免单样本决策。
