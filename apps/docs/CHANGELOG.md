@@ -1,5 +1,11 @@
 # docs
 
+## 0.2.2
+
+### Patch Changes
+
+- 71f9ce2: develop web-nextjs template and refine docs
+
 ## 0.2.1
 
 ### Patch Changes
