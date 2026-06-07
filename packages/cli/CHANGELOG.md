@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.4.3
+
+### Patch Changes
+
+- 71f9ce2: develop web-nextjs template and refine docs
+
 ## 0.4.2
 
 ### Patch Changes
