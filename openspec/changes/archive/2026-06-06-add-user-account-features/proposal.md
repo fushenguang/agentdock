@@ -5,6 +5,7 @@ roadmap-id: web-nextjs-builtin-suite
 ## Why
 
 auth 系统跑通后，有两个立即可见的残缺：
+
 1. **密码忘了怎么办**——没有重置密码流程，用户账号事实上锁死
 2. **用户不知道自己是谁**——dashboard 只有邮箱，没有 profile 页，无法修改显示名 / 查看账号信息
 

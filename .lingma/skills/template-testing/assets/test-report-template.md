@@ -20,35 +20,35 @@
 
 ### Phase 1: Static Checks
 
-| Test | Status | Notes |
-|------|--------|-------|
-| ESLint | {{✓|✗}} | {{details}} |
-| TypeScript | {{✓|✗}} | {{details}} |
-| Production Build | {{✓|✗}} | {{details}} |
+| Test             | Status | Notes |
+| ---------------- | ------ | ----- | ----------- |
+| ESLint           | {{✓    | ✗}}   | {{details}} |
+| TypeScript       | {{✓    | ✗}}   | {{details}} |
+| Production Build | {{✓    | ✗}}   | {{details}} |
 
 ### Phase 2: Runtime Tests
 
-| Test | Status | Notes |
-|------|--------|-------|
-| Dev Server Start | {{✓|✗}} | Started in {{seconds}}s |
-| Homepage (200) | {{✓|✗}} | {{details}} |
-| Login Page | {{✓|✗}} | {{details}} |
+| Test             | Status | Notes |
+| ---------------- | ------ | ----- | ----------------------- |
+| Dev Server Start | {{✓    | ✗}}   | Started in {{seconds}}s |
+| Homepage (200)   | {{✓    | ✗}}   | {{details}}             |
+| Login Page       | {{✓    | ✗}}   | {{details}}             |
 
 ### Phase 3: New Features
 
-| Feature | Endpoint | Status |
-|---------|----------|--------|
-| Forgot Password | `/en/forgot-password` | {{✓|✗}} |
-| Reset Password | `/en/reset-password` | {{✓|✗}} |
-| Profile Settings | `/en/settings/profile` | {{✓|✗}} |
+| Feature          | Endpoint               | Status |
+| ---------------- | ---------------------- | ------ | --- |
+| Forgot Password  | `/en/forgot-password`  | {{✓    | ✗}} |
+| Reset Password   | `/en/reset-password`   | {{✓    | ✗}} |
+| Profile Settings | `/en/settings/profile` | {{✓    | ✗}} |
 
 ### Phase 4: Security & Architecture
 
-| Check | Status | Details |
-|-------|--------|---------|
-| Layer 2 Compliance | {{✓|✗}} | {{violations}} |
-| Open Redirect Protection | {{✓|✗}} | {{details}} |
-| No Hardcoded Secrets | {{✓|✗}} | {{details}} |
+| Check                    | Status | Details |
+| ------------------------ | ------ | ------- | -------------- |
+| Layer 2 Compliance       | {{✓    | ✗}}     | {{violations}} |
+| Open Redirect Protection | {{✓    | ✗}}     | {{details}}    |
+| No Hardcoded Secrets     | {{✓    | ✗}}     | {{details}}    |
 
 ---
 
@@ -78,16 +78,17 @@
 ## Next Steps
 
 {{#if fail_count == 0}}
+
 1. Merge to main: `git checkout main && git merge {{branch_name}}`
 2. Update changelog and roadmap docs
 3. Create release tag: `git tag v{{version}}`
 4. Test with CLI: `agentdock create test-app --template {{template_name}}`
-{{else}}
-1. Review failed tests above
-2. Fix issues in current branch
-3. Re-run test: `./scripts/e2e-template-test-v2.sh`
-4. Verify all tests pass before merging
-{{/if}}
+   {{else}}
+5. Review failed tests above
+6. Fix issues in current branch
+7. Re-run test: `./scripts/e2e-template-test-v2.sh`
+8. Verify all tests pass before merging
+   {{/if}}
 
 ---
 

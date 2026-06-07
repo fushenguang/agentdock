@@ -7,11 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 
-export default async function ProfilePage({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
+export default async function ProfilePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   const user = await getCurrentUser()
 
@@ -49,9 +45,7 @@ export default async function ProfilePage({
               <p className="text-sm text-muted-foreground">{email}</p>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Avatar upload feature coming soon.
-          </p>
+          <p className="text-sm text-muted-foreground">Avatar upload feature coming soon.</p>
         </CardContent>
       </Card>
 

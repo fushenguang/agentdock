@@ -1,6 +1,6 @@
-"use client"
+'use client'
 
-import * as React from "react"
+import * as React from 'react'
 import {
   IconDashboard,
   IconHelp,
@@ -8,11 +8,11 @@ import {
   IconInnerShadowTop,
   IconSettings,
   IconShield,
-} from "@tabler/icons-react"
+} from '@tabler/icons-react'
 
-import { NavMain } from "@/components/dashboard/nav-main"
-import { NavSecondary } from "@/components/dashboard/nav-secondary"
-import { NavUser } from "@/components/dashboard/nav-user"
+import { NavMain } from '@/components/dashboard/nav-main'
+import { NavSecondary } from '@/components/dashboard/nav-secondary'
+import { NavUser } from '@/components/dashboard/nav-user'
 import {
   Sidebar,
   SidebarContent,
@@ -21,7 +21,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from '@/components/ui/sidebar'
 
 export function AppSidebar({
   user,
@@ -33,12 +33,12 @@ export function AppSidebar({
 }) {
   const navMain = [
     {
-      title: "Dashboard",
+      title: 'Dashboard',
       url: `/${locale}/dashboard`,
       icon: IconDashboard,
     },
     {
-      title: "Settings",
+      title: 'Settings',
       url: `/${locale}/settings/profile`,
       icon: IconSettings,
     },
@@ -46,17 +46,17 @@ export function AppSidebar({
 
   const navSecondary = [
     {
-      title: "Help",
+      title: 'Help',
       url: `/${locale}/help`,
       icon: IconHelp,
     },
     {
-      title: "Privacy Policy",
+      title: 'Privacy Policy',
       url: `/${locale}/privacy`,
       icon: IconShield,
     },
     {
-      title: "About",
+      title: 'About',
       url: `/${locale}/about`,
       icon: IconInfoCircle,
     },
@@ -67,10 +67,7 @@ export function AppSidebar({
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
-            >
+            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:p-1.5!">
               <a href={`/${locale}/dashboard`}>
                 <IconInnerShadowTop className="size-5!" />
                 <span className="text-base font-semibold">AgentDock</span>

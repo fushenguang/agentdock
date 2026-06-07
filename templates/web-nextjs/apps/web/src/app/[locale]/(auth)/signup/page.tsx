@@ -11,12 +11,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { signUp } from '@/features/auth'
 import { signUpSchema, type SignUpInput } from '@/lib/validations/auth'
 import type { ActionResult } from '@/core/types/auth'
@@ -28,15 +23,18 @@ export default function SignupPage() {
   const locale = routeParams.locale ?? 'en'
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null)
 
-  const { register, formState: { errors } } = useForm<SignUpInput>({
+  const {
+    register,
+    formState: { errors },
+  } = useForm<SignUpInput>({
     resolver: zodResolver(signUpSchema),
     defaultValues: { email: '', password: '', confirmPassword: '' },
   })
 
-  const [state, formAction, isPending] = useActionState<ActionResult<SignUpSuccessData> | null, FormData>(
-    signUp,
-    null,
-  )
+  const [state, formAction, isPending] = useActionState<
+    ActionResult<SignUpSuccessData> | null,
+    FormData
+  >(signUp, null)
 
   useEffect(() => {
     if (state?.error) toast.error(state.error)
@@ -56,9 +54,7 @@ export default function SignupPage() {
           <Card>
             <CardHeader className="text-center">
               <CardTitle className="text-xl">{t('verifyEmailTitle')}</CardTitle>
-              <CardDescription>
-                {t('verifyEmailMessage', { email: verifyEmail })}
-              </CardDescription>
+              <CardDescription>{t('verifyEmailMessage', { email: verifyEmail })}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center">
@@ -158,9 +154,14 @@ export default function SignupPage() {
           </Card>
           <FieldDescription className="px-6 text-center">
             {t('termsText')}{' '}
-            <Link href={`/${locale}/terms`} className="underline underline-offset-4">{t('termsLink')}</Link>
-            {' '}{t('andText')}{' '}
-            <Link href={`/${locale}/privacy`} className="underline underline-offset-4">{t('privacyLink')}</Link>.
+            <Link href={`/${locale}/terms`} className="underline underline-offset-4">
+              {t('termsLink')}
+            </Link>{' '}
+            {t('andText')}{' '}
+            <Link href={`/${locale}/privacy`} className="underline underline-offset-4">
+              {t('privacyLink')}
+            </Link>
+            .
           </FieldDescription>
         </div>
       </div>

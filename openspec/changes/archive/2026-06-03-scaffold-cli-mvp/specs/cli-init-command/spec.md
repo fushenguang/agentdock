@@ -55,6 +55,7 @@ agentdock init --name <project-name> --template <template-id> \
 `agentdock init` MUST 从 CLI 包内置的模板资产中复制文件到目标目录。模板资产在 CLI 包构建时从 `templates/` 目录内联。
 
 复制规则：
+
 - 忽略 `node_modules/`、`.next/`、`.turbo/`、`dist/` 目录
 - `package.json` 单独处理（见下一条需求）
 
@@ -68,12 +69,13 @@ agentdock init --name <project-name> --template <template-id> \
 ### Requirement: Generated project package.json correctness
 
 生成项目的 `package.json` MUST 满足以下条件：
+
 - `name` 字段替换为用户输入的项目名
 - `version` 重置为 `"0.1.0"`
 - `private` 字段移除（生成项目不应继承模板的私有标记）
 - 所有 `workspace:*` 依赖替换为 registry.json 中记录的已解析 semver 版本
 
-#### Scenario: 生成 package.json 无 workspace:* 引用
+#### Scenario: 生成 package.json 无 workspace:\* 引用
 
 - **WHEN** 在 AgentDock monorepo 外执行生成项目的 `pnpm install`
 - **THEN** 安装成功，无 `workspace:*` 无法解析的错误

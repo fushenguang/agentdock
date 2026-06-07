@@ -32,32 +32,39 @@ cd /path/to/agentdock
 脚本会检查以下内容：
 
 #### ✓ 环境检查
+
 - Node.js ≥ 18
 - pnpm 9.x
 - 模板目录存在
 
 #### ✓ 依赖安装
+
 - `pnpm install` 成功
 - 无 peer dependency 冲突
 
 #### ✓ 代码质量
+
 - ESLint 无错误
 - **Layer 2 架构约束**：features 层不直接 import infra
 - 无 console.log 泄露（警告级别）
 
 #### ✓ 类型安全
+
 - TypeScript 编译通过
 - 无类型错误
 
 #### ✓ 生产构建
+
 - `next build` 成功
 - .next 输出目录生成
 
 #### ✓ 架构完整性
+
 - Repository 接口和实现都存在
 - 无 features → infra 的直接依赖
 
 #### ✓ 功能完整性
+
 - 密码重置页面存在
 - Profile 设置页存在
 - Auth callback 有 open redirect 保护
@@ -66,6 +73,7 @@ cd /path/to/agentdock
 - i18n 翻译文件存在
 
 #### ✓ 安全检查
+
 - 无硬编码的 Supabase URL/Key
 - 无敏感信息泄露
 
@@ -97,6 +105,7 @@ Next steps:
 ### 前置条件
 
 1. **配置 Supabase**（本地或远程）
+
    ```bash
    cd templates/web-nextjs/apps/web
    cp .env.example .env.local
@@ -113,22 +122,24 @@ Next steps:
 
 #### 1. 基础页面加载（2 分钟）
 
-| 测试项 | 预期结果 | 状态 |
-|--------|---------|------|
-| 首页 `/en` | 正常渲染，无控制台错误 | ☐ |
-| Dashboard `/en/dashboard` | 未登录时重定向到登录页 | ☐ |
-| 登录页 `/en/login` | 表单正常显示 | ☐ |
-| 注册页 `/en/signup` | 表单正常显示 | ☐ |
+| 测试项                    | 预期结果               | 状态 |
+| ------------------------- | ---------------------- | ---- |
+| 首页 `/en`                | 正常渲染，无控制台错误 | ☐    |
+| Dashboard `/en/dashboard` | 未登录时重定向到登录页 | ☐    |
+| 登录页 `/en/login`        | 表单正常显示           | ☐    |
+| 注册页 `/en/signup`       | 表单正常显示           | ☐    |
 
 #### 2. 认证流程（5 分钟）
 
 **邮箱/密码登录：**
+
 1. 使用有效邮箱注册
 2. 验证邮箱（检查 Supabase Auth 后台）
 3. 登录成功，跳转到 dashboard
 4. 退出登录
 
 **GitHub OAuth：**
+
 1. 点击 "Sign in with GitHub"
 2. 授权后返回应用
 3. 成功创建账户并跳转
@@ -136,6 +147,7 @@ Next steps:
 #### 3. 密码重置流程（5 分钟）⭐ 核心功能
 
 **步骤 A: 请求重置链接**
+
 1. 访问 `/en/forgot-password`
 2. 输入已注册的邮箱
 3. 提交表单
@@ -143,11 +155,13 @@ Next steps:
 5. 检查邮箱是否收到重置邮件
 
 **步骤 B: 点击重置链接**
+
 1. 点击邮件中的链接
 2. 应跳转到 `/auth/callback?next=/en/reset-password&...`
 3. 然后自动跳转到 `/en/reset-password`
 
 **步骤 C: 设置新密码**
+
 1. 输入新密码（≥8 位）
 2. 确认密码
 3. 提交
@@ -155,6 +169,7 @@ Next steps:
 5. 使用新密码登录成功
 
 **边界情况测试：**
+
 - ☐ 输入无效邮箱格式 → 显示错误
 - ☐ 两次密码不一致 → 显示错误
 - ☐ 密码少于 8 位 → 显示错误
@@ -174,7 +189,7 @@ Next steps:
 
 ```javascript
 // 在控制台运行
-document.querySelectorAll('nav a').forEach(a => {
+document.querySelectorAll('nav a').forEach((a) => {
   if (a.href.includes('#') || a.getAttribute('href') === '#') {
     console.warn('Found placeholder link:', a)
   }
@@ -184,6 +199,7 @@ document.querySelectorAll('nav a').forEach(a => {
 **预期结果：** 无任何 `href="#"` 或 `url: "#"` 的链接
 
 检查以下页面是否可访问：
+
 - ☐ `/en/help` - Help Center（占位页）
 - ☐ `/en/privacy` - Privacy Policy（占位页）
 - ☐ `/en/about` - About Us（占位页）
@@ -191,21 +207,27 @@ document.querySelectorAll('nav a').forEach(a => {
 #### 6. Open Redirect 保护（2 分钟）⭐ 安全验收
 
 **测试 1: 合法的重定向**
+
 ```
 http://localhost:3000/auth/callback?code=FAKE&next=/en/reset-password
 ```
+
 → 应该允许（在白名单中）
 
 **测试 2: 非法的重定向**
+
 ```
 http://localhost:3000/auth/callback?code=FAKE&next=https://evil.com
 ```
+
 → 应该被拦截，重定向到默认页面 `/en/dashboard`
 
 **测试 3: 空 next 参数**
+
 ```
 http://localhost:3000/auth/callback?code=FAKE
 ```
+
 → 重定向到默认页面
 
 #### 7. 国际化切换（1 分钟）
@@ -218,6 +240,7 @@ http://localhost:3000/auth/callback?code=FAKE
 #### 8. 响应式布局（1 分钟）
 
 调整浏览器窗口大小：
+
 - ☐ Desktop (>1024px): 侧边栏展开
 - ☐ Tablet (768-1024px): 侧边栏可折叠
 - ☐ Mobile (<768px): 汉堡菜单
@@ -256,11 +279,13 @@ pnpm exec playwright test
 ### 问题 1: pnpm install 失败
 
 **症状：**
+
 ```
 ERR_PNPM_WORKSPACE_PKG_NOT_FOUND
 ```
 
 **解决：**
+
 ```bash
 # 清理缓存
 pnpm store prune
@@ -271,6 +296,7 @@ pnpm install
 ### 问题 2: Layer 2 违规
 
 **症状：**
+
 ```
 '@/infra/db/client' import is restricted from being used
 ```
@@ -290,12 +316,14 @@ const repo = getAuthRepository()
 ### 问题 3: 构建时 TypeScript 错误
 
 **症状：**
+
 ```
 Type '{ data: null; error: null; }' is not assignable to type 'ActionResult'
 ```
 
 **解决：**
 对于 `void` 返回类型，使用：
+
 ```typescript
 return { data: undefined as void, error: null }
 ```
@@ -303,6 +331,7 @@ return { data: undefined as void, error: null }
 ### 问题 4: 密码重置邮件未收到
 
 **检查清单：**
+
 1. Supabase Auth → Email Templates → Password Reset 已启用
 2. SMTP 配置正确（或使用 Supabase 默认）
 3. 检查垃圾邮件文件夹
@@ -311,6 +340,7 @@ return { data: undefined as void, error: null }
 ### 问题 5: GitHub OAuth 失败
 
 **检查：**
+
 1. GitHub App 的回调 URL 配置正确：
    ```
    http://localhost:3000/auth/callback
@@ -353,13 +383,13 @@ return { data: undefined as void, error: null }
 
 如果发现以下问题，参考对应的修复方法：
 
-| 问题 | 修复文件 | 说明 |
-|------|---------|------|
-| Layer 2 违规 | `src/features/*/actions.ts` | 改用 Repository |
-| 类型错误 | `src/features/auth/actions.ts` | 使用 `undefined as void` |
-| 缺少翻译 | `messages/en.json`, `messages/zh.json` | 添加缺失 key |
-| Open redirect | `src/app/auth/callback/route.ts` | 添加白名单校验 |
-| 侧边栏占位符 | `src/components/nav-main.tsx` | 移除 `url: "#"` |
+| 问题          | 修复文件                               | 说明                     |
+| ------------- | -------------------------------------- | ------------------------ |
+| Layer 2 违规  | `src/features/*/actions.ts`            | 改用 Repository          |
+| 类型错误      | `src/features/auth/actions.ts`         | 使用 `undefined as void` |
+| 缺少翻译      | `messages/en.json`, `messages/zh.json` | 添加缺失 key             |
+| Open redirect | `src/app/auth/callback/route.ts`       | 添加白名单校验           |
+| 侧边栏占位符  | `src/components/nav-main.tsx`          | 移除 `url: "#"`          |
 
 ---
 

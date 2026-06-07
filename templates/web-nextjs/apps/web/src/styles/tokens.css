@@ -1,0 +1,58 @@
+@layer base {
+  :root {
+    /* Brand tokens — downstream projects override these three variables to change the theme color */
+    --color-brand-h: 262;
+    --color-brand-c: 0.26;
+    --color-brand-l: 0.56;
+
+    /* Semantic color tokens */
+    --color-primary: oklch(var(--color-brand-l) var(--color-brand-c) var(--color-brand-h));
+    --color-primary-foreground: oklch(0.98 0 0);
+
+    /* Neutral surface tokens (with subtle hue, not pure gray) */
+    --color-surface: oklch(0.985 0.003 262);
+    --color-surface-elevated: oklch(1 0 0);
+    --color-muted: oklch(0.94 0.004 262);
+    --color-muted-foreground: oklch(0.52 0.012 262);
+    --color-border: oklch(0.88 0.006 262);
+
+    /* Spacing tokens (4px baseline) */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+    --space-20: 80px;
+    --space-24: 96px;
+    --space-section: clamp(64px, 10vw, 120px);
+
+    /* Font tokens */
+    --font-heading: var(--font-geist, 'Geist', system-ui, sans-serif);
+    --font-body: var(--font-geist, 'Geist', system-ui, sans-serif);
+
+    /* Text size tokens */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 1.875rem;
+    --text-4xl: 2.25rem;
+    --text-5xl: 3rem;
+  }
+
+  .dark {
+    /* Dark mode semantic tokens */
+    --color-surface: oklch(0.13 0.008 262);
+    --color-surface-elevated: oklch(0.18 0.007 262);
+    --color-muted: oklch(0.22 0.007 262);
+    --color-muted-foreground: oklch(0.62 0.010 262);
+    --color-border: oklch(0.28 0.008 262);
+  }
+}

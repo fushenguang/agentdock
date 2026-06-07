@@ -3,6 +3,73 @@
     "title": "欢迎使用 AgentDock Web 模板",
     "description": "基于四层架构的 Next.js 脚手架。"
   },
+  "landing": {
+    "nav": {
+      "features": "功能",
+      "pricing": "定价",
+      "docs": "文档",
+      "login": "登录",
+      "getStarted": "开始使用"
+    },
+    "hero": {
+      "badge": "开源",
+      "title": "用 AgentDock 更快地构建 SaaS",
+      "subtitle": "一个生产就绪的 Next.js 脚手架，包含四层架构、Supabase 认证、国际化和 AI 编码代理集成。",
+      "ctaPrimary": "免费开始",
+      "ctaSecondary": "查看文档"
+    },
+    "features": {
+      "title": "开箱即用的功能",
+      "subtitle": "内置功能让你专注于产品，而非样板代码。",
+      "items": {
+        "auth": {
+          "title": "认证系统",
+          "description": "完整的认证流程，支持邮箱/密码、OAuth 和密码重置。由 Supabase 保障安全。"
+        },
+        "monorepo": {
+          "title": "Monorepo 就绪",
+          "description": "Turborepo + pnpm 工作区，包含共享的类型、ESLint 和工具包。"
+        },
+        "aiCoding": {
+          "title": "AI 编码就绪",
+          "description": "为 AI 代理优化的结构，包含清晰的契约、设计系统和 Copilot 指令。"
+        },
+        "docs": {
+          "title": "文档协同进化",
+          "description": "基于 Fumadocs 的文档系统，与应用共同成长。"
+        }
+      }
+    },
+    "howItWorks": {
+      "title": "工作原理",
+      "subtitle": "三个简单步骤即可启动运行。",
+      "steps": {
+        "step1": {
+          "title": "脚手架",
+          "description": "运行 CLI 生成包含所有功能的初始项目。"
+        },
+        "step2": {
+          "title": "自定义",
+          "description": "调整 token、颜色和内容以匹配你的品牌。"
+        },
+        "step3": {
+          "title": "发布",
+          "description": "一条命令部署到 Vercel，开始构建。"
+        }
+      }
+    },
+    "pricing": {
+      "title": "定价",
+      "description": "定价方案即将推出，欢迎联系我们获取早期访问。",
+      "cta": "联系我们"
+    },
+    "footer": {
+      "help": "帮助",
+      "privacy": "隐私",
+      "about": "关于",
+      "copyright": "© {year} AgentDock。保留所有权利。"
+    }
+  },
   "auth": {
     "loginTitle": "欢迎回来",
     "loginSubtitle": "登录您的账号",

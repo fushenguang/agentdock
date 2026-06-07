@@ -9,6 +9,4 @@ export type AuthResult = {
   error: string | null
 }
 
-export type ActionResult<T = void> =
-  | { data: T; error: null }
-  | { data: null; error: string }
+export type ActionResult<T = void> = { data: T; error: null } | { data: null; error: string }

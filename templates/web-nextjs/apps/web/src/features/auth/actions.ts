@@ -2,7 +2,14 @@
 
 import { redirect } from 'next/navigation'
 import { getAuthRepository } from '@/infra/providers'
-import { signInSchema, signUpSchema, forgotPasswordSchema, resetPasswordWithOTPSchema, resetPasswordSchema, displayNameSchema } from '@/lib/validations/auth'
+import {
+  signInSchema,
+  signUpSchema,
+  forgotPasswordSchema,
+  resetPasswordWithOTPSchema,
+  resetPasswordSchema,
+  displayNameSchema,
+} from '@/lib/validations/auth'
 import type { ActionResult } from '@/core/types/auth'
 import { defaultLocale, isLocale } from '@/i18n/config'
 import type { SignUpSuccessData, OAuthData } from './__contract__'

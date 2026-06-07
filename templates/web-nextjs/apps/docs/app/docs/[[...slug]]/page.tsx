@@ -1,10 +1,5 @@
 import { source } from '@/lib/source'
-import {
-  DocsBody,
-  DocsDescription,
-  DocsPage,
-  DocsTitle,
-} from 'fumadocs-ui/layouts/docs/page'
+import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
 import { notFound } from 'next/navigation'
 
 export default async function Page(props: { params: Promise<{ slug?: string[] }> }) {

@@ -1,26 +1,23 @@
-import { AppSidebar } from "@/components/dashboard/app-sidebar"
-import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive"
-import { DataTable } from "@/components/dashboard/data-table"
-import { SectionCards } from "@/components/dashboard/section-cards"
-import { SiteHeader } from "@/components/dashboard/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
+import { AppSidebar } from '@/components/dashboard/app-sidebar'
+import { ChartAreaInteractive } from '@/components/dashboard/chart-area-interactive'
+import { DataTable } from '@/components/dashboard/data-table'
+import { SectionCards } from '@/components/dashboard/section-cards'
+import { SiteHeader } from '@/components/dashboard/site-header'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 
-import data from "./data.json"
+import data from './data.json'
 
 export default function Page() {
   return (
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
+          '--sidebar-width': 'calc(var(--spacing) * 72)',
+          '--header-height': 'calc(var(--spacing) * 12)',
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" user={{ name: "User", email: "", avatar: "" }} locale="en" />
+      <AppSidebar variant="inset" user={{ name: 'User', email: '', avatar: '' }} locale="en" />
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col">

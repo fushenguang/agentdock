@@ -10,6 +10,7 @@
 ```
 
 **预期输出：**
+
 ```
 ✓ All critical checks passed!
 
@@ -25,6 +26,7 @@ Warnings: 2
 ### 阶段 1：自动化检查（5-10 分钟）✅
 
 运行验证脚本，检查：
+
 - ✓ 环境（Node.js, pnpm）
 - ✓ 依赖安装
 - ✓ ESLint（包括 Layer 2 架构约束）
@@ -43,6 +45,7 @@ pnpm dev
 ```
 
 访问 http://localhost:3000，测试：
+
 1. 登录/注册流程
 2. **密码重置流程**（核心功能）
 3. Profile 管理
@@ -55,6 +58,7 @@ pnpm dev
 ### 阶段 3：E2E 测试（可选）🎯
 
 需要真实 Supabase 环境：
+
 ```bash
 pnpm exec playwright test
 ```
@@ -76,6 +80,7 @@ pnpm install
 **错误：** `'@/infra/db/client' import is restricted`
 
 **修复：** 在 `actions.ts` 中使用 Repository：
+
 ```typescript
 // ❌ 错误
 import { getServerClient } from '@/infra/db/client'
@@ -90,6 +95,7 @@ const repo = getAuthRepository()
 **错误：** `Type '{ data: null; error: null; }' is not assignable`
 
 **修复：**
+
 ```typescript
 return { data: undefined as void, error: null }
 ```
@@ -101,6 +107,7 @@ return { data: undefined as void, error: null }
 合并前必须满足：
 
 ### 强制要求
+
 - [ ] 自动化脚本全部通过（0 failures）
 - [ ] Layer 2 架构无违规
 - [ ] 密码重置流程完整可用
@@ -110,6 +117,7 @@ return { data: undefined as void, error: null }
 - [ ] 无硬编码密钥
 
 ### 推荐要求
+
 - [ ] 手动测试清单 80% 以上通过
 - [ ] i18n 翻译完整
 - [ ] 响应式布局正常

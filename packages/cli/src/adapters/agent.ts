@@ -1,85 +1,85 @@
-import { join, isAbsolute, resolve } from "path";
-import { getTemplate } from "../core/registry.js";
-import { scaffoldProject } from "../core/scaffold.js";
+import { join, isAbsolute, resolve } from 'path'
+import { getTemplate } from '../core/registry.js'
+import { scaffoldProject } from '../core/scaffold.js'
 
 export interface AgentAdapterOptions {
-  name: string;
-  template: string;
-  pm?: string;
-  silent?: boolean;
-  json?: boolean;
+  name: string
+  template: string
+  pm?: string
+  silent?: boolean
+  json?: boolean
   /** Explicit target directory. Absolute or relative to cwd. Defaults to ./<name>. */
-  dir?: string;
+  dir?: string
 }
 
 function emit(obj: unknown, json: boolean): void {
   if (json) {
-    process.stdout.write(JSON.stringify(obj) + "\n");
+    process.stdout.write(JSON.stringify(obj) + '\n')
   }
 }
 
 export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> {
-  const { name, template: templateId, pm, silent = false, json = false, dir } = opts;
+  const { name, template: templateId, pm, silent = false, json = false, dir } = opts
 
-  const output = json || silent;
+  const output = json || silent
 
   if (!name) {
-    const err = { ok: false, error: "MISSING_ARG", field: "name" };
+    const err = { ok: false, error: 'MISSING_ARG', field: 'name' }
     if (output) {
-      emit(err, true);
+      emit(err, true)
     } else {
-      console.error("Error: --name is required in agent mode");
+      console.error('Error: --name is required in agent mode')
     }
-    process.exit(1);
+    process.exit(1)
   }
 
   if (!templateId) {
-    const err = { ok: false, error: "MISSING_ARG", field: "template" };
+    const err = { ok: false, error: 'MISSING_ARG', field: 'template' }
     if (output) {
-      emit(err, true);
+      emit(err, true)
     } else {
-      console.error("Error: --template is required in agent mode");
+      console.error('Error: --template is required in agent mode')
     }
-    process.exit(1);
+    process.exit(1)
   }
 
-  const template = getTemplate(templateId);
+  const template = getTemplate(templateId)
   if (!template) {
-    const err = { ok: false, error: "TEMPLATE_NOT_FOUND", template: templateId };
+    const err = { ok: false, error: 'TEMPLATE_NOT_FOUND', template: templateId }
     if (output) {
-      emit(err, true);
+      emit(err, true)
     } else {
-      console.error(`Error: template "${templateId}" not found`);
+      console.error(`Error: template "${templateId}" not found`)
     }
-    process.exit(1);
+    process.exit(1)
   }
 
   const targetDir = dir
     ? isAbsolute(dir)
       ? dir
       : resolve(process.cwd(), dir)
-    : join(process.cwd(), name);
+    : join(process.cwd(), name)
 
   if (!silent && !json) {
-    console.log(`Scaffolding project "${name}" using template "${templateId}"...`);
+    console.log(`Scaffolding project "${name}" using template "${templateId}"...`)
   }
 
   const result = scaffoldProject({
     targetDir,
     name,
     template,
-    packageManager: (pm as "pnpm" | "npm" | "yarn" | "bun") ?? "pnpm",
-  });
+    packageManager: (pm as 'pnpm' | 'npm' | 'yarn' | 'bun') ?? 'pnpm',
+  })
 
   if (output) {
-    emit(result, true);
+    emit(result, true)
   } else if (result.ok) {
-    console.log(`✓ Project created at ${targetDir}`);
+    console.log(`✓ Project created at ${targetDir}`)
   } else {
-    console.error(`✗ ${result.message}`);
+    console.error(`✗ ${result.message}`)
   }
 
   if (!result.ok) {
-    process.exit(1);
+    process.exit(1)
   }
 }

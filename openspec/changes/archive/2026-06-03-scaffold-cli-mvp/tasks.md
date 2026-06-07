@@ -25,7 +25,7 @@
 - [x] 4.1 实现 `src/core/registry.ts`：读取并解析 `registry.json`，导出 `getTemplates()`、`getTemplate(id)` 函数
 - [x] 4.2 实现 `src/core/version.ts`：`checkVersion(cliVersion, minCliVersion)` 函数，不兼容时抛出 `CLI_VERSION_OUTDATED` 错误
 - [x] 4.3 实现 `src/core/scaffold.ts`：`scaffoldProject(options)` 纯函数，执行文件复制、`package.json` 改写（name、version、移除 private、替换 resolvedDependencies）
-- [x] 4.4 为 `core/` 三个模块编写 Vitest 单元测试，覆盖版本兼容检查、workspace:* 替换、TARGET_DIR_EXISTS 错误
+- [x] 4.4 为 `core/` 三个模块编写 Vitest 单元测试，覆盖版本兼容检查、workspace:\* 替换、TARGET_DIR_EXISTS 错误
 
 ## 5. agentdock init 命令
 

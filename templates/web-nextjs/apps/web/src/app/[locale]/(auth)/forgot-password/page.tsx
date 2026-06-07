@@ -24,7 +24,13 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [countdown, setCountdown] = useState(0)
 
-  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<ResetPasswordWithOTPInput>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+  } = useForm<ResetPasswordWithOTPInput>({
     resolver: zodResolver(resetPasswordWithOTPSchema),
     defaultValues: { email: '', token: '', password: '', confirmPassword: '' },
   })
@@ -34,10 +40,10 @@ export default function ForgotPasswordPage() {
     null,
   )
 
-  const [verifyState, verifyAction, isVerifyPending] = useActionState<ActionResult | null, FormData>(
-    resetPasswordWithOTP,
-    null,
-  )
+  const [verifyState, verifyAction, isVerifyPending] = useActionState<
+    ActionResult | null,
+    FormData
+  >(resetPasswordWithOTP, null)
 
   useEffect(() => {
     if (sendState?.error) {
@@ -173,13 +179,7 @@ export default function ForgotPasswordPage() {
               <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="email">{t('emailLabel')}</FieldLabel>
-                  <Input
-                    id="email"
-                    type="email"
-                    readOnly
-                    value={email}
-                    {...register('email')}
-                  />
+                  <Input id="email" type="email" readOnly value={email} {...register('email')} />
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="token">{t('verificationCodeLabel')}</FieldLabel>

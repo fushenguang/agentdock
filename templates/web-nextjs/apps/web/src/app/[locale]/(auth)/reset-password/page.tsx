@@ -23,7 +23,10 @@ export default function ResetPasswordPage() {
   const locale = routeParams.locale ?? 'en'
   const error = searchParams.get('error')
 
-  const { register, formState: { errors } } = useForm<ResetPasswordInput>({
+  const {
+    register,
+    formState: { errors },
+  } = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: { password: '', confirmPassword: '' },
   })

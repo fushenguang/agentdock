@@ -8,11 +8,7 @@ import { getCurrentUser } from '@/features/auth/server'
 
 import data from '@/components/dashboard/data.json'
 
-export default async function DashboardPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
+export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   const user = await getCurrentUser()
 

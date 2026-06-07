@@ -5,6 +5,7 @@
 `packages/eslint-config`（`@agentdock/eslint-config`）和 `packages/tsconfig`（`@agentdock/tsconfig`）MUST 作为公开 npm 包发布，不再设置 `private: true`。
 
 发布要求：
+
 - 移除 `private: true` 字段
 - 添加 `publishConfig: { "access": "public" }`
 - 确保 `version` 字段为有效 semver（初始发布版本为 `0.1.0`）

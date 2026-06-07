@@ -1,15 +1,17 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Geist } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { Toaster } from '@/components/ui/sonner'
+import { ThemeProvider } from '@/components/providers/theme-provider'
 import { isLocale } from '@/i18n/config'
 import './globals.css'
 
-const inter = Inter({
+const geist = Geist({
   subsets: ['latin'],
-  variable: '--font-sans',
+  variable: '--font-geist',
+  fallback: ['system-ui', 'sans-serif'],
 })
 
 export const metadata: Metadata = {
@@ -33,11 +35,11 @@ export default async function LocaleLayout({
   const messages = await getMessages()
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body className={`${inter.variable} min-h-screen bg-background font-sans antialiased`}>
-        <NextIntlClientProvider messages={messages}>
-          {children}
-        </NextIntlClientProvider>
+    <html lang={locale} suppressHydrationWarning className={geist.variable}>
+      <body className={`${geist.variable} min-h-screen bg-background font-sans antialiased`}>
+        <ThemeProvider>
+          <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
+        </ThemeProvider>
         <Toaster />
       </body>
     </html>

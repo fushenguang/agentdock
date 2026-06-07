@@ -1,0 +1,85 @@
+---
+title: CSS Design System
+description: Why and how we built a token-based CSS design system for AI Coding Agents.
+---
+
+# CSS Design System
+
+## Why AI Coding Agents Need a Design System
+
+Without a Single Source of Truth (SSOT), AI Coding Agents generate inconsistent UI. One component uses `bg-gray-100`, another uses `bg-slate-50`, and a third uses `bg-zinc-100`. Over time, this accumulates into visual chaos.
+
+A token-based design system solves this by:
+- **Constraining AI choices**: The AI can only use tokens defined in the system
+- **Enabling one-click retheming**: Change `--color-brand-h` and the entire app updates
+- **Ensuring consistency**: Same semantic meaning always maps to the same visual value
+
+## Why OKLCH Over HSL
+
+OKLCH (OK Lightness, Chroma, Hue) is a perceptually uniform color space:
+
+- **Perceptual uniformity**: Equal changes in values produce equal perceptual differences
+- **Natural dark mode transitions**: Colors maintain their character when lightness changes
+- **Colorblind-friendly**: The separation of chroma and hue makes it easier to create accessible palettes
+- **Brand consistency**: `--color-brand-h` / `--color-brand-c` / `--color-brand-l` variables make retheming trivial
+
+## Semantic Tokens vs. Literal Values
+
+| Approach | Example | Problem |
+|----------|---------|---------|
+| Literal | `bg-blue-500` | Hard to retheme, no semantic meaning |
+| Semantic | `bg-primary` | Describes purpose, easy to retheme |
+
+Our system uses semantic tokens like `--color-surface`, `--color-muted-foreground`, and `--color-border`. The AI reads `copilot-instructions.md` and knows to use `bg-surface` instead of `bg-gray-100`.
+
+## Tailwind v4 `@theme` Bridge
+
+Tailwind v4's `@theme` directive registers CSS custom properties as utility classes:
+
+```css
+@theme inline {
+  --color-surface: var(--color-surface);
+  --color-muted: var(--color-muted);
+}
+```
+
+This bridges the gap between:
+- **CSS custom properties** (runtime, great for theming)
+- **Tailwind utility classes** (compile-time, great for developer experience)
+
+## Mobile-First for AI Coding Agents
+
+AI Coding Agents have a strong bias toward desktop layouts. Without explicit constraints, they generate desktop-first code and then struggle to adapt it to mobile.
+
+**Our rule**: Always write mobile styles first (unprefixed), then enhance with `md:` and `lg:` prefixes.
+
+```tsx
+// Correct: mobile-first
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+
+// Wrong: desktop-first downgrade
+<div className="grid grid-cols-4 max-md:grid-cols-2">
+```
+
+## Container Queries
+
+For component-level responsiveness, use container queries instead of media queries:
+
+```css
+@container (min-width: 600px) {
+  .feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+```
+
+This decouples component layout from viewport size, making components truly reusable.
+
+## Adding a New Token
+
+To add a new semantic token (e.g., `--color-danger`):
+
+1. Define the value in `src/styles/tokens.css`
+2. Register it in `src/app/[locale]/globals.css` under `@theme inline`
+3. Document it in `DESIGN.md`
+4. Update `copilot-instructions.md` with usage examples

@@ -6,6 +6,7 @@ AgentDock 已有一个功能完整的 `web-nextjs` 模板（`templates/web-nextj
 2. **AI Agent**：期待完全无交互阻塞的无头运行模式，以及基于 MCP 协议的工具接口（长连接、类型化工具参数、结构化响应）。
 
 当前约束：
+
 - pnpm workspace `packages/*` 通配已覆盖 `packages/cli`，无需修改 `pnpm-workspace.yaml`
 - 模板 `devDependencies` 中有 `workspace:*` 引用（`@agentdock/eslint-config`、`@agentdock/tsconfig`），这两个包当前为 `private: true`，**必须先发布为公开 npm 包**，`generate-registry` 才能在构建期解析其版本
 - MVP 面向 Node ≥18 运行，不要求单文件二进制
@@ -13,6 +14,7 @@ AgentDock 已有一个功能完整的 `web-nextjs` 模板（`templates/web-nextj
 ## Goals / Non-Goals
 
 **Goals:**
+
 - `packages/cli` 包作为 `@agentdock/cli` 纳入 monorepo
 - `agentdock init`：TTY 模式（Clack 交互）和无头模式（`--silent --json`）双轨运行
 - `agentdock mcp`：MCP Stdio 长连接服务，暴露 `list_templates`、`scaffold_project`、`get_template_schema` 三个工具
@@ -22,6 +24,7 @@ AgentDock 已有一个功能完整的 `web-nextjs` 模板（`templates/web-nextj
 - `@agentdock/eslint-config` 和 `@agentdock/tsconfig` 从 `private: true` 改为公开发布
 
 **Non-Goals:**
+
 - `bun build --compile` 单文件跨平台二进制（Next 阶段）
 - GitHub Releases / Homebrew tap 分发渠道（Next 阶段）
 - `giget` 远程模板拉取（已预留依赖，Next 阶段启用）
@@ -71,6 +74,7 @@ bun build src/index.ts --outfile dist/index.js --target node
 ```
 
 **理由**：
+
 - npm 单包发布，无需分平台 `optionalDependencies` 矩阵
 - `pnpx agentdock init` / `npx agentdock init` 开箱即用
 - Node ≥18 在目标用户群中（开发机）覆盖率接近 100%
@@ -90,12 +94,13 @@ bun build src/index.ts --outfile dist/index.js --target node
     "outputs": ["packages/cli/src/registry.json"]
   },
   "build": {
-    "dependsOn": ["^build", "generate-registry"]   // cli 包 build 依赖此任务
+    "dependsOn": ["^build", "generate-registry"] // cli 包 build 依赖此任务
   }
 }
 ```
 
 **工作流**：
+
 ```
 扫描 templates/*/package.json
   → 读取 name, version, description, agentdock.minCliVersion
@@ -115,15 +120,16 @@ bun build src/index.ts --outfile dist/index.js --target node
 ### Decision 4：MCP Server 使用 Stdio 传输，不使用 HTTP
 
 ```typescript
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { Server } from '@modelcontextprotocol/sdk/server/index.js'
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
-const server = new Server({ name: "agentdock", version: pkg.version });
-const transport = new StdioServerTransport();
-await server.connect(transport);
+const server = new Server({ name: 'agentdock', version: pkg.version })
+const transport = new StdioServerTransport()
+await server.connect(transport)
 ```
 
 **理由**：
+
 - AI Agent 宿主（Claude Desktop、Cursor、Copilot）的 MCP 集成优先支持 Stdio
 - 无需端口管理和身份认证
 - CLI 二进制本身即 MCP 服务，零额外部署
@@ -138,10 +144,12 @@ await server.connect(transport);
 ```json
 // registry.json
 {
-  "templates": [{
-    "id": "web-nextjs",
-    "minCliVersion": "0.1.0"
-  }]
+  "templates": [
+    {
+      "id": "web-nextjs",
+      "minCliVersion": "0.1.0"
+    }
+  ]
 }
 ```
 
@@ -162,7 +170,7 @@ await server.connect(transport);
 
 ## Risks / Trade-offs
 
-- **[Risk] `@agentdock/eslint-config` 和 `@agentdock/tsconfig` 还未发布** → generate-registry 构建时无法解析 workspace:* 的目标 npm 版本。**Mitigation**：将两个包的发布（移除 `private: true`、配置 `publishConfig`）作为 CLI 任务的前置任务，在同一 change 内完成。
+- **[Risk] `@agentdock/eslint-config` 和 `@agentdock/tsconfig` 还未发布** → generate-registry 构建时无法解析 workspace:\* 的目标 npm 版本。**Mitigation**：将两个包的发布（移除 `private: true`、配置 `publishConfig`）作为 CLI 任务的前置任务，在同一 change 内完成。
 
 - **[Risk] registry.json 不纳入 git，但测试需要它** → CI 需要先跑 `generate-registry` 再跑 CLI 测试。**Mitigation**：在 turbo.json 中声明 `cli#test` 依赖 `generate-registry`，确保 CI 任务图正确。
 

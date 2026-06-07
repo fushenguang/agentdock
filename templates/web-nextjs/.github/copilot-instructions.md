@@ -6,11 +6,11 @@
 
 This project is a turborepo + pnpm monorepo with two applications:
 
-| Directory    | Purpose                                                              |
-| ------------ | -------------------------------------------------------------------- |
-| `apps/web/`  | Main Next.js 16 application (four-layer contract, features, i18n)    |
-| `apps/docs/` | Fumadocs documentation site (features, decisions, changelog, roadmap)|
-| `packages/`  | Shared tooling packages (eslint-config, tsconfig)                    |
+| Directory    | Purpose                                                               |
+| ------------ | --------------------------------------------------------------------- |
+| `apps/web/`  | Main Next.js 16 application (four-layer contract, features, i18n)     |
+| `apps/docs/` | Fumadocs documentation site (features, decisions, changelog, roadmap) |
+| `packages/`  | Shared tooling packages (eslint-config, tsconfig)                     |
 
 Run all commands from the monorepo root: `pnpm build`, `pnpm lint`, `pnpm test`, `pnpm check-types`.
 
@@ -62,4 +62,3 @@ When adding a new feature `apps/web/src/features/<name>/`:
 6. Create `apps/docs/content/docs/features/<name>.mdx` — feature documentation.
 
 Reference implementation: `apps/web/src/features/hello/`.
-

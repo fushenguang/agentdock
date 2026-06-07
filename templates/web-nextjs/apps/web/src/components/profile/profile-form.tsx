@@ -17,7 +17,11 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ defaultName, locale }: ProfileFormProps) {
-  const { register, formState: { errors }, reset } = useForm<DisplayNameInput>({
+  const {
+    register,
+    formState: { errors },
+    reset,
+  } = useForm<DisplayNameInput>({
     resolver: zodResolver(displayNameSchema),
     defaultValues: { name: defaultName },
   })
@@ -48,9 +52,7 @@ export function ProfileForm({ defaultName, locale }: ProfileFormProps) {
             {...register('name')}
           />
           {errors.name && (
-            <FieldDescription className="text-destructive">
-              {errors.name.message}
-            </FieldDescription>
+            <FieldDescription className="text-destructive">{errors.name.message}</FieldDescription>
           )}
         </Field>
         <Field>

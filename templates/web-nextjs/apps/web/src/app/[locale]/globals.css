@@ -1,12 +1,24 @@
 @import "../../styles/tw-animate.css";
 @import "../../styles/shadcn-tailwind.css";
 @import "tailwindcss";
+@import "../../styles/tokens.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--font-sans);
+    --font-heading: var(--font-geist, var(--font-sans));
     --font-sans: var(--font-sans);
+
+    /* Semantic tokens registered as Tailwind utilities */
+    --color-surface: var(--color-surface);
+    --color-surface-elevated: var(--color-surface-elevated);
+    --color-muted-custom: var(--color-muted);
+    --color-muted-foreground-custom: var(--color-muted-foreground);
+    --color-border-custom: var(--color-border);
+    --color-primary-custom: var(--color-primary);
+    --color-primary-foreground-custom: var(--color-primary-foreground);
+
+    /* shadcn/ui tokens */
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -119,11 +131,11 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply bg-background text-foreground;
-    }
+  }
   html {
     @apply font-sans;
-    }
+  }
 }

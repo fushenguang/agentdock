@@ -5,6 +5,7 @@
 `agentdock mcp` MUST 启动一个基于 MCP 协议、使用 Stdio 传输的长连接服务。服务启动后持续监听，直到进程被终止（SIGINT/SIGTERM）。
 
 服务元信息：
+
 - `name`: `"agentdock"`
 - `version`: 与 `@agentdock/cli` 包版本一致
 
@@ -32,6 +33,7 @@
 输入参数：无
 
 输出结构：
+
 ```json
 {
   "templates": [
@@ -58,16 +60,20 @@
 `scaffold_project` 工具 MUST 以无头模式执行与 `agentdock init --json` 等价的脚手架操作。
 
 输入参数（均有默认值）：
+
 - `name` (string, required): 项目名
 - `template` (string, default: `"web-nextjs"`): 模板 ID
 - `targetDir` (string, default: `./<name>`): 目标目录绝对或相对路径
 - `packageManager` (string, default: `"pnpm"`): 包管理器
 
 输出结构：
+
 ```json
 { "ok": true, "path": "/abs/path/to/project", "template": "web-nextjs" }
 ```
+
 或失败时：
+
 ```json
 { "ok": false, "error": "CLI_VERSION_OUTDATED", "suggested_action": "..." }
 ```
@@ -94,9 +100,11 @@
 `get_template_schema` 工具 MUST 返回指定模板的详细元数据与 `agentdock init` 所需参数的 JSON Schema，使 Agent 能在调用 `scaffold_project` 前自省参数格式。
 
 输入参数：
+
 - `templateId` (string, required): 模板 ID
 
 输出结构：
+
 ```json
 {
   "template": { "id": "web-nextjs", "version": "0.1.0", "minCliVersion": "0.1.0" },

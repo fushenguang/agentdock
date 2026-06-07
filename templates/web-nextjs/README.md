@@ -8,18 +8,18 @@ Designed for both human developers and AI coding agents.
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | [Next.js 16](https://nextjs.org) (App Router) |
-| Language | [TypeScript 5+](https://www.typescriptlang.org) (strict mode) |
-| Styling | [Tailwind CSS v4](https://tailwindcss.com) |
-| Database / Auth | [Supabase](https://supabase.com) (`@supabase/ssr`) |
-| i18n | [next-intl](https://next-intl.dev) (en / zh out of the box) |
-| Testing | [Vitest](https://vitest.dev) |
-| Package manager | [pnpm](https://pnpm.io) ≥ 9 |
-| Runtime | Node.js ≥ 18 |
-| Governance | [OpenSpec](https://github.com/fission-ai/openspec) (`@fission-ai/openspec`) |
-| Monorepo | [Turborepo](https://turbo.build/repo) + pnpm workspaces |
+| Layer           | Technology                                                                  |
+| --------------- | --------------------------------------------------------------------------- |
+| Framework       | [Next.js 16](https://nextjs.org) (App Router)                               |
+| Language        | [TypeScript 5+](https://www.typescriptlang.org) (strict mode)               |
+| Styling         | [Tailwind CSS v4](https://tailwindcss.com)                                  |
+| Database / Auth | [Supabase](https://supabase.com) (`@supabase/ssr`)                          |
+| i18n            | [next-intl](https://next-intl.dev) (en / zh out of the box)                 |
+| Testing         | [Vitest](https://vitest.dev)                                                |
+| Package manager | [pnpm](https://pnpm.io) ≥ 9                                                 |
+| Runtime         | Node.js ≥ 18                                                                |
+| Governance      | [OpenSpec](https://github.com/fission-ai/openspec) (`@fission-ai/openspec`) |
+| Monorepo        | [Turborepo](https://turbo.build/repo) + pnpm workspaces                     |
 
 ## Directory Structure
 
@@ -64,12 +64,12 @@ cp .env.example .env.local
 
 Open `.env.local` and fill in your values:
 
-| Variable | Where to find it |
-|----------|-----------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase Dashboard → Project Settings → API → Project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Dashboard → Project Settings → API → anon / public |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Project Settings → API → service_role (server only) |
-| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` for local dev |
+| Variable                        | Where to find it                                                         |
+| ------------------------------- | ------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase Dashboard → Project Settings → API → Project URL                |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Dashboard → Project Settings → API → anon / public              |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase Dashboard → Project Settings → API → service_role (server only) |
+| `NEXT_PUBLIC_APP_URL`           | `http://localhost:3000` for local dev                                    |
 
 ### 4. Set up Supabase Auth (required for login / signup)
 
@@ -129,6 +129,7 @@ apps/web/src/features/<your-feature>/
 ```
 
 Rules:
+
 - Features import from `apps/web/src/core/` (domain interfaces) — never from `apps/web/src/infra/` directly.
 - Every feature directory **must** have `__contract__.ts` (ESLint enforces this).
 - Add translations to `apps/web/messages/en.json` and `apps/web/messages/zh.json`.
@@ -193,12 +194,12 @@ See `openspec/config.yaml` for project-specific governance rules.
 
 ## Environment Variables Reference
 
-| Variable | Required | Exposed to browser | Description |
-|----------|----------|--------------------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | ✅ | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | ✅ | Supabase anon key (RLS protected) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Optional | ❌ | Admin key, bypasses RLS |
-| `NEXT_PUBLIC_APP_URL` | Optional | ✅ | Canonical app URL |
+| Variable                        | Required | Exposed to browser | Description                       |
+| ------------------------------- | -------- | ------------------ | --------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | ✅       | ✅                 | Supabase project URL              |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅       | ✅                 | Supabase anon key (RLS protected) |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Optional | ❌                 | Admin key, bypasses RLS           |
+| `NEXT_PUBLIC_APP_URL`           | Optional | ✅                 | Canonical app URL                 |
 
 > Variables prefixed with `NEXT_PUBLIC_` are bundled into client-side JavaScript.  
 > Never put secrets in `NEXT_PUBLIC_*` variables.

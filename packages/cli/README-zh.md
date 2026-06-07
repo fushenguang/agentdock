@@ -43,23 +43,29 @@ pnpm add -g @cogito.ai/cli
 - **TTY 环境** → 交互模式（人类开发者）
 - **非 TTY 环境 / `--silent` / `--json`** → 无头模式（Agent/CI）
 
-| Flag | 类型 | 默认值 | 说明 |
-| ---- | ---- | ------ | ---- |
-| `--name` | string | 必填 | 项目名称，也是目标目录名 |
-| `--template` | string | 必填 | 模板 ID，如 `web-nextjs` |
-| `--pm` | string | `pnpm` | 包管理器：`pnpm` / `npm` / `yarn` / `bun` |
-| `--dir` | string | `./<name>` | 目标目录（绝对路径或相对 cwd） |
-| `--json` | boolean | `false` | 以 NDJSON 格式输出结果 |
-| `--silent` | boolean | `false` | 静默模式，抑制所有输出 |
+| Flag         | 类型    | 默认值     | 说明                                      |
+| ------------ | ------- | ---------- | ----------------------------------------- |
+| `--name`     | string  | 必填       | 项目名称，也是目标目录名                  |
+| `--template` | string  | 必填       | 模板 ID，如 `web-nextjs`                  |
+| `--pm`       | string  | `pnpm`     | 包管理器：`pnpm` / `npm` / `yarn` / `bun` |
+| `--dir`      | string  | `./<name>` | 目标目录（绝对路径或相对 cwd）            |
+| `--json`     | boolean | `false`    | 以 NDJSON 格式输出结果                    |
+| `--silent`   | boolean | `false`    | 静默模式，抑制所有输出                    |
 
 **JSON 成功输出：**
+
 ```json
-{"ok":true,"targetDir":"/path/to/my-app","name":"my-app","template":"web-nextjs"}
+{ "ok": true, "targetDir": "/path/to/my-app", "name": "my-app", "template": "web-nextjs" }
 ```
 
 **JSON 失败输出：**
+
 ```json
-{"ok":false,"error":"TARGET_DIR_EXISTS","message":"Directory already exists: /path/to/my-app"}
+{
+  "ok": false,
+  "error": "TARGET_DIR_EXISTS",
+  "message": "Directory already exists: /path/to/my-app"
+}
 ```
 
 **错误码：** `MISSING_ARG` · `TEMPLATE_NOT_FOUND` · `TARGET_DIR_EXISTS` · `CLI_VERSION_OUTDATED` · `SCAFFOLD_FAILED`
@@ -76,12 +82,13 @@ agentdock mcp
 
 **工具列表：**
 
-| 工具 | 说明 |
-| ---- | ---- |
-| `list_templates` | 列出所有可用模板 |
+| 工具               | 说明                 |
+| ------------------ | -------------------- |
+| `list_templates`   | 列出所有可用模板     |
 | `scaffold_project` | 脚手架项目到目标目录 |
 
 **VS Code Copilot MCP 配置（`.vscode/mcp.json`）：**
+
 ```json
 {
   "servers": {
@@ -98,8 +105,8 @@ agentdock mcp
 
 ## 可用模板
 
-| 模板 ID | 说明 |
-| ------- | ---- |
+| 模板 ID      | 说明                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------ |
 | `web-nextjs` | Next.js 16 + Supabase + next-intl + Tailwind CSS v4 + Vitest + Fumadocs 全栈 monorepo 模板 |
 
 ---

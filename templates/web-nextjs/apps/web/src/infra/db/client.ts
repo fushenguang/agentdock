@@ -66,10 +66,7 @@ export function getBrowserClient() {
  * await supabase.auth.getUser() // refreshes session token
  * ```
  */
-export function createMiddlewareClient(
-  request: NextRequest,
-  response: NextResponse,
-) {
+export function createMiddlewareClient(request: NextRequest, response: NextResponse) {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

@@ -5,17 +5,20 @@
 **目标**：在合并模板变更到 main 分支之前，通过自动化测试验证模板的可用性和质量。
 
 **重点**：
+
 - 在 monorepo 上下文中运行完整测试（lint, type-check, build, dev server）
 - 验证新增功能的 HTTP 端点可访问性
 - 检查架构约束（Layer 2）、安全防护（open redirect、硬编码密钥）
 - 提供明确的合并建议和下一步指引
 
 **边界**：
+
 - ✅ 可以：运行测试脚本、读取日志、分析失败原因、建议修复方案
 - ❌ 不可以：自动修改代码、跳过失败的测试、忽略安全警告
 - ❌ 不干预：用户决定是否合并、何时发布、如何修复问题
 
 **自主规划**：在边界内，LLM 应自主决定：
+
 1. 选择哪个测试脚本（快速验证 vs 完整 E2E）
 2. 如何解读测试结果
 3. 哪些失败需要立即修复，哪些是误报
@@ -39,15 +42,15 @@
 
 ### 2. 关键判断标准
 
-| 检查项 | 通过标准 | 失败处理 |
-|--------|---------|---------|
-| ESLint | 无错误退出码 0 | 列出错误，建议修复 |
-| TypeScript | 编译成功 | 显示类型错误位置 |
-| Build | 生成 .next 目录 | 检查构建日志 |
-| Dev Server | 60s 内响应 200 | 检查端口占用、缓存损坏 |
-| 新功能页面 | HTTP 200 | 确认路由配置正确 |
-| Layer 2 | 无违规 import | 强制使用 Repository 模式 |
-| 安全检查 | 无硬编码密钥 | **BLOCK MERGE** |
+| 检查项     | 通过标准        | 失败处理                 |
+| ---------- | --------------- | ------------------------ |
+| ESLint     | 无错误退出码 0  | 列出错误，建议修复       |
+| TypeScript | 编译成功        | 显示类型错误位置         |
+| Build      | 生成 .next 目录 | 检查构建日志             |
+| Dev Server | 60s 内响应 200  | 检查端口占用、缓存损坏   |
+| 新功能页面 | HTTP 200        | 确认路由配置正确         |
+| Layer 2    | 无违规 import   | 强制使用 Repository 模式 |
+| 安全检查   | 无硬编码密钥    | **BLOCK MERGE**          |
 
 ### 3. 必要约束
 
@@ -108,12 +111,14 @@
 ### 在 Skill 中调用
 
 当用户说：
+
 - "验证 web-nextjs 模板"
 - "测试 add-user-account-features 变更"
 - "运行模板验收测试"
 - "检查是否可以合并"
 
 Skill 应：
+
 1. 确认测试目标（哪个模板？哪个分支？）
 2. 选择测试级别
 3. 执行测试脚本
@@ -183,6 +188,7 @@ lsof -ti:3000 | xargs kill -9  # 停止服务器
 ### 问题 1: pnpm 命令失败
 
 **症状**：
+
 ```
 [ERROR] Command failed with exit code 1: pnpm install
 ```
@@ -194,6 +200,7 @@ lsof -ti:3000 | xargs kill -9  # 停止服务器
 ### 问题 2: Dev Server 启动超时
 
 **症状**：
+
 ```
 ✗ FAIL: Dev server failed to start within 60s
 ```
@@ -201,6 +208,7 @@ lsof -ti:3000 | xargs kill -9  # 停止服务器
 **原因**：Turbopack 缓存损坏
 
 **解决**：
+
 ```bash
 rm -rf .next/dev/cache
 npx next dev
@@ -209,6 +217,7 @@ npx next dev
 ### 问题 3: Dashboard/Profile 返回 500
 
 **症状**：
+
 ```
 ✗ FAIL: Dashboard returned 500 (expected 307)
 ```
@@ -220,11 +229,13 @@ npx next dev
 ### 问题 4: Layer 2 违规误报
 
 **症状**：
+
 ```
 ✗ FAIL: Found direct infra imports in features
 ```
 
 **检查**：
+
 ```bash
 grep -r "from '@/infra/db/client'" src/features/*/actions.ts
 ```

@@ -1,56 +1,55 @@
-import { defineCommand } from "citty";
+import { defineCommand } from 'citty'
 
 export const initCommand = defineCommand({
   meta: {
-    name: "init",
-    description: "Scaffold a new AgentDock project",
+    name: 'init',
+    description: 'Scaffold a new AgentDock project',
   },
   args: {
     name: {
-      type: "string",
-      description: "Project name",
+      type: 'string',
+      description: 'Project name',
     },
     template: {
-      type: "string",
-      description: "Template ID (e.g. web-nextjs)",
+      type: 'string',
+      description: 'Template ID (e.g. web-nextjs)',
     },
     pm: {
-      type: "string",
-      description: "Package manager: pnpm (default), npm, yarn, bun",
+      type: 'string',
+      description: 'Package manager: pnpm (default), npm, yarn, bun',
     },
     silent: {
-      type: "boolean",
-      description: "Suppress output (agent mode)",
+      type: 'boolean',
+      description: 'Suppress output (agent mode)',
       default: false,
     },
     json: {
-      type: "boolean",
-      description: "Output NDJSON results (agent mode)",
+      type: 'boolean',
+      description: 'Output NDJSON results (agent mode)',
       default: false,
     },
     dir: {
-      type: "string",
-      description:
-        "Target directory (absolute or relative to cwd). Defaults to ./<name>",
+      type: 'string',
+      description: 'Target directory (absolute or relative to cwd). Defaults to ./<name>',
     },
   },
   async run({ args }) {
-    const isTTY = Boolean(process.stdout.isTTY);
-    const isAgentMode = args.silent || args.json || !isTTY;
+    const isTTY = Boolean(process.stdout.isTTY)
+    const isAgentMode = args.silent || args.json || !isTTY
 
     if (isAgentMode) {
-      const { runAgentAdapter } = await import("../adapters/agent.js");
+      const { runAgentAdapter } = await import('../adapters/agent.js')
       await runAgentAdapter({
-        name: args.name ?? "",
-        template: args.template ?? "",
+        name: args.name ?? '',
+        template: args.template ?? '',
         pm: args.pm,
         silent: args.silent,
         json: args.json,
         dir: args.dir,
-      });
+      })
     } else {
-      const { runHumanAdapter } = await import("../adapters/human.js");
-      await runHumanAdapter({ dir: args.dir });
+      const { runHumanAdapter } = await import('../adapters/human.js')
+      await runHumanAdapter({ dir: args.dir })
     }
   },
-});
+})

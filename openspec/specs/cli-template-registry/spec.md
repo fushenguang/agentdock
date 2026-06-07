@@ -26,6 +26,7 @@ CLI 包 MUST 在构建后包含 `src/registry.json` 文件，结构如下：
 ```
 
 字段约束：
+
 - `id`: kebab-case，与 `templates/` 下目录名一致
 - `minCliVersion`: 取自模板 `package.json` 的 `agentdock.minCliVersion` 字段；若不存在则默认为 `"0.1.0"`
 - `resolvedDependencies`: 仅包含原 `package.json` 中值为 `workspace:*` 的依赖，已解析为发布 semver 版本
@@ -47,6 +48,7 @@ CLI 包 MUST 在构建后包含 `src/registry.json` 文件，结构如下：
 Monorepo 根 `turbo.json` MUST 包含 `generate-registry` 任务，且 `cli` 包的 `build` 任务 MUST 依赖此任务（通过 `dependsOn`）。
 
 任务配置约束：
+
 - `inputs`：`["templates/*/package.json", "packages/*/package.json"]`（任一变更触发重跑）
 - `outputs`：`["packages/cli/src/registry.json"]`（Turbo 缓存目标）
 - 任务脚本：`packages/cli` 包的 `package.json` 中 `scripts.generate-registry` 指向生成脚本
@@ -68,18 +70,19 @@ Monorepo 根 `turbo.json` MUST 包含 `generate-registry` 任务，且 `cli` 包
 
 ---
 
-### Requirement: workspace:* resolution at build time
+### Requirement: workspace:\* resolution at build time
 
 `generate-registry` 脚本 MUST 将模板 `package.json` 中所有值为 `workspace:*` 的依赖解析为对应 packages 目录下包的实际发布版本。
 
 解析规则：
+
 1. 读取目标依赖的包名（如 `@agentdock/eslint-config`）
 2. 在 `packages/` 下查找对应目录（通过 `name` 字段匹配）
 3. 读取其 `package.json` 的 `version` 字段
 4. 在 registry.json 的 `resolvedDependencies` 中记录为 `"^<version>"`
 5. 若对应包不存在或 `version` 缺失，构建 MUST 失败并输出明确错误
 
-#### Scenario: workspace:* 成功解析
+#### Scenario: workspace:\* 成功解析
 
 - **WHEN** `templates/web-nextjs/package.json` 含 `"@agentdock/tsconfig": "workspace:*"`，`packages/tsconfig/package.json` 中 `version` 为 `"0.1.0"`
 - **THEN** registry.json 中记录 `"@agentdock/tsconfig": "^0.1.0"`

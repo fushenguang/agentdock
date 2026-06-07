@@ -3,6 +3,73 @@
     "title": "Welcome to AgentDock Web Template",
     "description": "A Next.js scaffold with four-layer architecture."
   },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "docs": "Docs",
+      "login": "Log in",
+      "getStarted": "Get Started"
+    },
+    "hero": {
+      "badge": "Open Source",
+      "title": "Build SaaS Faster with AgentDock",
+      "subtitle": "A production-ready Next.js scaffold with four-layer architecture, Supabase auth, i18n, and AI coding agent integration. Ship your next product in days, not months.",
+      "ctaPrimary": "Get Started Free",
+      "ctaSecondary": "View Docs"
+    },
+    "features": {
+      "title": "Everything you need to ship",
+      "subtitle": "Built-in features that let you focus on your product, not the boilerplate.",
+      "items": {
+        "auth": {
+          "title": "Authentication",
+          "description": "Complete auth flow with email/password, OAuth, and password reset. Secured by Supabase."
+        },
+        "monorepo": {
+          "title": "Monorepo Ready",
+          "description": "Turborepo + pnpm workspace with shared packages for types, ESLint, and tooling."
+        },
+        "aiCoding": {
+          "title": "AI Coding Ready",
+          "description": "Structured for AI agents with clear contracts, design system, and copilot instructions."
+        },
+        "docs": {
+          "title": "Docs Co-evolution",
+          "description": "Fumadocs-powered documentation that grows alongside your application."
+        }
+      }
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "subtitle": "Get up and running in three simple steps.",
+      "steps": {
+        "step1": {
+          "title": "Scaffold",
+          "description": "Run the CLI to generate your project with all batteries included."
+        },
+        "step2": {
+          "title": "Customize",
+          "description": "Adjust tokens, colors, and content to match your brand."
+        },
+        "step3": {
+          "title": "Ship",
+          "description": "Deploy to Vercel with one command and start building."
+        }
+      }
+    },
+    "pricing": {
+      "title": "Pricing",
+      "description": "Pricing plans coming soon. Contact us for early access.",
+      "cta": "Contact Us"
+    },
+    "footer": {
+      "help": "Help",
+      "privacy": "Privacy",
+      "about": "About",
+      "copyright": "© {year} AgentDock. All rights reserved."
+    }
+  },
   "auth": {
     "loginTitle": "Welcome back",
     "loginSubtitle": "Sign in to your account",

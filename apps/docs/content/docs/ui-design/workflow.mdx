@@ -1,0 +1,85 @@
+---
+title: Impeccable Design Workflow
+description: A 4-step workflow for producing high-quality UI with AI Coding Agents.
+---
+
+# Impeccable Design Workflow
+
+The Impeccable workflow is a human-AI collaborative process for producing high-quality UI. It ensures that AI-generated designs are constrained by a design system, reviewed for quality, and adapted for all devices.
+
+> **Core principle**: AI provides analysis and execution; humans make the final aesthetic judgment. This is the irreplaceable value of human designers.
+
+## Step 1: Init (`/impeccable init`)
+
+**Purpose**: Establish the design context once per project.
+
+**What happens**:
+- AI collects brand context (colors, typography, tone)
+- Generates `DESIGN.md` with design decisions and anti-patterns
+- Generates `PRODUCT.md` with product positioning
+- Configures Live Mode for real-time feedback
+
+**Human judgment point**: Approve or modify the generated `DESIGN.md`. This is your design constitution — get it right before moving on.
+
+## Step 2: Craft (`/impeccable craft` or `/impeccable shape`)
+
+**Purpose**: Generate the initial design draft based on `DESIGN.md` constraints.
+
+**What happens**:
+- AI reads `DESIGN.md` to understand the design system
+- Generates components using semantic tokens (not arbitrary values)
+- Produces a draft with proper spacing, colors, and typography
+
+**Human judgment point**: Review the draft for brand alignment. Iterate 2-3 rounds to establish the visual tone. This is where you set the standard.
+
+**Key constraint**: The AI must use tokens like `bg-surface` and `text-muted-foreground`, not `bg-gray-100` or `text-gray-500`.
+
+## Step 3: Critique (`/impeccable critique`)
+
+**Purpose**: Professional design review from multiple dimensions.
+
+**What happens**:
+- AI acts as a design critic, scoring the UI on:
+  - Typography (hierarchy, readability, font choice)
+  - Color (consistency, contrast, brand alignment)
+  - Spacing (rhythm, proximity, whitespace)
+  - Contrast (accessibility, legibility)
+  - Consistency (across components, across pages)
+  - Accessibility (WCAG compliance)
+
+**Human judgment point**: Review the critique report. Decide which suggestions to adopt and which to reject. Not all AI suggestions are good — trust your eye.
+
+## Step 4: Polish & Adapt (`/impeccable polish` + `/impeccable adapt`)
+
+**Purpose**: Fix inconsistencies and ensure responsive behavior.
+
+**Polish** fixes:
+- Spacing inconsistencies (e.g., 14px vs 16px padding in similar components)
+- Font size mismatches
+- Color value drift
+- Border radius inconsistencies
+
+**Adapt** checks responsive behavior at:
+- **375px** (mobile): No horizontal overflow, touch targets >= 44px
+- **768px** (tablet): Layout shifts appropriately
+- **1280px** (desktop): Content doesn't stretch too wide
+
+**Human judgment point**: Review the final output. Run manual testing on real devices if possible.
+
+## Summary Table
+
+| Step | Command | Purpose | Human Judgment |
+|------|---------|---------|---------------|
+| Init | `impeccable init` | Establish design context | Approve DESIGN.md |
+| Craft | `impeccable craft` | Generate initial draft | Iterate on visual tone |
+| Critique | `impeccable critique` | Design quality review | Select suggestions |
+| Polish | `impeccable polish` | Fix inconsistencies | Verify fixes |
+| Adapt | `impeccable adapt` | Responsive check | Test on real devices |
+
+## When to Use This Workflow
+
+Use this workflow for:
+- New page designs
+- Major UI redesigns
+- Adding new design system components
+- Onboarding new team members to the design system

@@ -1,10 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
-export default async function AboutPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
+export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
 
   return (
@@ -16,7 +12,8 @@ export default async function AboutPage({
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            This page is a placeholder. Replace it with your actual about information before shipping.
+            This page is a placeholder. Replace it with your actual about information before
+            shipping.
           </p>
         </CardContent>
       </Card>

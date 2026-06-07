@@ -41,23 +41,29 @@ Scaffold a new project from a template. Auto-detects the environment:
 - **TTY** → interactive prompts (human mode)
 - **Non-TTY / `--silent` / `--json`** → headless execution (agent/CI mode)
 
-| Flag | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `--name` | string | required | Project name and target directory name |
-| `--template` | string | required | Template ID (e.g. `web-nextjs`) |
-| `--pm` | string | `pnpm` | Package manager: `pnpm` / `npm` / `yarn` / `bun` |
-| `--dir` | string | `./<name>` | Target directory (absolute or relative to cwd) |
-| `--json` | boolean | `false` | Output NDJSON result to stdout |
-| `--silent` | boolean | `false` | Suppress all output |
+| Flag         | Type    | Default    | Description                                      |
+| ------------ | ------- | ---------- | ------------------------------------------------ |
+| `--name`     | string  | required   | Project name and target directory name           |
+| `--template` | string  | required   | Template ID (e.g. `web-nextjs`)                  |
+| `--pm`       | string  | `pnpm`     | Package manager: `pnpm` / `npm` / `yarn` / `bun` |
+| `--dir`      | string  | `./<name>` | Target directory (absolute or relative to cwd)   |
+| `--json`     | boolean | `false`    | Output NDJSON result to stdout                   |
+| `--silent`   | boolean | `false`    | Suppress all output                              |
 
 **JSON output (success):**
+
 ```json
-{"ok":true,"targetDir":"/path/to/my-app","name":"my-app","template":"web-nextjs"}
+{ "ok": true, "targetDir": "/path/to/my-app", "name": "my-app", "template": "web-nextjs" }
 ```
 
 **JSON output (failure):**
+
 ```json
-{"ok":false,"error":"TARGET_DIR_EXISTS","message":"Directory already exists: /path/to/my-app"}
+{
+  "ok": false,
+  "error": "TARGET_DIR_EXISTS",
+  "message": "Directory already exists: /path/to/my-app"
+}
 ```
 
 **Error codes:** `MISSING_ARG` · `TEMPLATE_NOT_FOUND` · `TARGET_DIR_EXISTS` · `CLI_VERSION_OUTDATED` · `SCAFFOLD_FAILED`
@@ -74,12 +80,13 @@ agentdock mcp
 
 **Available tools:**
 
-| Tool | Description |
-| ---- | ----------- |
-| `list_templates` | List all available project templates |
+| Tool               | Description                                |
+| ------------------ | ------------------------------------------ |
+| `list_templates`   | List all available project templates       |
 | `scaffold_project` | Scaffold a project into a target directory |
 
 **VS Code Copilot MCP config (`.vscode/mcp.json`):**
+
 ```json
 {
   "servers": {
@@ -96,8 +103,8 @@ agentdock mcp
 
 ## Available Templates
 
-| Template ID | Description |
-| ----------- | ----------- |
+| Template ID  | Description                                                                                           |
+| ------------ | ----------------------------------------------------------------------------------------------------- |
 | `web-nextjs` | Next.js 16 + Supabase + next-intl + Tailwind CSS v4 + Vitest + Fumadocs — full-stack monorepo starter |
 
 ---
@@ -125,13 +132,13 @@ All adapters share the same Core Executor (scaffold + registry)
 
 **Tech stack:**
 
-| Component | Role |
-| --------- | ---- |
-| [Bun](https://github.com/oven-sh/bun) | Build: single-file Node.js executable |
-| [Citty](https://github.com/unjs/citty) | Command modeling: sub-commands, flag schema, lazy loading |
-| [Clack](https://github.com/bombshell-dev/clack) | Human interaction: TTY prompts |
-| [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) | Agent protocol: MCP Stdio server |
-| [Changesets](https://github.com/changesets/changesets) | Release governance: semantic versioning + changelog |
+| Component                                                                    | Role                                                      |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------- |
+| [Bun](https://github.com/oven-sh/bun)                                        | Build: single-file Node.js executable                     |
+| [Citty](https://github.com/unjs/citty)                                       | Command modeling: sub-commands, flag schema, lazy loading |
+| [Clack](https://github.com/bombshell-dev/clack)                              | Human interaction: TTY prompts                            |
+| [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) | Agent protocol: MCP Stdio server                          |
+| [Changesets](https://github.com/changesets/changesets)                       | Release governance: semantic versioning + changelog       |
 
 ---
 

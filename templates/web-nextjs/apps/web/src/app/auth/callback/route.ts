@@ -10,9 +10,8 @@ export async function GET(request: NextRequest) {
   const nextParam = searchParams.get('next')
 
   // Whitelist check to prevent open redirect attacks
-  const safePath = nextParam && ALLOWED_NEXT.includes(nextParam)
-    ? nextParam
-    : `/${defaultLocale}/dashboard`
+  const safePath =
+    nextParam && ALLOWED_NEXT.includes(nextParam) ? nextParam : `/${defaultLocale}/dashboard`
 
   if (code) {
     const supabase = await getServerClient()

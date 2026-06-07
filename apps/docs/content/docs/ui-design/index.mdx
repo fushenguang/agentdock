@@ -1,0 +1,48 @@
+---
+title: UI Design in the AI Era
+description: Why AI-generated UI design is the biggest bottleneck in the AI Coding Era and how to solve it systematically.
+---
+
+# UI Design in the AI Era
+
+## Why This Problem Matters
+
+In the AI Coding Era, coding ability has been democratized — but design ability has not. When you ask an AI to "build a beautiful landing page," what you get is AI Slop: Inter font + purple-blue gradients + nested rounded cards + glowing dark mode text. It looks polished but has no soul, no brand identity, and no differentiation.
+
+The root cause is simple: **without a design system constraint, AI can only produce what it saw most frequently in training data.**
+
+## What This Topic Solves
+
+This topic provides a systematic approach to making AI Coding Agents produce **distinctive, high-quality, maintainable UI**:
+
+1. **Design System** — A token-based CSS system (OKLCH + Tailwind v4 `@theme`) that AI can understand and follow
+2. **Workflow** — A human-AI collaborative workflow (Impeccable) that ensures quality at every step
+3. **Anti-Patterns** — A catalog of AI Slop patterns with automated detection
+4. **Research Framework** — A methodology for finding design inspiration and best practices
+
+## The Human + Machine + AI Agent Trinity
+
+A new interaction paradigm for design in the AI era:
+
+- **Human**: Sets direction, makes aesthetic judgments, approves or rejects AI proposals
+- **AI Agent**: Generates and implements based on design system constraints
+- **Machine (CI/CLI)**: Runs deterministic quality checks (Impeccable `detect`) to catch AI Slop before it reaches production
+
+## Topic Map
+
+| Document | Purpose |
+|----------|---------|
+| [Workflow](/docs/ui-design/workflow) | The Impeccable 4-step design workflow |
+| [CSS System](/docs/ui-design/css-system) | Why and how we built the token-based design system |
+| [Anti-Patterns](/docs/ui-design/anti-patterns) | AI Slop detection rules and CI integration |
+| [Research](/docs/ui-design/research) | Material search and deep-dive execution framework |
+
+## Getting Started
+
+Run the following in your project root to initialize the design system:
+
+```bash
+npx impeccable init
+```
+
+Or manually create `DESIGN.md` following the [CSS System](/docs/ui-design/css-system) principles.

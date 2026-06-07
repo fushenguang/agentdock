@@ -20,9 +20,7 @@ export class SupabaseAuthRepository implements IAuthRepository {
     const supabase = await getServerClient()
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) {
-      const msg = error.message.toLowerCase().includes('already')
-        ? '该邮箱已被注册'
-        : error.message
+      const msg = error.message.toLowerCase().includes('already') ? '该邮箱已被注册' : error.message
       return { user: null, error: msg }
     }
     const u = data.user
@@ -39,7 +37,9 @@ export class SupabaseAuthRepository implements IAuthRepository {
 
   async getSession(): Promise<AuthUser | null> {
     const supabase = await getServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) return null
     return { id: user.id, email: user.email ?? '', createdAt: user.created_at }
   }

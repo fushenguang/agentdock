@@ -1,0 +1,88 @@
+---
+title: Research Framework
+description: A methodology framework for material search and deep-dive research on AI-era UI design.
+---
+
+# Research Framework
+
+> This document is a **methodology framework**, not research results. It defines HOW to conduct research, not the findings themselves.
+
+## Research Goals & Boundaries
+
+**Core question**: In the AI Coding Era, how can AI Coding Agents produce distinctive, high-quality, maintainable UI?
+
+**Scope**: Focus on "human designer + AI Agent collaborative UI design" workflows and tools. Excludes pure manual design processes.
+
+**Excluded**:
+- Pure design tool tutorials (Figma tips)
+- Frontend framework comparisons
+- Backend systems
+
+## Search Strategy
+
+### English Keywords
+- `AI coding agent UI design`
+- `design system for LLM`
+- `CSS architecture AI era`
+- `OKLCH design tokens`
+- `Impeccable design skill`
+- `frontend-design skill Claude`
+
+### Chinese Keywords
+- `AI Coding Agent UI设计`
+- `AI辅助前端设计`
+- `设计系统 LLM`
+- `AI时代CSS规范`
+
+### Search Priority
+1. GitHub (stars > 500)
+2. arXiv (CSS/UI/HCI direction)
+3. Expert blogs (Paul Bakaus, Josh W Comeau, Adam Wathan)
+4. X/Twitter (UI/CSS community)
+5. HN/Reddit (discussion threads)
+
+## Material Quality Filters
+
+**Priority**:
+- Executable workflow (commands, steps, tools)
+- Before/after case studies
+- GitHub repos with meaningful star counts
+
+**Secondary**:
+- Systematic theoretical discussions
+- Real-world practitioner records
+
+**Excluded**:
+- Pure theory without actionable guidance
+- Content published before 2023
+- Figma-only tutorials
+- Generic CSS framework introductions
+
+## Key Focus Areas
+
+1. **Design System + LLM Comprehension**: How to communicate design intent to LLMs (token naming, DESIGN.md, etc.)
+2. **AI Slop Detection & Prevention**: Anti-pattern recognition and automated detection tools
+3. **Human-AI Collaborative UI Workflow**: Which steps require human intervention vs. AI autonomy
+4. **Modern CSS Architecture**: OKLCH, container queries, cascade layers (`@layer`)
+5. **H5/Mobile AI Design Challenges**: How to enforce mobile-first when AI defaults to desktop
+
+## Deep-Dive Path
+
+1. Review Impeccable's 7 domain reference files (typography / color / spatial / motion / interaction / responsive / ux-writing) → Extract core principles
+2. Review Anthropic frontend-design SKILL.md → Compare with Impeccable's enhancements
+3. Search "CSS design tokens AI" + "OKLCH" → Find practical case studies
+4. Search GitHub "design system copilot instructions" → Find real-world AI guidance specifications
+
+## Research Output Format
+
+Each material entry should include:
+- **Source URL**: Direct link
+- **Title**: Clear, descriptive title
+- **Core insight**: 1-3 sentences summarizing the key takeaway
+- **Actionable conclusion**: What to do differently based on this material
+
+## Output File
+
+Research findings should be written to `apps/docs/content/docs/ui-design/research/findings.mdx` by the implementation LLM after conducting the research.
+
+> **Note**: This framework document contains NO specific URLs, research results, or conclusions. It is purely a methodology guide.

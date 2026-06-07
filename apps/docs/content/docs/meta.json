@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "builder-workflow",
+    "ui-design",
     "cli",
     "templates",
     "skills",

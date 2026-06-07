@@ -3,11 +3,13 @@
 ## 场景 1: 验证新功能分支
 
 **用户请求**：
+
 > "我刚完成了 add-user-account-features 分支的开发，需要验证是否可以合并到 main"
 
 **Skill 执行流程**：
 
 1. **确认测试目标**
+
    ```
    模板: web-nextjs
    分支: add-user-account-features
@@ -15,6 +17,7 @@
    ```
 
 2. **运行 E2E 测试**
+
    ```bash
    ./scripts/e2e-template-test-v2.sh
    ```
@@ -24,10 +27,12 @@
    - 如果有失败 → 列出失败项和修复建议
 
 4. **提供下一步指引**
+
    ```markdown
    ✅ 测试通过！可以合并。
 
    下一步：
+
    1. git checkout main
    2. git merge add-user-account-features
    3. git push origin main
@@ -39,11 +44,13 @@
 ## 场景 2: 快速验证小改动
 
 **用户请求**：
+
 > "我只改了一个 typo，快速检查一下有没有问题"
 
 **Skill 执行流程**：
 
 1. **选择快速验证**
+
    ```bash
    ./scripts/validate-template.sh
    ```
@@ -60,11 +67,13 @@
 ## 场景 3: 调试测试失败
 
 **用户请求**：
+
 > "测试失败了，帮我看看是什么原因"
 
 **Skill 执行流程**：
 
 1. **读取测试日志**
+
    ```bash
    cat /tmp/lint.log | tail -20
    cat /tmp/types.log | tail -20
@@ -83,6 +92,7 @@
 3. **提供修复建议**
 
    **示例输出**：
+
    ```markdown
    🔍 失败原因分析：
 
@@ -103,16 +113,19 @@
 ## 场景 4: 发布前最终验收
 
 **用户请求**：
+
 > "准备发布 v0.5.0，做最后的验收测试"
 
 **Skill 执行流程**：
 
 1. **运行完整 E2E 测试**
+
    ```bash
    ./scripts/e2e-template-test-v2.sh
    ```
 
 2. **额外手动验证**（Skill 提醒用户）
+
    ```markdown
    ⚠️ 自动化测试已通过，但发布前还需手动验证：
 
@@ -134,6 +147,7 @@
    ```
 
 3. **生成测试报告**
+
    ```markdown
    # Release v0.5.0 Test Report
 
@@ -142,12 +156,14 @@
    Branch: main
 
    Results:
+
    - Passed: 22/22
    - Failed: 0
 
    Status: ✅ READY FOR RELEASE
 
    Checklist:
+
    - [x] All automated tests passed
    - [ ] Manual password reset flow verified
    - [ ] Profile management tested
@@ -159,11 +175,13 @@
 ## 场景 5: 批量测试多个模板
 
 **用户请求**：
+
 > "我有 3 个模板都做了更新，一起验证一下"
 
 **Skill 执行流程**：
 
 1. **依次测试每个模板**
+
    ```bash
    for template in web-nextjs cli-tool admin-dashboard; do
      echo "Testing $template..."
@@ -174,16 +192,18 @@
    ```
 
 2. **汇总测试结果**
+
    ```markdown
    # Batch Test Results
 
-   | Template | Status | Passed | Failed |
-   |----------|--------|--------|--------|
-   | web-nextjs | ✅ PASS | 22 | 0 |
-   | cli-tool | ❌ FAIL | 18 | 4 |
-   | admin-dashboard | ✅ PASS | 22 | 0 |
+   | Template        | Status  | Passed | Failed |
+   | --------------- | ------- | ------ | ------ |
+   | web-nextjs      | ✅ PASS | 22     | 0      |
+   | cli-tool        | ❌ FAIL | 18     | 4      |
+   | admin-dashboard | ✅ PASS | 22     | 0      |
 
    Action Required:
+
    - cli-tool has 4 failures, review before merging
    ```
 
@@ -192,6 +212,7 @@
 ## 场景 6: CI/CD 集成
 
 **用户请求**：
+
 > "如何在 GitHub Actions 中自动运行这个测试？"
 
 **Skill 提供配置示例**：
