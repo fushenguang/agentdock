@@ -1,5 +1,200 @@
 ---
-title: 研究发现（英文版，待翻译）
+title: 调研成果
 ---
 
-此文档的中文版本正在建设中，请[查看英文版](/en/docs/ui-design/research/findings)。
+# UI 设计调研成果
+
+> 本页面记录了围绕「AI Coding Agent 时代的 UI 设计」主题搜集的 10 条高质量素材，按主题分组，每条均包含来源、核心理念、AI 视角与可行动结论。
+
+---
+
+## 一、AI 辅助 UI 设计工作流
+
+### 素材 1：Anthropic frontend-design Skill
+
+- **来源**：https://github.com/anthropics/skills/tree/main/frontend-design（Anthropic 官方 Skills 仓库）
+- **是什么**：Anthropic 官方推出的前端设计 Skill，旨在让 Claude Code 生成「有辨识度」的 UI，而非千篇一律的 AI 模板风。
+- **为什么被记录**：它是目前最权威的「AI 原生设计工作流」参考，定义了从需求理解到代码生成的完整设计链路。
+- **核心理念**：
+  1. 设计前必须先回答「这个界面给谁用」「应该走什么风格」「什么能让用户记住它」。
+  2. 禁止 AI 使用 Inter/Roboto 等烂大街字体、紫蓝渐变、圆角卡片嵌套、深色模式加发光等「AI Slop」模式。
+  3. 从字体、配色、布局、动效等维度做有意识的选择，而非默认「安全但无聊」的组合。
+- **面向 AI Coding Agent 的新视角**：Skill 机制本身就是「可复用的设计意图封装」——把人的审美判断编码为 AI 可执行的指令集，让设计决策从「每次重想」变成「一次定义、多次复用」。
+- **可行动结论**：
+  1. 为项目创建 `DESIGN.md`，在其中明确禁用清单（anti-patterns）和风格方向。
+  2. 将设计 review 流程化：初稿 → critique → polish → adapt，每轮都由人做最终判断。
+
+### 素材 2：Impeccable — 前端界面设计 Skill 套件
+
+- **来源**：https://github.com/pbakaus/impeccable（Paul Bakaus，开源，33K+ Stars）
+- **是什么**：一套包含 23 个命令的 Claude Code Skill 套件，覆盖 typography、color、spatial、motion、interaction、responsive、ux-writing 7 个设计领域。
+- **为什么被记录**：它是目前社区最成熟的「AI 设计质量管理」工具，将专业设计师的 review 能力封装为可执行命令。
+- **核心理念**：
+  1. `/craft` 起稿 → `/critique` 审查 → `/polish` 打磨 → `/adapt` 适配，形成完整的设计迭代闭环。
+  2. `/detect` 可以自动扫描代码中的 AI Slop（24 种常见反模式），让质量检查可自动化。
+  3. 设计不是一步到位的，而是经过「初稿—审查—打磨—适配」多轮迭代出来的。
+- **面向 AI Coding Agent 的新视角**：把「设计 review」从「人眼检查」升级为「可编程的 quality gate」，每个命令都是一道自动化的设计检查关卡，让 AI 生成的 UI 质量可度量、可追踪。
+- **可行动结论**：
+  1. 在项目中安装 Impeccable：`npx skills add pbakaus/impeccable`。
+  2. 将 `/impeccable detect` 集成到 CI/CD 流程中，每次提交前自动检查 AI Slop。
+  3. 用 `/critique` 替代手动 design review，节省 80% 的 review 时间。
+
+### 素材 3：「把 AI 当设计团队管」—— AI 时代 UI 设计实战分享
+
+- **来源**：项目内部经验（`.materials/1-how-to-design-beautiful-ui.md`）
+- **是什么**：一个非设计师出身的开发者，通过与 Claude Code 协作，产出「极度舒适」UI 的完整实战经验。
+- **为什么被记录**：它揭示了「为什么同样的工具，不同人用效果差很远」——核心在于人的设计判断力和迭代意愿。
+- **核心理念**：
+  1. 跟 Agent 协作本质上是管理问题：你是一个项目负责人在带一个 AI 团队。
+  2. 不要一次改太多：每次只让 AI 改一两个具体的点，改完看效果，再决定下一步。
+  3. 审美是可以训练的：多看 Dribbble、Land-book 等优质设计参考，判断力会逐步提升。
+- **面向 AI Coding Agent 的新视角**：AI Coding Agent 的最大价值不是「替代设计」，而是「放大设计判断力的杠杆」——人的角色从「执行者」变为「决策者和质量把关人」。
+- **可行动结论**：
+  1. 建立「设计素材库」习惯，看到好的设计就截图保存，定期回顾。
+  2. 在 copilot-instructions.md 中明确要求 AI 每次只改 1-2 个点，并给出 before/after 对比。
+  3. 为每个项目定义「设计原则文档」，让 AI 在生成代码前有明确的约束条件。
+
+---
+
+## 二、CSS 设计系统与 Token 管理
+
+### 素材 4：Tailwind CSS v4 @theme 指令与设计令牌
+
+- **来源**：https://medium.com/@sureshdotariya/tailwind-css-4-theme-the-future-of-design-tokens-at-2025-guide-48305a26af06
+- **是什么**：Tailwind CSS v4 引入的 `@theme` 指令，允许直接在 CSS 中定义设计令牌（design tokens），支持颜色、字体、断点等所有主题配置。
+- **为什么被记录**：它代表了「设计系统配置从 JS 向 CSS 迁移」的趋势，让 LLM 更容易理解和修改设计系统。
+- **核心理念**：
+  1. `@theme` 指令将设计令牌从 `tailwind.config.js` 迁移到 CSS 文件，降低了 LLM 的理解门槛。
+  2. 语义化 token 命名（如 `--color-primary` 而非 `--color-blue-500`）让 AI 更容易做对颜色替换。
+  3. 设计令牌是「设计意图的精确传递」——从原型到代码的核心桥梁。
+- **面向 AI Coding Agent 的新视角**：CSS-in-JS 配置对 LLM 不友好（需要理解 JS 模块系统），而 `@theme` 让设计令牌回归声明式 CSS，LLM 可以更直接地读写和修改。
+- **可行动结论**：
+  1. 在新项目中使用 Tailwind v4 的 `@theme` 指令定义语义化 token。
+  2. 为每个 token 添加注释说明用途，让 AI 理解「为什么用这个值」。
+  3. 将 tokens.css 作为 DESIGN.md 的配套文件，统一设计意图的表达。
+
+### 素材 5：OKLCH 颜色空间与现代 CSS 实践
+
+- **来源**：https://juejin.cn/post/7619242789634932762（CSS 新特性完全指南：2026 年你必须掌握的 5 个新能力）
+- **是什么**：CSS Color Level 4 引入的 OKLCH 颜色空间，基于人眼感知建模，调亮度不偏色、调色相不变亮。
+- **为什么被记录**：它是目前最先进的 CSS 颜色表示方式，解决了传统 HSL/RGB 在语义理解和可预测性上的缺陷。
+- **核心理念**：
+  1. OKLCH 是「感知均匀」的：数值上的等量变化带来视觉上接近的变化。
+  2. 三个参数直观可理解：L（亮度）、C（色度）、H（色相），设计师可以直接用自然语言描述颜色调整。
+  3. 全色域无断点，支持更细腻的色彩表达。
+- **面向 AI Coding Agent 的新视角**：OKLCH 的参数命名（Lightness/Chroma/Hue）比 RGB/HSL 更符合人类直觉，AI 在生成颜色调整代码时更不容易出错。
+- **可行动结论**：
+  1. 在设计令牌中使用 OKLCH 格式：`--color-primary: oklch(60% 0.2 250);`
+  2. 在 DESIGN.md 中定义颜色系统时，用 OKLCH 而非 Hex 或 RGB 作为标准格式。
+  3. 教 AI 理解 OKLCH 的语义："增加 Chroma" 就是让颜色更鲜艳，"降低 Lightness" 就是让颜色更深。
+
+### 素材 6：CSS Container Queries 组件级响应式
+
+- **来源**：https://m.blog.csdn.net/weixin_39899152/article/details/155036224（容器查询入门：比媒体查询更灵活的响应式设计）
+- **是什么**：CSS Container Queries 允许组件根据父容器尺寸而非视口尺寸调整样式，实现真正的「组件级响应式」。
+- **为什么被记录**：AI 生成的响应式代码往往依赖全局媒体查询，而 Container Queries 让组件可以独立适配不同容器上下文，更符合模块化设计原则。
+- **核心理念**：
+  1. 组件样式仅依赖父容器尺寸，不受全局布局影响。
+  2. 实时响应容器尺寸变化（如拖拽调整侧边栏宽度）。
+  3. Chrome 105+、Edge 105+、Safari 16+ 已全面支持。
+- **面向 AI Coding Agent 的新视角**：AI 容易写出「全局媒体查询堆砌」的代码，而 Container Queries 强制组件化思维——每个组件独立声明自己的响应式规则，代码更可维护。
+- **可行动结论**：
+  1. 在组件级样式中使用 `@container` 替代全局 `@media`。
+  2. 在 copilot-instructions.md 中明确要求：「响应式规则使用 Container Queries，避免全局媒体查询」。
+  3. 为常用组件（Card、Feature Grid）定义容器查询断点模板。
+
+---
+
+## 三、AI Slop 检测与预防
+
+### 素材 7：AI Slop — 2025 韦氏词典年度词汇
+
+- **来源**：https://news.mydrivers.com/1/1092/1092819.htm（快科技：AI垃圾泛滥！韦氏词典2025年度词汇："slop"）
+- **是什么**：韦氏词典将 "slop" 选为 2025 年度词汇，特指「社交媒体、搜索结果及网络中泛滥的低质量 AI 生成内容」。
+- **为什么被记录**：这个词汇的流行标志着「AI 生成低质量内容」已成为全球性的文化现象，UI 设计领域也不例外。
+- **核心理念**：
+  1. AI Slop 不只是代码质量问题，更是「缺乏努力和原创性」的表现。
+  2. 用户对 AI 生成内容的识别能力在提升，「一眼 AI」会降低产品信任度。
+  3. 同样的功能，精致的界面和普通界面的用户信任度差异巨大。
+- **面向 AI Coding Agent 的新视角**：AI Coding Agent 的默认输出往往就是 AI Slop——需要主动的「反 Slop」措施（如 Impeccable 的 `/detect`、DESIGN.md 的约束）才能避免。
+- **可行动结论**：
+  1. 在项目 README 或 DESIGN.md 中明确定义「AI Slop 清单」：禁止 Inter 字体、紫蓝渐变、圆角卡片嵌套等。
+  2. 每次 AI 生成 UI 后，运行 `npx impeccable detect` 扫描 Slop。
+  3. 建立「设计 review」文化：AI 生成的代码必须经过 critique 才能合并。
+
+### 素材 8：Open Design — 把 Claude Code 变成 AI 设计工具
+
+- **来源**：https://github.com/knightli/open-design（knightli，开源，2.7K+ Stars）
+- **是什么**：一个开源的 AI 设计工具，将 Claude Code、Codex 等 Coding Agent 变为专业的设计工具，支持 15 种 AI 模型。
+- **为什么被记录**：它代表了「AI 设计工具化」的趋势——不绑定特定模型，而是把 Agent 当运行时。
+- **核心理念**：
+  1. 本地优先架构：通过调用用户已有的 Coding Agent CLI 作为执行引擎。
+  2. 不绑定特定模型：任何支持 OpenAI API 格式的模型都可以使用。
+  3. 将设计意图从「每次 prompt」提升到「可复用的设计系统」。
+- **面向 AI Coding Agent 的新视角**：未来的设计工作流是「设计系统 + Agent 运行时」的组合——设计系统定义规则，Agent 负责执行，人在关键节点做判断。
+- **可行动结论**：
+  1. 将设计规则（DESIGN.md、tokens.css、copilot-instructions.md）作为「设计系统」来维护，而非每次 prompt 时重述。
+  2. 探索将 Impeccable 与 Open Design 结合，构建本地优先的 AI 设计工作流。
+  3. 为团队建立「设计系统版本管理」习惯，设计规则的变更应走 PR review。
+
+---
+
+## 四、Human-AI 协作与工具
+
+### 素材 9：DesignKit — 基于 CSS 变量与 AI 协议的设计系统
+
+- **来源**：https://m.blog.csdn.net/weixin_30047059/article/details/161470940（DesignKit：基于 CSS 变量与 AI 协议的开源设计系统）
+- **是什么**：一个基于 CSS 变量和 AI 协议的开源设计系统，解决「原型到代码工作流中设计意图的精确传递」问题。
+- **为什么被记录**：它揭示了「设计系统 + AI 协议」是解决 AI 设计一致性难题的关键路径。
+- **核心理念**：
+  1. 设计意图的精确传递是原型到代码工作流中的核心痛点。
+  2. CSS 变量是连接设计与代码的桥梁，AI 可以直接读写。
+  3. 「AI 协议」——即让 AI 理解的设计规则文档——比传统设计规范更有效。
+- **面向 AI Coding Agent 的新视角**：传统的 design spec（Figma、Sketch）对 AI 不友好，而「AI 协议」（如 DESIGN.md + tokens.css）是专门为 AI 消费而设计的格式。
+- **可行动结论**：
+  1. 将设计规范从「设计师工具」迁移到「AI 可消费的文本格式」（Markdown + CSS）。
+  2. 在 DESIGN.md 中使用结构化的「AI 协议」格式：规则 + 示例 + 反例。
+  3. 定期验证 DESIGN.md 的有效性：让 AI 根据文档生成组件，检查是否符合预期。
+
+### 素材 10：Awesome Design MD — 让 AI 读懂设计规范
+
+- **来源**：https://github.com/chendongqi2007/awesome-design-md（GitHub，受全球顶级科技公司启发的设计规范模板集合）
+- **是什么**：一个收集了大量受全球顶级科技公司启发的 DESIGN.md 文件模板的 GitHub 仓库。
+- **为什么被记录**：它提供了「AI 可理解的设计规范」的最佳实践参考，证明了 DESIGN.md 格式正在成为一种行业标准。
+- **核心理念**：
+  1. DESIGN.md 不是简单的文字描述，而是「智能体专用设计文件」。
+  2. 好的 DESIGN.md 包含：设计哲学、色彩系统、字体系统、间距系统、组件规范、反模式清单。
+  3. 设计规范的有效性取决于「AI 能否准确理解并执行」。
+- **面向 AI Coding Agent 的新视角**：DESIGN.md 是「设计意图的版本控制系统」——它将主观的审美判断编码为客观的规则，让 AI 可以稳定地复现设计决策。
+- **可行动结论**：
+  1. 参考 awesome-design-md 的模板，为项目创建结构化的 DESIGN.md。
+  2. 将 DESIGN.md 与代码版本同步管理，设计变更应通过 PR review。
+  3. 定期用 AI 测试 DESIGN.md 的有效性，根据实际输出结果迭代优化。
+
+---
+
+## 五、综合洞察
+
+### 跨素材的共同主题
+
+1. **「设计系统 + AI 协议」是核心模式**：几乎所有素材都指向同一个结论——AI 时代的设计质量不是由模型决定的，而是由「设计系统 + 规则文档」决定的。从 Anthropic 的 frontend-design 到 Impeccable 的 `/detect`，从 Tailwind v4 的 `@theme` 到 awesome-design-md，核心都是将设计意图编码为 AI 可执行的规则。
+
+2. **「迭代式人-AI 协作」优于「一次性生成」**：所有高质量实践都强调「初稿 → critique → polish → adapt」的迭代流程，而非让 AI 一次性生成完整页面。人的判断力仍然是最大的杠杆。
+
+3. **「反 AI Slop」成为设计质量的关键指标**：从韦氏词典选 "slop" 为年度词汇，到 Impeccable 的 24 种反模式检测，行业正在形成「识别和避免 AI Slop」的共识。
+
+### 矛盾点
+
+1. **「自动化」vs「审美判断」**：一方面我们需要自动化工具（`/detect`、CI/CD 集成）来防止 AI Slop；另一方面，最终的设计决策仍然需要人的审美判断。如何在两者之间找到平衡，是每个团队需要解决的问题。
+
+2. **「标准化」vs「个性化」**：设计系统提供了标准化的规则，但好的 UI 需要个性化和辨识度。如何在遵循设计系统的同时保持独特性，是一个持续的挑战。
+
+3. **「工具依赖」vs「能力培养」**：Impeccable 等工具降低了设计门槛，但长期来看，人的设计判断力仍然是最核心的能力。工具是放大器，不是替代品。
+
+### 对本项目的启示
+
+1. **立即行动**：为 web-nextjs 模板创建结构化的 DESIGN.md 和 tokens.css，作为所有 AI 生成 UI 的约束条件。
+
+2. **流程化**：将 `/impeccable critique` 和 `/impeccable detect` 集成到开发工作流中，每次 AI 生成代码后自动检查质量。
+
+3. **可验证**：设计规则的有效性应该是可验证的——定期让 AI 根据 DESIGN.md 生成组件，检查是否符合预期，并据此迭代优化设计规范。

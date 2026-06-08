@@ -1,5 +1,258 @@
 ---
-title: 故障排查（英文版，待翻译）
+title: CI 故障速查手册
+description: >
+  AgentDock monorepo CI 中高频出现的故障模式、根因分析与修复步骤。
+  由真实 CI 失败经验提炼，适合构造者排查，也供 AI Agent 快速检索决策依据。
 ---
 
-此文档的中文版本正在建设中，请[查看英文版](/en/docs/ci/troubleshooting)。
+# CI 故障速查手册
+
+本页记录在 AgentDock CI 实践中遇到的真实故障，包含根因、症状、修复步骤与防范措施。  
+每个条目均经过实际触发验证。
+
+---
+
+## 故障 1：pnpm/action-setup 与 packageManager 字段冲突
+
+### 症状
+
+```
+Error: Use of deprecated option: version.
+ERR_PNPM_VERSION_CONFLICT
+```
+
+或 pnpm 安装时版本不匹配，流水线在依赖安装步骤失败。
+
+### 根因
+
+`pnpm/action-setup@v4` 起，action 会优先读取 `package.json` 的 `packageManager` 字段来确定 pnpm 版本。若同时在 workflow 中指定 `with: version: X`，两者产生冲突。
+
+**触发条件**：`package.json` 中有 `"packageManager": "pnpm@9.x.x"`，且 workflow 中写了：
+
+```yaml
+- uses: pnpm/action-setup@v4
+  with:
+    version: 9  # ← 与 packageManager 字段冲突
+```
+
+### 修复
+
+移除 workflow 中的 `with: version:` 覆盖，让 action 自动从 `packageManager` 字段读取：
+
+```yaml
+- uses: pnpm/action-setup@v4
+  # 不需要 with: version，packageManager 字段已声明版本
+```
+
+若多个 workflow 文件均受影响，批量修复：
+
+```bash
+# 删除所有 with:\n    version: N 块（perl 多行替换）
+perl -i -0pe 's/        with:\n          version: \d+\n//g' .github/workflows/*.yml
+```
+
+### 防范
+
+- `packageManager` 字段是唯一真实版本来源，不要在两处声明版本
+- `pnpm/action-setup@v4` 及以上均支持自动读取，无需手动同步
+
+**参考**：[pnpm/action-setup 文档](https://github.com/pnpm/action-setup)
+
+---
+
+## 故障 2：--frozen-lockfile 失败（lockfile 与 package.json 不同步）
+
+### 症状
+
+```
+ERR_PNPM_OUTDATED_LOCKFILE
+Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date.
+```
+
+### 根因
+
+在 CI 中 pnpm 默认以 `--frozen-lockfile` 模式运行，拒绝修改 lockfile。若开发者在本地添加了新依赖（或修改了 `package.json` 名称/版本）但未提交更新后的 `pnpm-lock.yaml`，CI 即失败。
+
+**常见触发场景**：
+
+- 添加新依赖后忘记运行 `pnpm install`
+- 通过编辑器直接修改 `package.json` 的 name 或 version
+- 批量 sed 替换包名后未重新执行 `pnpm install`
+
+### 修复
+
+```bash
+pnpm install          # 重新计算 lockfile
+git add pnpm-lock.yaml
+git commit -m "chore: sync pnpm lockfile"
+```
+
+### 防范
+
+- 任何修改 `package.json`（包名、版本、依赖）的操作之后，必须运行 `pnpm install` 并提交 lockfile
+- 批量重命名 scope（如 `@old/` → `@new/`）时，rename 脚本最后一步应包含 `pnpm install`
+
+---
+
+## 故障 3：Changesets 尝试发布未就绪的包
+
+### 症状
+
+```
+npm error 404 Not Found - PUT https://registry.npmjs.org/@cogito.ai%2fcli
+npm error The package you were looking for cannot be found
+```
+
+或构建步骤因缺少 `dist/` 而失败，release workflow 中止。
+
+### 根因
+
+Changesets 会扫描 workspace 中所有**未标记 `private`** 的包，并在 release 流程中尝试发布它们。若某个包尚未实现（无 `dist/`），或 npm org 尚未就绪，发布即失败。
+
+### 修复
+
+对未就绪的包添加 `"private": true`：
+
+```json
+{
+  "name": "@cogito.ai/cli",
+  "private": true,
+  "version": "0.1.0",
+  ...
+}
+```
+
+待包实现完成、准备发布时，移除 `private: true`，并通过 `pnpm changeset` 正式进入 Changesets 版本流程。
+
+### 防范
+
+- 新建 workspace 包时，**先标记 `private: true`**，作为默认安全状态
+- 准备发布时再显式去掉，并同步添加 `"publishConfig": { "access": "public" }` 与正确的 `files` 白名单
+- 在 `packages/cli/package.json` 中保持此字段直到 CLI MVP 构建完成
+
+---
+
+## 故障 4：OpenSpec align-check 失败（proposal.md 缺少 Non-goals）
+
+### 症状
+
+```
+✗ Invariant 5 failed: proposal.md must have a non-empty ## Non-goals section
+AgentDock align:check — FAILED
+```
+
+### 根因
+
+align-check 脚本在 `openspec/changes/*/proposal.md` 上强制执行多条不变量，其中**不变量 5** 要求：
+
+- 文件中必须存在 `## Non-goals` 标题
+- 该章节不能为空（至少有一条内容）
+
+这是为了防止变更范围蔓延（scope creep）：明确 Non-goals 是变更提案质量的最低门槛。
+
+### 修复
+
+在 `proposal.md` 中添加 `## Non-goals` 章节，并列出至少一条明确不做的事：
+
+```markdown
+## Non-goals
+
+- 本次变更不涉及 XYZ 功能
+- 不修改现有 ABC 接口
+- 不处理边缘情况 DEF（留待后续变更）
+```
+
+### 防范
+
+- 创建新的 OpenSpec change 时，使用 `openspec new` 命令生成模板，模板已包含 Non-goals 章节
+- 在提交 proposal.md 前，本地运行 `pnpm align:check --fast` 验证
+
+---
+
+## 故障 5：npm scope 名称冲突（org 已被他人占用）
+
+### 症状
+
+发布时收到权限错误，或发现 npm registry 上已存在同名 scope 但属于完全无关的项目。
+
+### 根因
+
+npm org 名称全局唯一。若 `@yourscope` 已被他人注册，无法在该 scope 下发布包。在命名阶段未验证 org 可用性会导致后续大规模重命名。
+
+### 检查
+
+```bash
+# 在 npmjs.com 验证 org 是否可用
+open https://www.npmjs.com/org/<your-scope>
+# 若页面显示已有包，说明该 org 已被占用
+```
+
+### 批量重命名 scope
+
+若需要将所有 `@old-scope/` 替换为 `@new-scope/`：
+
+```bash
+# 替换所有代码文件中的 scope（排除 lockfile 和 node_modules）
+find . -type f \( -name "*.json" -o -name "*.ts" -o -name "*.js" -o -name "*.mjs" -o -name "*.mdx" -o -name "*.md" -o -name "*.yaml" -o -name "*.yml" \) \
+  -not -path "*/node_modules/*" \
+  -not -name "pnpm-lock.yaml" \
+  -exec sed -i '' 's/@old-scope\//@new-scope\//g' {} +
+
+# 验证无残留（排除 lockfile、.turbo 缓存、openspec 历史文档）
+grep -r "@old-scope/" . \
+  --exclude-dir=node_modules \
+  --exclude-dir=.turbo \
+  --exclude="pnpm-lock.yaml"
+
+# 更新 lockfile
+pnpm install
+
+git add -A && git commit -m "chore: rename npm scope from @old-scope to @new-scope"
+```
+
+**重命名后必须检查的文件类型**：
+
+| 文件 | 内容 |
+|------|------|
+| `package.json` | `name`、`dependencies`、`devDependencies` |
+| `tsconfig.json` | `extends` 路径 |
+| `eslint.config.js` | `require()` / `import` 路径 |
+| `.github/workflows/*.yml` | 步骤中引用包名的地方 |
+| `*.mdx` / `*.md` | 文档中的代码示例 |
+| `pnpm-lock.yaml` | 通过 `pnpm install` 自动更新，不要手动编辑 |
+
+### 防范
+
+- **在命名 packages 前**先在 npmjs.com 确认 org 可用性
+- 团队已有 npm org 时，优先复用（如 `@cogito.ai`）
+- 在 README 或 ADR 中记录 scope 选择的决策依据
+
+---
+
+## AI Agent 查询索引
+
+以下索引用于让 Agent 快速定位故障类型。
+
+```yaml
+- query: pnpm action-setup version conflict
+  fault: 故障1
+  fix: 移除 workflow 中 with.version，让 packageManager 字段控制版本
+  ref: https://github.com/pnpm/action-setup
+
+- query: frozen-lockfile 失败 / lockfile not up to date
+  fault: 故障2
+  fix: 运行 pnpm install 后提交 pnpm-lock.yaml
+  note: 任何修改 package.json 的操作后必须同步 lockfile
+
+- query: Changesets 发布未就绪包 / 404 Not Found release
+  fault: 故障3
+  fix: 给未就绪包添加 "private": true
+
+- query: align-check 失败 / Non-goals 缺失
+  fault: 故障4
+  fix: 在 proposal.md 中添加非空 ## Non-goals 章节
+
+- query: npm scope 被占用 / 如何批量重命名 scope
+  fault: 故障5
+  fix: 用 find + sed 批量替换，再 pnpm install 更新 lockfile
+```

@@ -1,5 +1,88 @@
 ---
-title: 研究（英文版，待翻译）
+title: 研究框架
+description: 用于素材搜索和 AI 时代 UI 设计深度调研的方法论框架。
 ---
 
-此文档的中文版本正在建设中，请[查看英文版](/en/docs/ui-design/research)。
+# 研究框架
+
+> 本文档是**方法论框架**，而非研究成果。它定义了如何进行研究，而非研究结果本身。
+
+## 研究目标与边界
+
+**核心问题**：在 AI 编码时代，AI 编码代理如何产出具有辨识度、高质量、可维护的 UI？
+
+**范围**：聚焦"人类设计师 + AI 代理协作式 UI 设计"的工作流和工具。排除纯手动的设计流程。
+
+**排除**：
+- 纯设计工具教程（Figma 技巧）
+- 前端框架对比
+- 后端系统
+
+## 搜索策略
+
+### 英文关键词
+- `AI coding agent UI design`
+- `design system for LLM`
+- `CSS architecture AI era`
+- `OKLCH design tokens`
+- `Impeccable design skill`
+- `frontend-design skill Claude`
+
+### 中文关键词
+- `AI Coding Agent UI设计`
+- `AI辅助前端设计`
+- `设计系统 LLM`
+- `AI时代CSS规范`
+
+### 搜索优先级
+1. GitHub（stars > 500）
+2. arXiv（CSS/UI/HCI 方向）
+3. 专家博客（Paul Bakaus, Josh W Comeau, Adam Wathan）
+4. X/Twitter（UI/CSS 社区）
+5. HN/Reddit（讨论帖）
+
+## 素材质量筛选
+
+**优先**：
+- 可执行的工作流（命令、步骤、工具）
+- 前后对比案例研究
+- 有可观 star 数的 GitHub 仓库
+
+**次级**：
+- 系统的理论讨论
+- 真实从业者记录
+
+**排除**：
+- 没有可操作指导的纯理论
+- 2023 年之前发布的内容
+- 仅 Figma 的教程
+- 通用 CSS 框架介绍
+
+## 重点研究方向
+
+1. **设计系统 + LLM 理解**：如何向 LLM 传达设计意图（Token 命名、DESIGN.md 等）
+2. **AI Slop 检测与预防**：反模式识别和自动检测工具
+3. **人机协作式 UI 工作流**：哪些步骤需要人类干预，哪些可以 AI 自主完成
+4. **现代 CSS 架构**：OKLCH、容器查询、层叠层（`@layer`）
+5. **H5/移动端 AI 设计挑战**：AI 默认桌面优先时如何强制执行移动优先
+
+## 深度调研路径
+
+1. 审阅 Impeccable 的 7 个领域参考文件（typography / color / spatial / motion / interaction / responsive / ux-writing） → 提取核心原则
+2. 审阅 Anthropic frontend-design SKILL.md → 与 Impeccable 的增强功能进行对比
+3. 搜索 "CSS design tokens AI" + "OKLCH" → 寻找实用案例研究
+4. 搜索 GitHub "design system copilot instructions" → 寻找真实世界的 AI 指导规范
+
+## 研究输出格式
+
+每条素材条目应包含：
+- **来源 URL**：直接链接
+- **标题**：清晰、描述性的标题
+- **核心洞察**：1-3 句话总结关键收获
+- **可行动结论**：基于该素材应该做出什么改变
+
+## 输出文件
+
+研究发现应写入 `apps/docs/content/docs/ui-design/research/findings.mdx`，由执行研究的 LLM 在调研完成后撰写。
+
+> **注意**：此框架文档不包含具体的 URL、研究结果或结论。它纯粹是方法论指南。

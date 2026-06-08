@@ -1,5 +1,38 @@
 ---
-title: 模板（英文版，待翻译）
+title: 模板
+description: 基于四层架构的生产级项目模板
 ---
 
-此文档的中文版本正在建设中，请[查看英文版](/en/docs/templates)。
+# 模板
+
+AgentDock 提供遵循四层架构和治理规范的生产级项目模板。
+
+## 可用模板
+
+- **[web-nextjs](/zh/docs/templates/web-nextjs)** — 基于 Next.js 16 的 Web 应用模板，内置 Supabase Auth、shadcn/ui 和 i18n 支持。
+
+## 模板理念
+
+每个模板的设计原则是：
+
+1. **有主见但灵活** — 合理的默认配置，并留有清晰的扩展点
+2. **AI 助手友好** — 为 Copilot、Cursor 及其他 AI 编程助手优化结构
+3. **生产就绪** — 内置认证、验证、错误处理和测试配置
+4. **文档完善** — 架构清晰、规范明确、开发流程顺畅
+
+## 使用模板
+
+### 通过 CLI
+
+```bash
+npx @cogito.ai/cli create my-app --template web-nextjs
+```
+
+### 手动克隆
+
+```bash
+git clone https://github.com/cogito-tech/agentdock.git
+cp -r agentdock/templates/web-nextjs my-app
+cd my-app
+pnpm install
+```

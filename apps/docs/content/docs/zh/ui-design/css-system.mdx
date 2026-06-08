@@ -1,5 +1,85 @@
 ---
-title: CSS 系统（英文版，待翻译）
+title: CSS 设计系统
+description: 为什么以及如何为 AI 编码代理构建基于 Token 的 CSS 设计系统。
 ---
 
-此文档的中文版本正在建设中，请[查看英文版](/en/docs/ui-design/css-system)。
+# CSS 设计系统
+
+## 为什么 AI 编码代理需要设计系统
+
+没有单一事实来源（SSOT）时，AI 编码代理会生成不一致的 UI。一个组件使用 `bg-gray-100`，另一个使用 `bg-slate-50`，第三个使用 `bg-zinc-100`。久而久之，这会累积成视觉混乱。
+
+基于 Token 的设计系统通过以下方式解决这个问题：
+- **约束 AI 的选择**：AI 只能使用系统中定义的 Token
+- **支持一键换肤**：改变 `--color-brand-h`，整个应用随之更新
+- **确保一致性**：相同的语义含义始终映射到相同的视觉值
+
+## 为什么选择 OKLCH 而非 HSL
+
+OKLCH（OK Lightness, Chroma, Hue）是一种感知均匀的颜色空间：
+
+- **感知均匀**：数值的等量变化产生等量的感知差异
+- **自然的深色模式过渡**：改变亮度时颜色保持其特性
+- **色盲友好**：色度和色相的分离使创建无障碍调色板更容易
+- **品牌一致性**：`--color-brand-h` / `--color-brand-c` / `--color-brand-l` 变量使换肤变得轻而易举
+
+## 语义化 Token vs. 字面量值
+
+| 方法 | 示例 | 问题 |
+|------|------|------|
+| 字面量 | `bg-blue-500` | 难以换肤，没有语义含义 |
+| 语义化 | `bg-primary` | 描述用途，易于换肤 |
+
+我们的系统使用 `--color-surface`、`--color-muted-foreground` 和 `--color-border` 等语义化 Token。AI 读取 `copilot-instructions.md` 后知道使用 `bg-surface` 而不是 `bg-gray-100`。
+
+## Tailwind v4 `@theme` 桥梁
+
+Tailwind v4 的 `@theme` 指令将 CSS 自定义属性注册为工具类：
+
+```css
+@theme inline {
+  --color-surface: var(--color-surface);
+  --color-muted: var(--color-muted);
+}
+```
+
+这弥合了以下两者之间的差距：
+- **CSS 自定义属性**（运行时，适合换肤）
+- **Tailwind 工具类**（编译时，开发体验好）
+
+## AI 编码代理的移动优先
+
+AI 编码代理强烈倾向于桌面端布局。没有明确约束时，它们生成桌面优先的代码，然后难以适配移动端。
+
+**我们的规则**：始终先写移动端样式（无前缀），然后用 `md:` 和 `lg:` 前缀进行增强。
+
+```tsx
+// 正确：移动优先
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+
+// 错误：桌面优先降级
+<div className="grid grid-cols-4 max-md:grid-cols-2">
+```
+
+## 容器查询
+
+对于组件级响应式，使用容器查询而非媒体查询：
+
+```css
+@container (min-width: 600px) {
+  .feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+```
+
+这解除了组件布局与视口大小的耦合，使组件真正可复用。
+
+## 添加新 Token
+
+要添加新的语义化 Token（例如 `--color-danger`）：
+
+1. 在 `src/styles/tokens.css` 中定义值
+2. 在 `src/app/[locale]/globals.css` 的 `@theme inline` 下注册它
+3. 在 `DESIGN.md` 中记录它
+4. 在 `copilot-instructions.md` 中更新使用示例

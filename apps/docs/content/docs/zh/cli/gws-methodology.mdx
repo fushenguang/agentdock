@@ -1,5 +1,257 @@
 ---
-title: GWS 方法论（英文版，待翻译）
+title: Google Workspace CLI 方法论借鉴
+description: 基于可溯源证据分析 gws 的前瞻理念，并映射到 AgentDock CLI。
 ---
 
-此文档的中文版本正在建设中，请[查看英文版](/en/docs/cli/gws-methodology)。
+# Google Workspace CLI 的前瞻理念：证据化分析与借鉴
+
+参考对象：Google Workspace CLI 仓库 [github.com/googleworkspace/cli](https://github.com/googleworkspace/cli)
+
+> 本页写作约束：
+> - 先给可核验事实，再给观点。
+> - 观点均标注为"工程推导/迁移建议"，不冒充上游项目原话。
+
+## 1) 元数据驱动（Metadata-driven）
+
+可核验事实：
+
+- gws README 明确说明，命令面不是静态手写列表，而是基于 Google Discovery Service 在运行时构建。
+
+原文摘录：
+
+> "`gws` doesn't ship a static list of commands. It reads Google's own Discovery Service at runtime and builds its entire command surface dynamically."
+
+链接锚点：
+
+- [README / Why gws](https://github.com/googleworkspace/cli/blob/main/README.md#why-gws)
+
+证据出处：
+
+- README 主页说明与 Why gws 部分：
+  - [github.com/googleworkspace/cli](https://github.com/googleworkspace/cli)
+  - [github.com/googleworkspace/cli/blob/main/README.md#why-gws](https://github.com/googleworkspace/cli/blob/main/README.md#why-gws)
+
+工程推导：
+
+- 这是一种"由能力描述驱动命令面"的模式，可归类为元数据驱动架构。
+
+对 AgentDock 的借鉴：
+
+- 把模板能力的主真相收敛到 registry/contract，而不是散落在命令分支里。
+- 新增能力优先做"元数据项"扩展，再让表面层自动投影。
+
+## 2) 多态投影（Multi-projection）
+
+可核验事实：
+
+- gws README 的 Why gws 区分了 For humans 与 For AI agents。
+- README 明确强调结构化 JSON 输出。
+
+原文摘录：
+
+> "For humans — stop writing `curl` calls against REST docs."
+>
+> "For AI agents — every response is structured JSON."
+
+链接锚点：
+
+- [README / Why gws](https://github.com/googleworkspace/cli/blob/main/README.md#why-gws)
+
+证据出处：
+
+- [github.com/googleworkspace/cli/blob/main/README.md#why-gws](https://github.com/googleworkspace/cli/blob/main/README.md#why-gws)
+
+工程推导：
+
+- 同一能力集同时投影到"人类体验表面"和"机器可消费表面"，可归纳为多态投影。
+
+对 AgentDock 的借鉴：
+
+- 统一执行器只关心契约，Human/CI/Agent 作为不同适配层。
+- 在机器模式中把 stdout 限制为稳定结构化输出。
+
+## 3) 结构化输出与退出码语义
+
+可核验事实：
+
+- gws README 提供 Exit Codes 章节，明确不同失败类型对应不同退出码。
+
+原文摘录：
+
+> "`gws` uses structured exit codes so scripts can branch on the failure type without parsing error output."
+
+链接锚点：
+
+- [README / Exit Codes](https://github.com/googleworkspace/cli/blob/main/README.md#exit-codes)
+
+证据出处：
+
+- [github.com/googleworkspace/cli/blob/main/README.md#exit-codes](https://github.com/googleworkspace/cli/blob/main/README.md#exit-codes)
+
+工程推导：
+
+- 这说明其把 CLI 当作机器协议接口，而不是纯交互工具。
+
+对 AgentDock 的借鉴：
+
+- 维护独立错误码字典，绑定退出码和 JSON 错误对象。
+- 降低 Agent/CI 通过文本解析错误的脆弱性。
+
+## 4) 架构透明：双阶段解析（Two-phase parsing）
+
+可核验事实：
+
+- gws README 的 Architecture 章节写明了 two-phase parsing 过程：识别服务、拉取 Discovery、构建命令树、重解析参数。
+
+原文摘录：
+
+> "`gws` uses a two-phase parsing strategy:"
+>
+> "1. Read `argv[1]` to identify the service"
+>
+> "2. Fetch the service's Discovery Document"
+>
+> "3. Build a `clap::Command` tree"
+
+链接锚点：
+
+- [README / Architecture](https://github.com/googleworkspace/cli/blob/main/README.md#architecture)
+
+证据出处：
+
+- [github.com/googleworkspace/cli/blob/main/README.md#architecture](https://github.com/googleworkspace/cli/blob/main/README.md#architecture)
+
+工程推导：
+
+- 这种解析模型适合"大规模动态命令面"，同时避免冷启动时加载全部命令。
+
+对 AgentDock 的借鉴：
+
+- 第一阶段识别能力域（模板/功能域），第二阶段加载该域参数与校验规则。
+- 与 Citty 的 lazy sub-command 能力形成组合。
+
+## 5) 认证流与环境优先级的显式建模
+
+可核验事实：
+
+- gws README 的 Authentication 提供多场景路径（交互、headless/CI、service account、token），并定义优先级。
+
+原文摘录：
+
+> "The CLI supports multiple auth workflows so it works on your laptop, in CI, and on a server."
+>
+> "Precedence"
+
+链接锚点：
+
+- [README / Authentication](https://github.com/googleworkspace/cli/blob/main/README.md#authentication)
+- [README / Precedence](https://github.com/googleworkspace/cli/blob/main/README.md#precedence)
+
+证据出处：
+
+- [github.com/googleworkspace/cli/blob/main/README.md#authentication](https://github.com/googleworkspace/cli/blob/main/README.md#authentication)
+
+工程推导：
+
+- 显式优先级可减少跨环境行为不一致，提升可预测性。
+
+对 AgentDock 的借鉴：
+
+- 定义配置来源优先级（flag > env > config file）。
+- 把本地、CI、企业代理、离线都纳入设计期一等场景。
+
+## 6) 自动生成能力 + 手工高阶命令的混合模式
+
+可核验事实：
+
+- gws README 有 Helper Commands 章节，使用 + 前缀区分手工增强命令。
+
+原文摘录：
+
+> "Helper commands are prefixed with `+` so they are visually distinct and never collide with Discovery-generated method names."
+
+链接锚点：
+
+- [README / Helper Commands](https://github.com/googleworkspace/cli/blob/main/README.md#helper-commands)
+
+证据出处：
+
+- [github.com/googleworkspace/cli/blob/main/README.md#helper-commands](https://github.com/googleworkspace/cli/blob/main/README.md#helper-commands)
+
+工程推导：
+
+- 自动化覆盖广度，手工命令提升关键任务体验，二者并存可平衡可维护性与可用性。
+
+对 AgentDock 的借鉴：
+
+- 自动层负责能力完整性。
+- 手工层沉淀高价值组合动作（例如未来的 add/doctor/migrate）。
+
+## 7) 面向 Agent 的知识资产分发
+
+可核验事实：
+
+- gws README 有 AI Agent Skills 章节，并提供 skills 索引与安装方式。
+
+原文摘录：
+
+> "The repo ships 100+ Agent Skills (`SKILL.md` files) — one for every supported API..."
+
+链接锚点：
+
+- [README / AI Agent Skills](https://github.com/googleworkspace/cli/blob/main/README.md#ai-agent-skills)
+
+证据出处：
+
+- [github.com/googleworkspace/cli/blob/main/README.md#ai-agent-skills](https://github.com/googleworkspace/cli/blob/main/README.md#ai-agent-skills)
+
+工程推导：
+
+- 除了工具接口，Agent 还需要可检索的任务知识资产，才能稳定调用能力。
+
+对 AgentDock 的借鉴：
+
+- CLI 与 skills/schema/recipes 需要协同发布，避免"能力变化但知识未更新"。
+
+## 8) 故障恢复导向的错误设计
+
+可核验事实：
+
+- gws README 的 Troubleshooting 提供多个故障场景与可执行修复步骤（如 accessNotConfigured 等）。
+
+原文摘录：
+
+> "💡 API not enabled for your GCP project."
+>
+> "Enable it at: ..."
+>
+> "After enabling, wait a few seconds and retry your command."
+
+链接锚点：
+
+- [README / Troubleshooting](https://github.com/googleworkspace/cli/blob/main/README.md#troubleshooting)
+- [README / API not enabled — accessNotConfigured](https://github.com/googleworkspace/cli/blob/main/README.md#api-not-enabled--accessnotconfigured)
+
+证据出处：
+
+- [github.com/googleworkspace/cli/blob/main/README.md#troubleshooting](https://github.com/googleworkspace/cli/blob/main/README.md#troubleshooting)
+
+工程推导：
+
+- 错误处理目标不是"描述失败"，而是"最短路径恢复"。
+
+对 AgentDock 的借鉴：
+
+- 标准化错误对象建议包含：code、message、hint、suggested_action、docs_url。
+- 机器通道输出稳定结构，人类解释信息走 stderr 或文档链接。
+
+## 小结
+
+可落地的核心借鉴并不是"照搬命令"，而是照搬其工程方法：
+
+- 语义主干数据化。
+- 多表面投影。
+- 结构化输出优先。
+- 故障恢复优先。
+
+以上四点，能够直接提升 Agent 场景下 CLI 的稳定性与演进效率。

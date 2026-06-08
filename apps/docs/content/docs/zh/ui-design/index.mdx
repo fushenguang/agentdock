@@ -1,5 +1,48 @@
 ---
-title: UI Design（英文版，待翻译）
+title: AI 时代的 UI 设计
+description: 为什么 AI 生成的 UI 设计是 AI 编码时代最大的瓶颈，以及如何系统性地解决它。
 ---
 
-此文档的中文版本正在建设中，请[查看英文版](/en/docs/ui-design)。
+# AI 时代的 UI 设计
+
+## 为什么这个问题很重要
+
+在 AI 编码时代，编码能力已经民主化——但设计能力还没有。当你让 AI "构建一个精美的落地页"时，你得到的是 AI Slop：Inter 字体 + 紫蓝渐变 + 嵌套圆角卡片 + 深色模式发光文字。它看起来精致，但没有灵魂、没有品牌辨识度、没有差异化。
+
+根本原因很简单：**没有设计系统约束时，AI 只能生成训练数据中最常见的东西。**
+
+## 本专题解决什么问题
+
+本专题提供一种系统性的方法，让 AI 编码代理产出**具有辨识度、高质量、可维护的 UI**：
+
+1. **设计系统** — 基于 Token 的 CSS 系统（OKLCH + Tailwind v4 `@theme`），AI 可以理解和遵循
+2. **工作流** — 人机协作工作流（Impeccable），确保每一步的质量
+3. **反模式** — AI Slop 模式目录，支持自动检测
+4. **研究框架** — 寻找设计灵感和最佳实践的方法论
+
+## 人 + 机器 + AI 代理三位一体
+
+AI 时代设计的新交互范式：
+
+- **人**：设定方向，做出审美判断，批准或否决 AI 提案
+- **AI 代理**：基于设计系统约束生成和实现
+- **机器（CI/CLI）**：运行确定性质量检查（Impeccable `detect`），在 AI Slop 到达生产环境之前将其拦截
+
+## 专题地图
+
+| 文档 | 用途 |
+|------|------|
+| [工作流](/zh/docs/ui-design/workflow) | Impeccable 四步设计工作流 |
+| [CSS 系统](/zh/docs/ui-design/css-system) | 为什么以及我们如何构建基于 Token 的设计系统 |
+| [反模式](/zh/docs/ui-design/anti-patterns) | AI Slop 检测规则与 CI 集成 |
+| [研究](/zh/docs/ui-design/research) | 素材搜索和深度调研执行框架 |
+
+## 快速开始
+
+在项目根目录运行以下命令初始化设计系统：
+
+```bash
+npx impeccable init
+```
+
+或按照 [CSS 系统](/zh/docs/ui-design/css-system) 的原则手动创建 `DESIGN.md`。

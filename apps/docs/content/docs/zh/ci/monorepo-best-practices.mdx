@@ -1,5 +1,229 @@
 ---
-title: Monorepo 最佳实践（英文版，待翻译）
+title: Monorepo CI 最佳实践（构造者 + Agent 双视角）
+description: >
+  面向 AgentDock 技术栈的 GitHub Actions 实战指南：按触发目的分层、按影响范围执行、由 Changesets 统一发布。
+  既适合构造者顺读，也支持 AI Agent 快速查询决策依据与操作清单。
 ---
 
-此文档的中文版本正在建设中，请[查看英文版](/en/docs/ci/monorepo-best-practices)。
+# Monorepo CI 最佳实践（构造者 + Agent 双视角）
+
+本文沉淀一套可直接用于 AgentDock 的 CI 架构方法，目标是同时解决三件事：
+
+- 构造者的反馈速度（PR 不被全量串行拖慢）
+- 平台的发布一致性（不出现多套发布逻辑）
+- AI Agent 的可查询性（能快速回答"为什么这样设计"）
+
+---
+
+## 一、先看根因：为什么 CI 会变慢、变乱、变脆
+
+### 根因 1：把 CI 当作"全量串行管道"，而不是"按影响范围裁剪"
+
+常见症状：
+
+- 文档变更触发整个 monorepo 的类型检查与构建
+- 某个包频繁改动时，其他无关包反复陪跑
+- Turbo 缓存命中仍然掩盖不了"触发范围过宽"的浪费
+
+修正原则：先缩小触发范围，再让缓存加速。
+
+参考：
+
+- GitHub `paths` 过滤：https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#onpushpull_requestpull_request_targetpathspaths-ignore
+- Turborepo 缓存：https://turborepo.com/docs/core-concepts/caching
+
+### 根因 2：把 release workflow 当作"按包拆分"的入口，忽略 Changesets 的职责
+
+误区：为 `@cogito.ai/cli` 单独做一条发布 workflow。  
+后果：维护两套发布判断逻辑，且容易出现并发冲突。
+
+正确做法：
+
+- 由开发者在 PR 中提交 `.changeset/*` 描述发布意图
+- 由 `changesets/action` 统一聚合并生成版本 PR
+- 由同一个 release workflow 处理所有可发布包
+
+参考：
+
+- Changesets 总览：https://github.com/changesets/changesets
+- changesets/action：https://github.com/changesets/action
+
+### 根因 3：防线过薄，缺少分层防御
+
+只靠 pre-commit + 单一 CI + release，问题是：
+
+- 缺少慢速完整体检（架构约束、密钥扫描）
+- 缺少治理改动专门入口（例如 openspec 相关改动）
+- 缺少"阻塞层"和"通知层"的职责分离
+
+参考：
+
+- GitHub 环境保护规则：https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment
+- GitHub 状态检查与分支保护：https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches
+
+---
+
+## 二、正确模型：按"触发目的"分 workflow，而不是按"包"分 workflow
+
+在 monorepo 中，workflow 的最小设计单元应是职责。
+
+建议结构：
+
+- `ci.yml`：PR Gate，快反馈，阻塞合并
+- `integrity.yml`：慢检查，定时或治理改动触发，不阻塞合并
+- `release.yml`：主分支统一发版，由 Changesets 决定"发什么"
+
+这与当前仓库实际工作流文件一致：
+
+- `.github/workflows/ci.yml`
+- `.github/workflows/integrity.yml`
+- `.github/workflows/release.yml`
+
+并发控制建议：
+
+- PR Gate：按分支或 ref 取消旧运行
+- Release：同一分支同一时刻只允许一个发布运行
+
+参考：
+
+- GitHub 并发控制：https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/using-concurrency
+
+---
+
+## 三、AgentDock 的落地准则（可执行）
+
+### 1) PR Gate 只做"快且必须"的检查
+
+建议保留在 `ci.yml`：
+
+- 安装依赖
+- 类型检查
+- 构建
+- 单元测试
+- Lint
+
+实践要点：
+
+- 尽量并行 job
+- 让 Turbo 负责任务图缓存
+- 仅让真正必须阻塞 merge 的检查留在 PR Gate
+
+### 2) 慢检查下沉到 Integrity
+
+建议放在 `integrity.yml`：
+
+- `pnpm align:check`
+- `pnpm arch:check`
+- `pnpm secrets:check`
+
+触发建议：
+
+- nightly schedule
+- workflow_dispatch
+- 涉及治理目录（如 openspec、scripts、roadmap）时的 PR
+
+### 3) 发布保持单入口
+
+`release.yml` 的职责只做两件事：
+
+- 安装并构建（确保发布前可用）
+- 调用 `changesets/action` 执行"开版本 PR 或发布"
+
+不要做的事：
+
+- 不创建 `release-cli.yml`
+- 不在 workflow 中硬编码"哪个包改动就发哪个包"
+
+### 4) 安全与权限最小化
+
+- 使用 GitHub Secrets 管理 `NPM_TOKEN`、`TURBO_TOKEN`
+- 在发布 workflow 显式声明最小 `permissions`
+- 配置 `.npmrc` 使用环境变量，不写真实 token
+
+参考：
+
+- Secrets：https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions
+- GITHUB_TOKEN 权限：https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token
+- setup-node 发布 npm：https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#publish-to-npmjs-and-gpr-with-npm
+
+### 5) 远程缓存是成本杠杆
+
+当团队并行开发或 PR 频率提升时，建议启用 Turbo Remote Cache：
+
+- `TURBO_TOKEN`
+- `TURBO_TEAM`
+
+参考：
+
+- https://turborepo.com/docs/core-concepts/remote-caching
+
+---
+
+## 四、变更清单模板（给构造者）
+
+当你要重构 CI，可按下列顺序执行：
+
+1. 明确 3 条 workflow 的单一职责
+2. 在 `ci.yml` 收敛为"快且必须"检查
+3. 将慢检查迁移到 `integrity.yml`
+4. 确认 `release.yml` 只保留 Changesets 单入口
+5. 配置 `concurrency` 防止重复运行
+6. 配置 Secrets 与最小权限
+7. 给分支保护规则绑定 PR Gate 必要检查
+
+分支保护参考：
+
+- https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches
+
+---
+
+## 五、AI Agent 查询索引（机器可读）
+
+以下索引用于让 Agent 快速回答 CI 架构问题。
+
+### Query Map
+
+- query: 为什么不拆 release-cli workflow
+  answer: Changesets 已负责"发布意图聚合与发布集合计算"，拆分会制造双重判断和并发冲突
+  refs:
+    - https://github.com/changesets/changesets
+    - https://github.com/changesets/action
+
+- query: PR 为什么不能跑全量串行
+  answer: 全量串行导致反馈慢；应按触发目的分层、按影响范围执行，缓存只是加速器不是裁剪器
+  refs:
+    - https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions
+    - https://turborepo.com/docs/core-concepts/caching
+
+- query: 慢检查应该放哪里
+  answer: 放到 integrity workflow（定时 + 手动 + 治理改动触发），不阻塞 PR merge
+  refs:
+    - https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows
+
+- query: 如何避免 workflow 并发竞争
+  answer: 为 CI 与 Release 设置 concurrency group，并启用 cancel-in-progress
+  refs:
+    - https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/using-concurrency
+
+- query: 发布前需要哪些最小安全配置
+  answer: Secrets 托管 token、最小 permissions、setup-node registry-url、.npmrc 环境变量占位
+  refs:
+    - https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions
+    - https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token
+
+### 关键决策快照
+
+- 决策: workflow 按职责分层，不按包拆分
+- 决策: 发布统一走 Changesets
+- 决策: 慢检查不阻塞 PR
+- 决策: 依赖 Turbo 缓存与并发控制优化时延
+- 决策: 安全配置前置且最小权限
+
+---
+
+## 六、与现有文档的关系
+
+- 总览页：/docs/ci
+- 本页：/docs/ci/monorepo-best-practices
+
+建议阅读顺序：先读总览，再读本页执行清单，最后回到具体 workflow 文件逐项对照。

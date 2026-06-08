@@ -1,5 +1,304 @@
 ---
-title: Web Next.js 模板（英文版，待翻译）
+title: web-nextjs 模板
+description: 基于 Next.js 16 的生产级模板，内置 Supabase Auth 和 i18n
 ---
 
-此文档的中文版本正在建设中，请[查看英文版](/en/docs/templates/web-nextjs)。
+# web-nextjs 模板
+
+基于 Next.js 16 的生产级 Web 应用模板，内置 Supabase Auth、shadcn/ui 和国际化支持。
+
+## 这是什么？
+
+`web-nextjs` 是基于 AgentDock 四层架构的全栈 Web 应用脚手架。它提供：
+
+- **认证** — 通过 Supabase Auth 实现邮箱/密码 + GitHub OAuth 登录
+- **UI 组件** — 基于 shadcn/ui，支持深色模式
+- **国际化** — 使用 next-intl 实现多语言应用（en/zh）
+- **表单处理** — react-hook-form + Zod 验证
+- **四层架构** — 职责清晰分离（features → core → infra → app）
+
+## 它解决了什么问题？
+
+从零开始构建现代 Web 应用需要做出许多重复性决策：
+
+| 痛点 | web-nextjs 如何解决 |
+|---|---|
+| 认证配置 | 预配置 Supabase Auth，支持邮箱/密码 + OAuth |
+| UI 一致性 | 基于 shadcn/ui 组件和统一的设计令牌 |
+| i18n 复杂性 | 使用 next-intl 实现基于语言区域的路由 |
+| 架构漂移 | 通过 ESLint 规则强制四层结构 |
+| 表单验证 | react-hook-form + Zod 模式定义在共享位置 |
+| AI 助手困惑 | 为 Copilot 提供清晰的目录契约和 `AGENTS.md` |
+
+## 为什么选择这个模板？
+
+### 对于个人开发者
+- 立即开始构建功能 —— 无需处理样板代码
+- 认证、国际化和 UI 已预先集成
+- Layer 2 规则防止架构错误
+
+### 对于团队
+- 跨项目保持一致的代码结构
+- 轻松上手 —— 新开发者只需学习一种模式
+- AI 助手可以可靠地浏览代码库
+
+### 对于 AI 编程助手
+- `AGENTS.md` 定义执行边界
+- 目录契约告诉 AI 助手代码应该放在哪里
+- OpenSpec 变更提供结构化的规划
+
+## 技术栈
+
+| 层级 | 技术 |
+|---|---|
+| 框架 | Next.js 16（App Router, Turbopack） |
+| 语言 | TypeScript 5.9 |
+| 认证 | Supabase Auth（邮箱/密码 + GitHub OAuth） |
+| UI | shadcn/ui + Tailwind CSS 4 |
+| 表单 | react-hook-form + Zod |
+| 国际化 | next-intl |
+| 状态 | React Server Components + Server Actions |
+| 图标 | @tabler/icons-react, lucide-react |
+| 通知 | sonner（toast） |
+| 代码检查 | ESLint 9（flat config）+ Prettier |
+| 包管理器 | pnpm 9+ |
+
+## 架构
+
+```
+src/
+├── app/                    # App 层 - 路由、布局、页面
+│   ├── [locale]/          # 基于语言区域的路由
+│   │   ├── (auth)/        # 公开认证路由（登录、注册）
+│   │   └── (protected)/   # 受保护路由（仪表盘、设置）
+│   └── auth/              # 认证回调处理器
+├── components/            # 共享 UI 组件
+│   ├── ui/               # shadcn/ui 基础组件
+│   ├── dashboard/         # 仪表盘专用组件
+│   └── profile/           # 个人资料表单组件
+├── core/                  # Core 层 - 类型、接口、领域逻辑
+│   ├── types/            # TypeScript 类型（AuthUser, ActionResult 等）
+│   └── repositories/     # 仓库接口（IAuthRepository）
+├── features/             # Feature 层 - 用例、Server Actions
+│   └── auth/             # 认证功能（actions, contract, index）
+├── infra/                # Infrastructure 层 - 外部服务
+│   ├── db/              # Supabase 客户端与仓库实现
+│   └── providers.ts     # DI 工厂（getAuthRepository）
+└── lib/                  # 共享工具函数
+    └── validations/      # Zod 模式
+```
+
+### 四层数据流
+
+```
+用户请求
+    ↓
+app/（路由处理器 / 页面）
+    ↓
+features/（Server Action - 用例编排）
+    ↓
+core/（仓库接口 - 契约）
+    ↓
+infra/（仓库实现 - Supabase SDK）
+```
+
+### Layer 2 约束
+
+该模板通过 ESLint 强制实施一条关键规则：
+
+> **功能层（Features）不得直接从 `@/infra/*` 导入。**
+
+这确保了业务逻辑与基础设施细节保持独立。请改用 `core/repositories` 中的仓库接口。
+
+## 已完成的功能
+
+### 认证
+- [x] 邮箱/密码登录
+- [x] 邮箱/密码注册及验证流程
+- [x] GitHub OAuth 集成
+- [x] 密码重置（忘记密码 → 邮件 → 重置密码）
+- [x] 会话管理（getCurrentUser 辅助函数）
+- [x] 受保护路由组（`(protected)` 布局）
+- [x] 认证中间件（会话刷新 + 语言区域检测）
+
+### 用户账户
+- [x] 带头像展示的个人资料页面
+- [x] 显示名称更新
+- [x] 邮箱显示（只读）
+- [x] 修改密码入口（重定向至忘记密码页面）
+
+### 导航
+- [x] 可折叠侧边栏，带用户菜单
+- [x] 设置导航（个人资料、帮助、隐私、关于）
+- [x] 清晰的用户导航下拉菜单（账户链接、退出登录）
+- [x] 无占位符 `#` 链接
+
+### 页面
+- [x] 登录页面
+- [x] 带邮箱验证状态的注册页面
+- [x] 仪表盘页面
+- [x] 忘记密码页面
+- [x] 重置密码页面
+- [x] 个人资料设置页面
+- [x] 帮助页面（占位符）
+- [x] 隐私政策页面（占位符）
+- [x] 关于页面（占位符）
+
+### 国际化
+- [x] 英文（en）和中文（zh）语言区域
+- [x] 基于语言区域的 URL 路由（`/[locale]/...`）
+- [x] next-intl 翻译钩子
+- [x] 翻译文件位于 `messages/` 目录
+
+## 开发工作流
+
+### 本地设置
+
+```bash
+# 安装依赖
+pnpm install
+
+# 设置环境变量
+cp .env.example .env.local
+# 使用你的 Supabase 凭据编辑 .env.local：
+# NEXT_PUBLIC_SUPABASE_URL=your-project-url
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+# SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+# NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# 运行开发服务器
+pnpm dev
+```
+
+### 验证命令
+
+```bash
+# 类型检查
+pnpm check-types
+
+# 代码检查（包含 Layer 2 约束检查）
+pnpm lint
+
+# 生产构建
+pnpm build
+
+# 格式检查
+pnpm format
+```
+
+### 使用 CLI 进行真实环境验证
+
+AgentDock CLI 可以从该模板创建新项目并进行部署：
+
+```bash
+# 从模板创建新项目
+npx @cogito.ai/cli create my-app --template web-nextjs
+
+# 进入项目目录
+cd my-app
+
+# 安装并配置 Supabase
+# 按照提示设置你的 Supabase 项目
+
+# 部署到 Vercel
+npx vercel deploy --prod
+```
+
+## 配置
+
+### Supabase 设置
+
+1. 在 [supabase.com](https://supabase.com) 创建新的 Supabase 项目
+2. 在 Authentication → Providers 中启用 Email 提供者
+3. 启用 GitHub OAuth（可选）：
+   - 注册 GitHub OAuth 应用
+   - 将 Client ID 和 Secret 添加到 Supabase
+4. 配置重定向 URL：
+   - `http://localhost:3000/auth/callback`
+   - `https://your-domain.com/auth/callback`
+
+### 添加新的语言区域
+
+1. 在 `src/i18n/config.ts` 中添加语言区域：
+   ```ts
+   export const locales = ['en', 'zh', 'ja'] as const
+   ```
+2. 创建翻译文件：`messages/ja.json`
+3. 根据需要更新中间件
+
+### 添加新功能
+
+遵循四层模式：
+
+1. **定义类型** 于 `src/core/types/`
+2. **定义仓库接口** 于 `src/core/repositories/`（如需要）
+3. **实现仓库** 于 `src/infra/db/`
+4. **创建 Server Actions** 于 `src/features/<feature>/actions.ts`
+5. **创建页面** 于 `src/app/[locale]/...`
+6. **添加翻译** 于 `messages/en.json` 和 `messages/zh.json`
+
+## 非目标（有意排除）
+
+以下功能被有意排除，以保持模板的专注性：
+
+- 数据库 ORM（Prisma、Drizzle）—— 直接使用 Supabase PostgREST 或自行添加
+- 测试框架 —— 按需添加 Vitest/Jest
+- 端到端测试 —— 按需添加 Playwright/Cypress
+- 数据分析 —— 按需集成 PostHog、Plausible 等
+- 支付/账单 —— 需要时添加 Stripe
+- 实时功能 —— 需要时添加 Supabase Realtime
+- 管理面板 —— 单独构建或需要时添加
+
+## 迁移指南
+
+### 从 Create Next App 迁移
+
+1. 将你的 `app/` 页面复制到 `src/app/[locale]/`
+2. 将共享组件移至 `src/components/`
+3. 将业务逻辑提取到 `src/features/`
+4. 将类型定义移至 `src/core/types/`
+5. 将外部服务封装到 `src/infra/`
+
+### 从其他模板迁移
+
+1. 了解四层架构
+2. 将现有结构映射到层契约
+3. 为外部服务添加仓库接口
+4. 将 Server Actions 移至 `src/features/`
+5. 更新导入以遵循层边界
+
+## 故障排查
+
+### "Direct DB access in features is not allowed"
+
+你在功能文件中从 `@/infra/db/client` 导入。请改用仓库模式：
+
+```ts
+// 错误 —— 在 src/features/auth/actions.ts 中
+import { getServerClient } from '@/infra/db/client'
+
+// 正确
+import { getAuthRepository } from '@/infra/providers'
+const repo = getAuthRepository()
+await repo.someMethod()
+```
+
+### "Module not found: Can't resolve '@/xxx'"
+
+检查你的 `tsconfig.json` 路径配置：
+
+```json
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+### 认证回调返回错误
+
+确认你的 Supabase 重定向 URL 包含：
+- `http://localhost:3000/auth/callback`
+- `https://your-domain.com/auth/callback`

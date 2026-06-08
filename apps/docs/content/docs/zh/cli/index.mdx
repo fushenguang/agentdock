@@ -1,5 +1,46 @@
 ---
-title: CLI（英文版，待翻译）
+title: CLI 工具链
+description: AgentDock CLI — 面向人类与 AI Agent 的项目脚手架工具，支持交互式、无头与 MCP 三种使用模式。
 ---
 
-此文档的中文版本正在建设中，请[查看英文版](/en/docs/cli)。
+# AgentDock CLI
+
+`@cogito.ai/cli` 是 AgentDock 平台的命令行工具，已正式发布并可用于生产。
+
+它的核心设计理念：**同一套能力，同时服务于人类开发者、CI 流水线和 AI 编程 Agent**。
+
+## 快速开始
+
+```bash
+# 交互式创建项目（推荐，面向人类开发者）
+npx @cogito.ai/cli init
+
+# 非交互式创建项目（面向 CI / Agent）
+npx @cogito.ai/cli init --name my-app --template web-nextjs --pm pnpm --json
+
+# 以 MCP Stdio 服务器方式启动（供 AI Agent 调用）
+npx @cogito.ai/cli mcp
+```
+
+## 当前版本
+
+| 版本 | 状态 | 说明 |
+| ---- | ---- | ---- |
+| 0.3.x | ✅ 正式可用 | `init`（交互/无头）+ `mcp`（Stdio 服务器） |
+
+## 可用命令
+
+| 命令 | 说明 |
+| ---- | ---- |
+| `agentdock init` | 从模板脚手架项目，支持交互/无头两种模式 |
+| `agentdock mcp` | 启动 MCP Stdio 服务器，向 AI Agent 暴露工具接口 |
+
+## 章节导航
+
+<Cards>
+  <Card title="使用指南" href="/zh/docs/cli/usage" description="init 命令详解、Agent 模式、MCP 接入、退出码与 JSON 输出格式。" />
+  <Card title="开发 · 发布 · 维护" href="/zh/docs/cli/development" description="本地开发、添加模板、构建、测试、版本发布全流程。" />
+  <Card title="技术栈与架构" href="/zh/docs/cli/tech-stack" description="技术选型依据、分层架构与适配器设计。" />
+  <Card title="设计理念参考" href="/zh/docs/cli/gws-methodology" description="从 Google Workspace CLI 借鉴的前瞻方法论。" />
+  <Card title="落地路线" href="/zh/docs/cli/implementation-roadmap" description="分阶段实施路径与当前进度。" />
+</Cards>

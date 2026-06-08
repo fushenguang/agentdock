@@ -1,5 +1,239 @@
 ---
 title: Builder Workflow
+description: 四门协作模型：人类、AI 与机器在 AgentDock 中的职责划分。
 ---
 
-此文档的中文版本正在建设中，请[查看英文版](/en/docs/builder-workflow)。
+# Builder Workflow — 四门协作模型
+
+本文档描述 AgentDock 平台开发的**四门构建者工作流**。它定义了三个参与者在每一步的责任、顺序和输出：人类工程师、AI 规划模型（Opus）、AI 编码模型（Sonnet/Codex）和自动化机器。
+
+---
+
+## 为什么存在这个工作流
+
+AI 编码 Agent 的输出带宽远高于人类审查带宽。没有护栏，这种不匹配会导致范围漂移、过度设计和不可维护的代码。
+
+四门模型应用**非对称的劳动分工**：
+
+- **人类**拥有"地图"（路线图）—— 小而稳定、缓慢变化的决策。
+- **机器**执行客观对齐 —— 快速、廉价、一致。
+- **AI** 执行实现 —— 快速，但受人类批准的意图约束。
+
+AI 在批准范围内全速运行。**只有人类可以改变范围。**
+
+---
+
+## 四门模型
+
+```
+ ┌──────────┐     ┌──────────┐     ┌───────────────────────┐     ┌───────────┐
+ │  Gate ①  │     │  Gate ②  │     │       Gate ③          │     │  Gate ④   │
+ │  Human   │     │  Human   │     │      Machine          │     │  Human    │
+ │  Roadmap │ ──▶ │  Scope   │ ──▶ │  lefthook + align:    │ ──▶ │  Merge    │
+ │  Approval│     │  Review  │     │  check + arch/lint    │     │  Decision │
+ └──────────┘     └──────────┘     └───────────────────────┘     └───────────┘
+       │                │                                                │
+  (Opus plans)    (Sonnet codes)                                  (codex reviews)
+```
+
+---
+
+## 逐步详解
+
+### Gate ①: 人类 — 路线图审批
+
+**参与者:** 平台负责人 / 人类工程师
+**触发条件:** 需要新能力或方向
+**行动:** 在 `roadmap.yaml` 中添加或批准条目
+
+**规则:**
+- 只有人类可以向 `roadmap.yaml` 添加条目
+- `roadmap.yaml` 受 CODEOWNERS 保护 —— AI 不能在常规变更中修改它
+- 新条目需要清晰的 `id`、`title`、`status: planned` 和 `owner`
+- WIP 限制：同一时间只能有 1 个 epic 处于 `in-progress` 状态（对齐检查会在违规时警告）
+
+**输出:** 一个新的已批准路线图条目（例如：`id: my-feature, status: planned`）
+
+---
+
+### 规划: Opus
+
+**参与者:** Opus（AI 规划模型）
+**触发条件:** Gate ① 批准路线图条目后
+**行动:** 创建包含所有必需工件的 OpenSpec 变更
+
+**规则:**
+- 变更必须在 `proposal.md` frontmatter 中引用已批准的路线图 id：
+  ```yaml
+  ---
+  roadmap-id: <approved-id>
+  ---
+  ```
+- 提案必须包含非空的 `## Non-goals` 部分
+- 范围必须保持在已批准的路线图条目内
+- Opus 撰写：`proposal.md`、`design.md`、`specs/**`、`tasks.md`
+
+**输出:** 一个完整的 OpenSpec 变更，准备进入 Gate ②
+
+---
+
+### Gate ②: 人类 — 范围与非目标审查
+
+**参与者:** 平台负责人 / 人类工程师
+**触发条件:** Opus 创建变更后
+**预计时间:** ~30 秒
+**行动:** 审查提案的范围和非目标
+
+**检查清单:**
+- [ ] `roadmap-id` 是否匹配已批准的条目？
+- [ ] 范围是否紧凑（无过度设计）？
+- [ ] 非目标列表是否完整且正确？
+- [ ] 设计是否反映了我们实际想要构建的内容？
+
+**输出:** 人类批准继续。如果被拒绝：Opus 修订工件。
+
+---
+
+### 实现: Sonnet
+
+**参与者:** Sonnet（AI 编码模型，在新会话中）
+**触发条件:** Gate ② 批准后
+**行动:** 使用 `/opsx:apply <change-name>` 从 `tasks.md` 实现任务
+
+**规则:**
+- 严格在 Gate ② 批准的范围内工作
+- 完成任务后勾选复选框
+- 不要修改 `roadmap.yaml` 或其他变更的工件
+- 最小化、聚焦的变更 —— 未经授权的重构
+
+**输出:** 与任务匹配的代码变更，所有复选框已勾选。
+
+---
+
+### Gate ③: 机器 — 自动化检查
+
+**参与者:** 自动化工具（lefthook pre-commit + GitHub Actions CI）
+**触发条件:** 提交时（快速子集）和 PR 到 main 时（完整检查）
+**行动:** 运行无法伪造的客观检查
+
+**检查项目:**
+- `pnpm align:check --fast`（pre-commit）：orphan-change + WIP 限制
+- `pnpm align:check`（CI）：全部五个不变量（orphan-change、orphan-feature、WIP、zombie、Non-goals）
+- 类型检查：`pnpm check-types`
+- Lint + format：`pnpm lint`、`pnpm format`
+- 架构/约束检查（由变更 ③ 在落地时添加）
+
+**输出:** 通过（绿色 CI）或失败（阻止合并）。这些检查免费、快速且客观。
+
+---
+
+### 审查: Codex
+
+**参与者:** Codex（AI 审查模型）
+**触发条件:** Gate ③ 通过后
+**行动:** 审查机器无法检查的内容
+
+**重点领域:**
+- 逻辑正确性
+- 领域特定正确性（实现是否做了正确的事？）
+- 过度设计迹象（不必要的抽象、镀金）
+- 遗漏的边界情况
+- 规范一致性（代码是否匹配 design.md 和 specs？）
+
+**输出:** 审查评论。如果发现问题：Sonnet 修订，Gate ③ 重新运行。
+
+---
+
+### Gate ④: 人类 — 合并决策
+
+**参与者:** 平台负责人 / 人类工程师
+**触发条件:** Codex 审查通过后
+**行动:** 最终审查和合并
+
+**最终检查:**
+- [ ] PR 描述是否清楚地说明了变更内容？
+- [ ] `openspec validate <change-name>` 是否通过？
+- [ ] 所有内容是否仍在批准的路线图范围内？
+
+**输出:** 合并到 main。变更在合并后归档。
+
+---
+
+## 总结表
+
+| 步骤 | 参与者 | 持续时间 | 主要关注点 |
+|------|--------|----------|----------------|
+| Gate ①: 路线图审批 | Human | 分钟 | 战略方向 |
+| 规划 | Opus | 分钟 | 工件完整性 |
+| Gate ②: 范围审查 | Human | ~30 秒 | 范围与非目标 |
+| 实现 | Sonnet | 可变 | 代码正确性 |
+| Gate ③: 机器检查 | Machines | 秒 | 客观不变量 |
+| 审查 | Codex | 分钟 | 逻辑与过度设计 |
+| Gate ④: 合并 | Human | 分钟 | 最终决定 |
+
+---
+
+## 此工作流强制执行的关键不变量
+
+1. **AI 不能选择构建什么** —— 路线图是人类拥有的（Gate ①）
+2. **AI 不能未被检测地扩展范围** —— 非目标审查（Gate ②）+ 对齐检查（Gate ③）
+3. **每个变更都链接到已批准的意图** —— orphan-change 不变量（Gate ③）
+4. **在制品是有界的** —— WIP 限制（Gate ①, Gate ③）
+
+---
+
+## 发布与发布
+
+AgentDock 使用 **Changesets** 管理版本控制和 npm 发布。发布流程是：
+
+```
+Developer writes code
+    ↓
+Developer runs: pnpm changeset
+  → select affected package(s)
+  → choose bump type: patch / minor / major
+  → write a changelog description
+  → a .changeset/xxx.md file is generated
+    ↓
+Commit .changeset/*.md together with code changes, push to main
+    ↓
+release.yml detects .changeset/*.md  →  auto-opens "chore: version packages" PR  ← machine
+    ↓
+Builder reviews and merges the PR  ← human (Gate ④ equivalent)
+    ↓
+release.yml bumps versions + publishes to npm automatically  ← machine
+```
+
+### 构建者的关键点
+
+- **`.changeset/*.md` 不是自动生成的。** 开发者必须运行 `pnpm changeset` 并提交文件。没有它，不会打开 PR，也不会发布。
+- **发布中唯一的人工步骤**是审查和合并 "Version Packages" PR。
+- **Bump 类型语义：**
+  - `patch` — Bug 修复、内部清理、无 API 变更
+  - `minor` — 新的向后兼容功能
+  - `major` — 破坏性变更
+- **多个变更可以累积。** 几个 `.changeset/*.md` 文件可以在合并 PR 之前堆叠；Changesets 将它们批量处理为一次版本提升。
+- **发布的包**由出现在 `.changeset/*.md` 文件中的包决定 —— 不是由这个工作流文件决定。
+
+### 快速参考
+
+```bash
+# Create a new changeset (interactive)pnpm changeset
+
+# Preview what versions would be bumped
+pnpm changeset:version --dry-run
+
+# Check current package versions
+cat packages/cli/package.json | grep '"version"'
+```
+
+---
+
+## 相关文件
+
+- [`roadmap.yaml`](/roadmap.yaml) — 人类拥有的意图地图
+- [`scripts/align-check/index.ts`](/scripts/align-check/index.ts) — Gate ③ 对齐脚本
+- [`lefthook.yml`](/lefthook.yml) — pre-commit hooks
+- [`.github/workflows/align-check.yml`](/.github/workflows/align-check.yml) — CI 工作流
+- [`.github/workflows/release.yml`](/.github/workflows/release.yml) — Changesets 发布工作流
+- [`openspec/config.yaml`](/openspec/config.yaml) — 变更模板规则
