@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.4.4
+
+### Patch Changes
+
+- b9bae37: add payments to web-nextjs
+
 ## 0.4.3
 
 ### Patch Changes
