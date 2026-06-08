@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getMessages } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { Toaster } from '@/components/ui/sonner'
-import { ThemeProvider } from '@/components/providers/theme-provider'
+import { ThemeProvider } from 'next-themes'
 import { isLocale } from '@/i18n/config'
 import './globals.css'
 

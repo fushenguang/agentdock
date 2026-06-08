@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState, startTransition } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
@@ -78,18 +78,14 @@ export default function ForgotPasswordPage() {
     formData.append('email', data.email)
     setEmail(data.email)
     setValue('email', data.email)
-    startTransition(async () => {
-      await sendAction(formData)
-    })
+    sendAction(formData)
   }
 
   async function onResendOTP() {
     if (countdown > 0) return
     const formData = new FormData()
     formData.append('email', email)
-    startTransition(async () => {
-      await sendAction(formData)
-    })
+    sendAction(formData)
   }
 
   async function onSubmit(data: ResetPasswordWithOTPInput) {
@@ -99,9 +95,7 @@ export default function ForgotPasswordPage() {
     formData.append('password', data.password)
     formData.append('confirmPassword', data.confirmPassword)
     formData.append('locale', locale)
-    startTransition(async () => {
-      await verifyAction(formData)
-    })
+    verifyAction(formData)
   }
 
   if (step === 'send') {
