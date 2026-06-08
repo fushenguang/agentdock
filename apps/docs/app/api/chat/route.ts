@@ -77,10 +77,17 @@ const systemPrompt = [
 ].join('\n')
 
 export async function POST(req: Request, ctx: RouteContext<'/api/chat'>) {
+  if (!process.env.OPENROUTER_API_KEY) {
+    return new Response(JSON.stringify({ error: 'OPENROUTER_API_KEY is not configured' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   const reqJson = await req.json()
 
   const result = streamText({
-    model: openrouter.chat(process.env.OPENROUTER_MODEL ?? 'anthropic/claude-3.5-sonnet'),
+    model: openrouter.chat(process.env.OPENROUTER_MODEL ?? 'gpt-4o'),
     stopWhen: stepCountIs(5),
     tools: {
       search: searchTool,

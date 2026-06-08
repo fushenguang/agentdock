@@ -1,0 +1,557 @@
+---
+title: 实践教程
+description: 从零开始，用 AI Coding Agent 打造专业级 UI 设计的完整操作指南。
+---
+
+# AI 时代 UI 设计实践教程
+
+> 目标读者：会写 Next.js + Tailwind，但不是设计师，不知道如何让 AI 做出好看的 UI。
+>
+> 预计总时长：约 1.5 小时
+
+---
+
+## Chapter 1：环境准备（15 分钟）
+
+在这一章，你将安装 Impeccable Skill、创建 DESIGN.md 设计规范文档、配置 tokens.css 设计令牌，并更新 copilot-instructions.md 让 AI 遵守设计规范。
+
+### 步骤 1.1：安装 Impeccable Skill
+
+```bash
+# 进入项目目录
+cd your-project
+
+# 安装 Impeccable Skill（Claude Code / Codex 通用）
+npx skills add pbakaus/impeccable
+```
+
+**预期效果**：
+安装完成后，你可以在 Claude Code 或 Codex 中使用 `/impeccable` 命令系列，如 `/craft`、`
+/critique`、`
+/polish`、`
+/detect` 等。
+
+**常见坑**：
+- **坑**：Skills 安装在项目根目录的 `.skills/` 文件夹下，但 Claude Code 可能找不到。确认 `.skills/` 目录在项目的 `.gitignore` 中，但 Claude Code 的工作目录确实在项目根目录。
+- **解决**：在 Claude Code 中运行 `/skills list` 确认 Impeccable 已安装。
+
+### 步骤 1.2：创建 DESIGN.md
+
+在项目根目录创建 `DESIGN.md`：
+
+```markdown
+# Design System
+
+## 设计哲学
+
+- 简洁、现代、可信赖的 SaaS 产品风格
+- 优先保证可读性和可访问性
+- 避免「AI Slop」：禁止使用 Inter/Roboto 默认字体、紫蓝渐变、圆角卡片嵌套、深色模式霓虹发光
+
+## 色彩系统
+
+使用 OKLCH 颜色空间：
+
+```css
+:root {
+  --color-primary: oklch(55% 0.22 250);
+  --color-primary-hover: oklch(50% 0.25 250);
+  --color-background: oklch(98% 0.01 250);
+  --color-surface: oklch(100% 0 0);
+  --color-text: oklch(20% 0.02 250);
+  --color-text-muted: oklch(50% 0.05 250);
+  --color-border: oklch(85% 0.02 250);
+}
+```
+
+## 字体系统
+
+- 标题：Geist（或系统无衬线字体栈）
+- 正文：Geist（或系统无衬线字体栈）
+- 代码：JetBrains Mono
+
+## 间距系统
+
+基于 4px 网格：
+- xs: 4px
+- sm: 8px
+- md: 16px
+- lg: 24px
+- xl: 32px
+- 2xl: 48px
+
+## 反模式清单（Anti-patterns）
+
+- ❌ 使用 Inter / Roboto 作为默认字体
+- ❌ 紫蓝渐变背景
+- ❌ 圆角卡片嵌套超过 2 层
+- ❌ 深色模式加霓虹发光效果
+- ❌ 无意义的装饰性图标（如星星、火箭）
+
+## 响应式策略
+
+- Mobile-first（优先移动端）
+- 使用 Container Queries 处理组件级响应式
+- 断点：sm(640px), md(768px), lg(1024px), xl(1280px)
+```
+
+**预期效果**：
+AI 在生成代码时会参考 DESIGN.md 中的规范，避免生成「AI Slop」风格的 UI。
+
+**常见坑**：
+- **坑**：DESIGN.md 内容太抽象，AI 无法执行。例如只说「要好看」而不给具体的颜色值。
+- **解决**：确保每条规则都是可执行的——有具体的颜色值、字体名、间距值，而不是抽象的形容词。
+
+### 步骤 1.3：配置 tokens.css
+
+在项目中创建 `src/styles/tokens.css`：
+
+```css
+@import "tailwindcss";
+
+@theme {
+  /* Primary */
+  --color-primary: oklch(55% 0.22 250);
+  --color-primary-hover: oklch(50% 0.25 250);
+
+  /* Background */
+  --color-background: oklch(98% 0.01 250);
+  --color-surface: oklch(100% 0 0);
+
+  /* Text */
+  --color-text: oklch(20% 0.02 250);
+  --color-text-muted: oklch(50% 0.05 250);
+
+  /* Border */
+  --color-border: oklch(85% 0.02 250);
+
+  /* Font */
+  --font-sans: "Geist", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+}
+```
+
+**预期效果**：
+Tailwind v4 会自动读取 `@theme` 中的定义，你可以在代码中使用 `bg-primary`、`text-text-muted` 等类名。
+
+**常见坑**：
+- **坑**：Tailwind v4 的 `@theme` 语法和 v3 的 `tailwind.config.js` 不兼容。
+- **解决**：确认项目使用的是 Tailwind v4，如果还在用 v3，需要升级或改用 `tailwind.config.js` 的 `theme.extend`。
+
+### 步骤 1.4：更新 copilot-instructions.md
+
+在项目根目录创建或更新 `.github/copilot-instructions.md`：
+
+```markdown
+# Copilot Instructions
+
+## 设计规范
+
+- 遵循项目根目录的 `DESIGN.md`
+- 使用 `src/styles/tokens.css` 中定义的 token
+- 禁止生成「AI Slop」风格的设计（见 DESIGN.md 反模式清单）
+- 每次修改不超过 2 个设计要素
+
+## 响应式规则
+
+- Mobile-first 优先
+- 使用 Container Queries 处理组件级响应式
+- 避免全局媒体查询堆砌
+
+## 代码质量
+
+- 运行 `npx impeccable detect src/` 检查 AI Slop
+- 确保可访问性（WCAG AA 标准）
+- 优先使用语义化 HTML
+```
+
+**预期效果**：
+AI Coding Agent 在生成代码时会自动参考这些约束，减少「AI Slop」的产生。
+
+**常见坑**：
+- **坑**：copilot-instructions.md 被 AI 忽略。
+- **解决**：确认文件路径正确（`.github/copilot-instructions.md` 或 `.copilot-instructions.md`），并在 Claude Code 中运行 `/instructions` 查看当前生效的指令。
+
+---
+
+## Chapter 2：第一个页面从零到精美（30 分钟）
+
+以 Landing Page 的 Hero Section 为例，走完 craft → critique → polish → adapt 的完整流程。
+
+### 步骤 2.1：Craft（生成初稿）
+
+在 Claude Code 中运行：
+
+```bash
+/impeccable craft "Create a hero section for a SaaS product landing page. The product is an AI coding agent platform. Style: modern, clean, trustworthy. Follow the DESIGN.md."
+```
+
+**预期效果**：
+Claude Code 生成一个 Hero section 的初版代码，包含标题、副标题、CTA 按钮和背景装饰。
+
+**常见坑**：
+- **坑**：生成的初稿使用了 Inter 字体和紫蓝渐变（AI Slop）。
+- **解决**：在 prompt 中明确引用 DESIGN.md 的反模式清单，或在 craft 后运行 `/impeccable critique`。
+
+### 步骤 2.2：Critique（专业审查）
+
+在 Claude Code 中运行：
+
+```bash
+/impeccable critique
+```
+
+**预期效果**：
+Impeccable 会从排版、配色、间距、对比度、一致性、可访问性等维度给出评分和修改建议。例如：
+- 「标题字体层级不清晰，建议增加 font-size 差异」
+- 「CTA 按钮对比度不足，当前 3.2:1，建议提升到 4.5:1」
+- 「背景装饰元素过多，分散注意力」
+
+**常见坑**：
+- **坑**：critique 的建议太多，一次改不完。
+- **解决**：每次只选 1-2 条最重要的建议执行，改完再运行一次 critique。
+
+### 步骤 2.3：Polish（细节打磨）
+
+根据 critique 的反馈，在 Claude Code 中运行：
+
+```bash
+/impeccable polish "Fix the heading hierarchy and increase CTA button contrast per the critique feedback."
+```
+
+**预期效果**：
+代码被自动调整，间距统一、颜色对齐 tokens.css、字体层级清晰。
+
+**常见坑**：
+- **坑**：polish 时引入了新的不一致（如改了颜色但没改对应的 hover 状态）。
+- **解决**：运行 polish 后，手动检查所有相关状态的样式。
+
+### 步骤 2.4：Adapt（响应式适配）
+
+在 Claude Code 中运行：
+
+```bash
+/impeccable adapt "Make the hero section responsive for mobile, tablet, and desktop. Use container queries for the feature card grid."
+```
+
+**预期效果**：
+Hero section 在不同屏幕尺寸下都能正常显示，Feature Card 网格使用 Container Queries 实现响应式。
+
+**常见坑**：
+- **坑**：adapt 后的移动端布局文字太小或按钮触摸区域不足。
+- **解决**：用浏览器 DevTools 的 Device Mode 检查，确保移动端 font-size ≥ 16px，按钮高度 ≥ 44px。
+
+### Before/After 对比
+
+| 维度 | Before（直接让 AI 生成） | After（craft→critique→polish→adapt） |
+|------|------------------------|-------------------------------------|
+| 字体 | Inter 默认字体 | Geist 自定义字体栈 |
+| 颜色 | 紫蓝渐变 | OKLCH 语义化 token |
+| 布局 | 固定像素值 | 4px 网格系统 |
+| 响应式 | 全局媒体查询堆砌 | Container Queries 组件化 |
+| 可访问性 | 未检查对比度 | WCAG AA 标准 |
+
+---
+
+## Chapter 3：CSS 设计系统实战（20 分钟）
+
+在这一章，你将学习如何添加新的 semantic token、在 Tailwind `@theme` 中注册，以及让 AI 遵守 token 使用规范。
+
+### 步骤 3.1：添加新的 Semantic Token
+
+假设你需要为「成功状态」添加颜色 token。在 `src/styles/tokens.css` 中添加：
+
+```css
+@theme {
+  /* ... existing tokens ... */
+
+  /* Success */
+  --color-success: oklch(65% 0.22 145);
+  --color-success-bg: oklch(95% 0.05 145);
+  --color-success-border: oklch(75% 0.18 145);
+}
+```
+
+**预期效果**：
+你现在可以在代码中使用 `bg-success-bg`、`border-success-border` 等类名。
+
+**常见坑**：
+- **坑**：token 命名不一致（如有的地方叫 `--color-success-bg`，有的地方叫 `--color-success-background`）。
+- **解决**：在 DESIGN.md 中定义命名规范，所有 token 遵循统一的命名约定。
+
+### 步骤 3.2：在 `@theme` 中注册
+
+Tailwind v4 的 `@theme` 指令会自动将 CSS 变量注册为 Tailwind 类名，无需额外配置。但为了确保 AI 理解新 token 的用途，在 DESIGN.md 中更新：
+
+```markdown
+## 颜色系统
+
+### Success
+- `--color-success`: 成功状态的主色（按钮、图标）
+- `--color-success-bg`: 成功状态的背景色（Alert、Toast）
+- `--color-success-border`: 成功状态的边框色
+```
+
+**预期效果**：
+AI 在生成代码时会自动使用这些 token，而不是硬编码颜色值。
+
+**常见坑**：
+- **坑**：AI 仍然使用 `bg-green-500` 而非 `bg-success`。
+- **解决**：在 copilot-instructions.md 中添加规则：「必须使用 tokens.css 中定义的 semantic token，禁止使用 Tailwind 默认颜色（如 green-500）」。
+
+### 步骤 3.3：让 AI 遵守 Token 使用规范
+
+在 Claude Code 中运行：
+
+```bash
+/impeccable detect src/ --rules="prefer-semantic-tokens"
+```
+
+**预期效果**：
+Impeccable 会扫描代码中硬编码的颜色值（如 `#3B82F6`、`bg-blue-500`），并提示替换为 semantic token。
+
+**常见坑**：
+- **坑**：detect 报告了大量问题，但手动修复太耗时。
+- **解决**：让 AI 自动修复：`/impeccable fix src/ --rule="prefer-semantic-tokens"`。
+
+---
+
+## Chapter 4：响应式设计的 AI 陷阱与规避（20 分钟）
+
+AI 在生成响应式代码时容易违反 mobile-first 原则。这一章教你如何用 Container Queries 和约束文件强制 AI 做对。
+
+### 步骤 4.1：在 copilot-instructions.md 中强制 Mobile-First
+
+```markdown
+## 响应式规则
+
+- **必须**遵循 Mobile-first 原则：先写移动端样式，再用 `@media (min-width: ...)` 扩展桌面端样式
+- **禁止**使用 `@media (max-width: ...)`（Desktop-first）
+- 组件级响应式使用 Container Queries（`@container`）
+- 全局断点：sm(640px), md(768px), lg(1024px), xl(1280px)
+
+## Mobile-First 检查清单
+
+- [ ] 默认样式面向移动端（< 640px）
+- [ ] 字体大小在移动端 ≥ 16px
+- [ ] 按钮触摸区域 ≥ 44px × 44px
+- [ ] 表单输入框高度 ≥ 48px
+```
+
+**预期效果**：
+AI 生成的响应式代码默认面向移动端，桌面端样式通过 `@media (min-width: ...)` 叠加。
+
+**常见坑**：
+- **坑**：AI 仍然使用 Desktop-first（`@media (max-width: ...)`）。
+- **解决**：在 copilot-instructions.md 中明确禁止，并在 PR review 中检查。
+
+### 步骤 4.2：Container Queries 实战示例
+
+以 Feature Card 多列布局为例，在组件中使用 Container Queries：
+
+```tsx
+// src/components/FeatureCard.tsx
+export function FeatureCard() {
+  return (
+    <div className="@container">
+      <div className="grid grid-cols-1 @md:grid-cols-2 @lg:grid-cols-3 gap-4">
+        {/* Feature items */}
+      </div>
+    </div>
+  )
+}
+```
+
+**预期效果**：
+Feature Card 组件根据父容器宽度自动调整列数，而非全局视口宽度。
+
+**常见坑**：
+- **坑**：浏览器不支持 `@container` 语法（旧版 Safari / Firefox）。
+- **解决**：确认项目支持的浏览器版本，Container Queries 已得到 Chrome 105+、Edge 105+、Safari 16+ 的支持。
+
+### 步骤 4.3：验证响应式效果
+
+在浏览器 DevTools 中验证：
+
+1. 打开 DevTools → Device Toolbar
+2. 选择 iPhone SE（375px）
+3. 检查：
+   - 字体大小 ≥ 16px
+   - 按钮触摸区域 ≥ 44px
+   - 布局为单列
+4. 选择 iPad（768px）
+5. 检查布局变为多列
+
+**预期效果**：
+所有检查项通过，无布局溢出或触摸区域不足的问题。
+
+**常见坑**：
+- **坑**：DevTools 中看起来正常，但真机上字体太小。
+- **解决**：在真机上测试（iOS Safari 和 Android Chrome 的渲染行为有差异）。
+
+---
+
+## Chapter 5：AI Slop 检测与修复（15 分钟）
+
+运行自动化检测工具，识别并修复 AI 生成的代码中的设计反模式。
+
+### 步骤 5.1：运行检测
+
+```bash
+npx impeccable detect src/
+```
+
+**预期效果**：
+Impeccable 生成一份检测报告，列出代码中发现的 AI Slop：
+
+```
+Found 5 issues across 3 files:
+
+error   src/components/Hero.tsx:24   Inter font detected (anti-pattern #3)
+warning src/components/Card.tsx:12   Nested rounded cards (anti-pattern #7)
+error   src/app/page.tsx:45          Purple-blue gradient (anti-pattern #1)
+warning src/components/Button.tsx:8  Insufficient contrast (3.2:1, requires 4.5:1)
+error   src/components/Nav.tsx:17    Decorative star icon (anti-pattern #12)
+```
+
+**常见坑**：
+- **坑**：检测结果太多，不知道从哪开始修复。
+- **解决**：按优先级修复：error > warning。先修复 error，再处理 warning。
+
+### 步骤 5.2：按优先级修复
+
+根据报告，在 Claude Code 中运行：
+
+```bash
+# 修复单个问题
+/impeccable fix src/components/Hero.tsx --issue="inter-font"
+
+# 修复所有 error 级别的问题
+/impeccable fix src/ --level=error
+```
+
+**预期效果**：
+代码中的 AI Slop 被自动修复，例如：
+- Inter 字体替换为 Geist
+- 紫蓝渐变替换为 OKLCH token
+- 嵌套圆角卡片简化为单层
+
+**常见坑**：
+- **坑**：自动修复引入了新的不一致（如改了字体但忘了改 fallback）。
+- **解决**：修复后运行 `npx impeccable detect src/` 重新检查。
+
+### 步骤 5.3：常见 AI Slop Pattern 修复示例
+
+| Pattern | 检测规则 | 修复方法 |
+|---------|---------|---------|
+| Inter/Roboto 默认字体 | `inter-font` | 替换为 Geist 或系统字体栈 |
+| 紫蓝渐变 | `purple-blue-gradient` | 替换为 OKLCH 语义化颜色 |
+| 圆角卡片嵌套 | `nested-rounded-cards` | 最多保留一层圆角 |
+| 深色模式霓虹发光 | `neon-glow-dark-mode` | 移除发光效果，使用纯色 |
+| 装饰性星星图标 | `decorative-star-icon` | 移除或使用语义化图标 |
+
+---
+
+## Chapter 6：在 web-nextjs 模板中应用（10 分钟）
+
+用 checklist 形式，5 分钟快速验证你的项目是否已应用本教程的核心原则。
+
+### 快速验证清单
+
+- [ ] **DESIGN.md 存在且结构完整**（设计哲学、色彩系统、字体系统、间距系统、反模式清单）
+- [ ] **tokens.css 存在且使用 `@theme` 语法**（Tailwind v4）
+- [ ] **copilot-instructions.md 包含设计约束和响应式规则**
+- [ ] **无 Inter/Roboto 默认字体**（搜索 `font-family: Inter` 或 `font-sans` 默认值）
+- [ ] **无硬编码颜色值**（搜索 `#3B82F6`、`#8B5CF6` 等常见 AI 默认色）
+- [ ] **Mobile-first 验证**（搜索 `@media (max-width:` 应无结果）
+- [ ] **Container Queries 已使用**（搜索 `@container` 应有结果）
+- [ ] **`npx impeccable detect src/` 无 error**
+- [ ] **WCAG AA 对比度检查通过**（可使用浏览器 DevTools 的 Contrast 检查器）
+
+### 一键验证脚本
+
+在项目根目录创建 `scripts/verify-design.sh`：
+
+```bash
+#!/bin/bash
+set -e
+
+echo "=== Design System Verification ==="
+
+# Check DESIGN.md exists
+if [ ! -f "DESIGN.md" ]; then
+  echo "❌ DESIGN.md not found"
+  exit 1
+fi
+echo "✅ DESIGN.md exists"
+
+# Check tokens.css exists
+if [ ! -f "src/styles/tokens.css" ]; then
+  echo "❌ tokens.css not found"
+  exit 1
+fi
+echo "✅ tokens.css exists"
+
+# Check for Inter font
+echo "--- Checking for AI Slop patterns ---"
+if grep -r "font-family: Inter" src/ || grep -r "font-family: Roboto" src/; then
+  echo "❌ Inter/Roboto font detected"
+  exit 1
+fi
+echo "✅ No Inter/Roboto font found"
+
+# Check for hardcoded colors
+if grep -r "#3B82F6\|#8B5CF6\|#EC4899" src/; then
+  echo "❌ Hardcoded AI default colors detected"
+  exit 1
+fi
+echo "✅ No hardcoded AI default colors found"
+
+# Check for desktop-first media queries
+if grep -r "@media (max-width:" src/; then
+  echo "❌ Desktop-first media queries detected"
+  exit 1
+fi
+echo "✅ No desktop-first media queries found"
+
+echo ""
+echo "=== ✅ All checks passed! ==="
+```
+
+运行验证：
+
+```bash
+chmod +x scripts/verify-design.sh
+./scripts/verify-design.sh
+```
+
+**预期效果**：
+脚本输出所有检查通过，确认项目已正确应用设计系统。
+
+**常见坑**：
+- **坑**：脚本在 CI/CD 中运行时找不到文件路径。
+- **解决**：确保脚本在项目根目录运行，或使用绝对路径。
+
+---
+
+## 附录：常见问题
+
+### Q：为什么不用 Figma 做设计系统？
+
+A：Figma 对 AI 不友好。AI 无法直接读取 Figma 文件中的设计规范。推荐的做法是：用 Figma 做视觉探索，然后将设计决策编码为 `DESIGN.md` + `tokens.css`，这样 AI 可以直接消费。
+
+### Q：Impeccable 和 frontend-design 有什么区别？
+
+A：`frontend-design` 是 Anthropic 官方的「设计起稿」Skill，负责生成有辨识度的初稿。Impeccable 是第三方的「设计质量管理」Skill 套件，负责 review、polish、detect。两者配合使用效果最好。
+
+### Q：如何平衡「设计系统」和「快速迭代」？
+
+A：设计系统不是枷锁，而是加速器。在项目的早期，用「最小可行设计系统」（只有颜色和字体 token）快速启动；随着项目成熟，逐步添加间距、组件等更复杂的规则。

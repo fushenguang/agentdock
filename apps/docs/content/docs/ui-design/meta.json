@@ -1,0 +1,11 @@
+{
+  "title": "UI Design",
+  "pages": [
+    "index",
+    "workflow",
+    "css-system",
+    "anti-patterns",
+    "research",
+    "tutorial"
+  ]
+}
