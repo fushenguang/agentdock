@@ -7,8 +7,8 @@
 
 在 `templates/web-nextjs/apps/web/` 目录下：
 
-- [ ] 1.1 安装支付 SDK：`pnpm add alipay-sdk wechatpay-node-v3`
-- [ ] 1.2 安装二维码渲染：`pnpm add qrcode.react`
+- [ ] 1.1 安装支付宝 SDK：`pnpm add alipay-sdk`（微信支付使用 node:crypto 自实现，无需第三方包）
+- [ ] 1.2 安装二维码渲染：`pnpm add qrcode.react`（仅用于微信 QR code UI 渲染）
 - [ ] 1.3 确认 `@tanstack/react-query` 已存在（无需重装）
 
 ## 2. 数据层（Supabase）
@@ -48,21 +48,33 @@
 - [ ] 4.6 创建 `src/app/api/payments/alipay/return/route.ts`（GET，同步回调）：
   - 读取 URL 参数 `out_trade_no` → redirect 到 `/payment/[paymentId]`
 
-## 5. 微信支付集成（Route Handlers）
+## 5. 微信支付集成（node:crypto 自实现，无第三方 SDK）
 
-- [ ] 5.1 创建 `src/features/subscription/wechat/server.ts`：
-  - `getWechatPay()` — 从 env 初始化 `wechatpay-node-v3` 实例
-  - `createWechatNativePay(params)` — `/v3/pay/transactions/native` → 返回 `{ code_url }`
-  - `createWechatH5Pay(params)` — `/v3/pay/transactions/h5` → 返回 `{ h5_url }`
-  - `queryWechatOrder(outTradeNo)` — `/v3/pay/transactions/out-trade-no/{...}` → 返回 trade_state
-  - `verifyWechatNotify(headers, rawBody)` — 验证微信回调签名
-- [ ] 5.2 创建 `src/features/subscription/wechat/client.ts`：
+> 参考文档：https://pay.weixin.qq.com/doc/global/v3/zh/4012354988.md（签名）/ 4012354989.md（验签）/ 4012354990.md（解密）
+
+- [ ] 5.1 创建 `src/lib/wechat-pay/types.ts`：`WechatPayConfig` 接口定义（见 spec D3）
+- [ ] 5.2 创建 `src/lib/wechat-pay/crypto.ts`（使用 `node:crypto`，实现以下函数）：
+  - `signRequest(params)` — 构造 5 行签名串，SHA256withRSA + PKCS8 私钥，返回 Base64
+  - `buildAuthorizationHeader(params)` — 拼接 `WECHATPAY2-SHA256-RSA2048 mchid=...` 格式
+  - `verifySignature(params)` — 构造 3 行验签串，用微信平台公钥验 SHA256withRSA 签名
+  - `decryptResource(params)` — AEAD_AES_256_GCM 解密（末尾 16 字节为 auth tag）
+  - `generateNonce()` — `crypto.randomBytes(16).toString('hex').toUpperCase()`
+- [ ] 5.3 创建 `src/lib/wechat-pay/client.ts`：
+  - `wxpayRequest<T>(params)` — 用内置 `fetch` 发起请求，自动附加 Authorization header
+- [ ] 5.4 创建 `src/features/subscription/wechat/server.ts`：
+  - `getWechatPayConfig()` — 从 process.env 读取，缺失 throw Error
+  - `createWechatNativePay(params)` — POST `/v3/pay/transactions/native` → `{ code_url }`
+  - `createWechatH5Pay(params)` — POST `/v3/pay/transactions/h5` → `{ h5_url }`
+  - `queryWechatOrder(outTradeNo)` — GET `/v3/pay/transactions/out-trade-no/{...}` → trade_state
+  - `verifyAndDecryptNotify(headers, rawBody)` — verifySignature + decryptResource
+- [ ] 5.5 创建 `src/features/subscription/wechat/client.ts`：
   - `initiateWechatPayment(paymentId, userId)` → 返回 `{ type: 'qrcode' | 'redirect', codeUrl?, h5Url? }`
-- [ ] 5.3 创建 `src/app/api/payments/wechat/create/route.ts`：
-  - PC → Native，开发环境移动端也走 Native（D3）
-- [ ] 5.4 创建 `src/app/api/payments/wechat/query/route.ts`
-- [ ] 5.5 创建 `src/app/api/payments/wechat/notify/route.ts`：
-  - 验签 → 解密 resource → 更新 DB → 返回 `{ code: 'SUCCESS' }`
+- [ ] 5.6 创建 `src/app/api/payments/wechat/create/route.ts`：
+  - PC → Native；开发环境移动端也走 Native（D3）
+- [ ] 5.7 创建 `src/app/api/payments/wechat/query/route.ts`
+- [ ] 5.8 创建 `src/app/api/payments/wechat/notify/route.ts`：
+  - `const rawBody = await req.text()`（保持原始字节用于验签）
+  - 验签 → 解密 resource → 幂等检查 → 更新 DB → 返回 `{ code: 'SUCCESS' }`
 
 ## 6. TanStack Query Hooks
 
