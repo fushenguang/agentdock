@@ -1,0 +1,41 @@
+# template-validation.yml — Validate web-nextjs template on PR
+#
+# Runs the template validation script when files under templates/web-nextjs/
+# are modified. Uses path filtering to avoid unnecessary CI runs for unrelated changes.
+#
+# See: scripts/validate-template.sh
+
+name: Template Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'templates/web-nextjs/**'
+      - 'scripts/validate-template.sh'
+      - '.github/workflows/template-validation.yml'
+
+concurrency:
+  group: template-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate web-nextjs Template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run template validation
+        run: ./scripts/validate-template.sh

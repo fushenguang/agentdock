@@ -8,6 +8,11 @@
 
 支付宝私钥操作 MUST 在 Next.js 服务端（Route Handlers）完成，客户端不得接触任何私钥。
 
+#### Scenario: 服务端签名安全隔离
+
+- **WHEN** 请求到达支付宝 Route Handler
+- **THEN** 所有签名操作在服务端完成，客户端无法获取私钥
+
 **Route Handlers（新建）**：
 
 ```
@@ -48,7 +53,7 @@ ALIPAY_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----
 ALIPAY_NOTIFY_URL=https://your-domain.com/api/payments/alipay/notify
 ```
 
-### Requirement: 客户端支付服务（`src/features/subscription/alipay/client.ts`）
+### Requirement: 客户端支付服务（`src/features/subscription/alipay/client.ts`）MUST 提供初始化函数
 
 客户端调用层 MUST 提供：
 
@@ -58,6 +63,11 @@ initiateAlipayPayment(paymentId, userId): Promise<void>
 // 2. 若返回 formHtml → 注入 DOM 并 form.submit()（PC 跳支付宝）
 // 3. 若返回 redirectUrl → window.location.href = redirectUrl（H5 跳支付宝）
 ```
+
+#### Scenario: 客户端发起支付宝支付
+
+- **WHEN** 用户在前端调用 `initiateAlipayPayment(paymentId, userId)`
+- **THEN** 向 `/api/payments/alipay/create` 发送 POST 请求，并根据返回结果自动提交表单或跳转
 
 ### Requirement: 异步通知处理（notify webhook）
 

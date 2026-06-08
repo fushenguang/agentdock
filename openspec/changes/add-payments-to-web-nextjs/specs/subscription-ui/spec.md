@@ -64,6 +64,10 @@
 
 ### Requirement: 账户订阅管理页（`/[locale]/(protected)/settings/subscription`）
 
+订阅管理页 MUST 提供完整的订阅信息和支付历史：
+
+订阅管理页 MUST 提供完整的订阅信息和支付历史：
+
 > 移植自 thefoolai `account/subscription.tsx`，挂载到已有的 settings 路由下
 
 `src/app/[locale]/(protected)/settings/subscription/page.tsx` MUST 提供：
@@ -83,7 +87,7 @@
 
 ### Requirement: 公共组件（`src/features/subscription/components/`）
 
-从 thefoolai 移植并适配：
+公共组件 MUST 从 thefoolai 移植并适配：
 
 **`UpgradeButton`**：
 

@@ -262,9 +262,9 @@ if [ -d "messages" ]; then
     if [ -n "$EN_MESSAGES" ] && [ -n "$ZH_MESSAGES" ]; then
         pass "Both en and zh locale files exist"
 
-        # Check for key translations
-        if grep -q "auth.forgotPassword.title" messages/en.json && \
-           grep -q "auth.forgotPassword.title" messages/zh.json; then
+        # Check for key translations (support both nested and flat structures)
+        if (grep -q "auth.forgotPassword.title" messages/en.json || grep -q "forgotPasswordTitle" messages/en.json) && \
+           (grep -q "auth.forgotPassword.title" messages/zh.json || grep -q "forgotPasswordTitle" messages/zh.json); then
             pass "Password reset translations present"
         else
             warn "Some translation keys may be missing"
@@ -299,11 +299,12 @@ if [ "$SECRETS_FOUND" = false ]; then
 fi
 
 # Check for console.log in production code (optional warning)
-CONSOLE_LOGS=$(grep -r "console\." src/features/ src/app/ 2>/dev/null | wc -l)
+# Exclude API route handlers where error logging is expected
+CONSOLE_LOGS=$(grep -r "console\." src/features/ src/app/ 2>/dev/null | grep -v "src/app/api/" | wc -l)
 if [ "$CONSOLE_LOGS" -gt 0 ]; then
     warn "Found $CONSOLE_LOGS console statements in features/app layers (consider removing for production)"
 else
-    pass "No console statements in production code"
+    pass "No console statements in production code (API routes excluded)"
 fi
 
 # ==========================================

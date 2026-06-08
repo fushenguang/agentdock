@@ -1,3 +1,14 @@
+---
+name: template-testing
+description: Validate template changes by running automated tests (lint, type-check, build, dev server, HTTP endpoints) before merging to main.
+license: MIT
+compatibility: Requires bash, node, and next.js dev server.
+metadata:
+  author: AgentDock
+  version: '1.0'
+  generatedBy: '1.4.1'
+---
+
 # Template Testing Skill
 
 ## 核心思想（Essence）

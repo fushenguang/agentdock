@@ -6,7 +6,7 @@
 
 ### Requirement: 微信支付 V3 核心工具层（`src/lib/wechat-pay/`）
 
-> 所有密码学操作均使用 `node:crypto`，不引入任何第三方包。
+所有密码学操作 MUST 使用 `node:crypto` 实现，不引入任何第三方包。
 
 **`src/lib/wechat-pay/crypto.ts`**（核心密码学工具，实现 LLM 参考官方文档实现以下函数）：
 
@@ -35,7 +35,14 @@ export interface WechatPayConfig {
 }
 ```
 
+#### Scenario: 微信支付 V3 签名生成正确
+
+- **WHEN** 调用 `signRequest` 使用正确的参数和私钥
+- **THEN** 返回的 Base64 签名可以通过微信支付的验签
+
 ### Requirement: 服务端微信支付业务层（Route Handlers）
+
+服务端微信支付业务层 MUST 提供完整的支付链路：
 
 **Route Handlers（新建）**：
 
@@ -75,7 +82,14 @@ WECHAT_PAY_BASE_URL=https://api.mch.weixin.qq.com # 境外商户改为 https://a
 WECHAT_PAY_NOTIFY_URL=https://your-domain.com/api/payments/wechat/notify
 ```
 
+#### Scenario: 服务端创建微信支付订单成功
+
+- **WHEN** 调用 `createWechatNativePay` 或 `createWechatH5Pay` 传入正确参数
+- **THEN** 返回包含 `code_url` 或 `h5_url` 的有效支付链接
+
 ### Requirement: 客户端调用层（`src/features/subscription/wechat/client.ts`）
+
+客户端调用层 MUST 封装支付初始化：
 
 ```ts
 initiateWechatPayment(paymentId: number, userId: string): Promise<WechatPayResult>
@@ -84,11 +98,23 @@ initiateWechatPayment(paymentId: number, userId: string): Promise<WechatPayResul
 // 3. 若 type='redirect' → window.location.href = h5Url
 ```
 
+#### Scenario: 客户端发起微信支付
+
+- **WHEN** 用户在前端调用 `initiateWechatPayment`
+- **THEN** 向 `/api/payments/wechat/create` 发送 POST 请求，并根据返回结果渲染二维码或跳转
+
 ### Requirement: 二维码渲染（客户端组件）
+
+二维码渲染 MUST 使用 `qrcode.react`：
 
 PC Native 支付需要在页面上展示微信支付二维码，使用 `qrcode.react` 渲染 `code_url`（`weixin://wxpay/...`）为 SVG QR code。支付状态页（`/payment/[paymentId]`）检测到微信 Native 时显示二维码 + 每 3 秒轮询状态。
 
 > `qrcode.react` 是唯一允许引入的非内置包（仅用于纯 UI 渲染，无密码学逻辑）。
+
+#### Scenario: 二维码正确渲染
+
+- **WHEN** 页面收到微信支付 `code_url`
+- **THEN** `qrcode.react` 将其渲染为可扫描的 SVG 二维码
 
 ### Requirement: 异步通知处理
 

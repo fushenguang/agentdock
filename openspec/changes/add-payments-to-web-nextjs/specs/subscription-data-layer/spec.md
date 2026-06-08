@@ -62,7 +62,7 @@ RLS：用户只能 SELECT 自己的支付记录；INSERT/UPDATE 由 service_role
 - **WHEN** `POST /api/payments/alipay/notify` 收到支付宝回调，验签成功
 - **THEN** 使用 service_role 客户端将 `payments.status` 更新为 `paid`，`user_subscriptions.status` 更新为 `active`
 
-### Requirement: TypeScript 类型定义
+### Requirement: TypeScript 类型定义 MUST 导出所有业务类型
 
 `src/features/subscription/types.ts` MUST 导出所有业务类型（参考 thefoolai 的 `subscription.types.ts`，但移除业务特定字段）：
 
@@ -71,6 +71,11 @@ RLS：用户只能 SELECT 自己的支付记录；INSERT/UPDATE 由 service_role
 - `BillingCycle = 'monthly' | 'yearly'`
 - `PaymentMethod = 'alipay' | 'wechat' | 'stripe'`
 - `PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'cancelled'`
+
+#### Scenario: TypeScript 类型定义完整可用
+
+- **WHEN** 开发者 import `src/features/subscription/types.ts`
+- **THEN** 所有订阅、支付相关类型均可正常导出，无类型错误
 
 ### Requirement: 服务层函数（纯数据库操作）
 
