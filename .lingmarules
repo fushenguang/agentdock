@@ -1,0 +1,45 @@
+# AgentDock — AI Coding Rules
+
+> Applies to: All AI coding assistants (Lingma, Copilot, Claude Code, Cursor, Codex).
+> Supplements AGENTS.md and copilot-instructions.md with cross-tool rules.
+
+## Project Context
+
+AgentDock is an open-source scaffold platform for AI coding agent–ready projects.
+Tech stack: TypeScript 5.9 (strict), turborepo 2.9, pnpm 9, Node ≥18.
+Templates use Next.js 16, React 19, Tailwind CSS, Supabase.
+Docs site: Fumadocs / Next.js at apps/docs.
+
+## Directory Contract
+
+| Path         | Purpose                                                          |
+| ------------ | ---------------------------------------------------------------- |
+| `templates/` | Scaffolding templates (e.g. web-nextjs). One dir per template.   |
+| `packages/`  | Platform tooling packages (shared utilities, CLI).                 |
+| `apps/docs`  | AgentDock platform documentation site (NOT a template).            |
+| `openspec/`  | Single source of truth for platform planning.                    |
+
+## Hard Rules
+
+1. **No secrets** — never write real API keys, tokens, or passwords. Use placeholders: `YOUR_KEY_HERE`, `<your-token>`.
+2. **TypeScript strict** — `strict: true` is enforced. No `any`, no `// @ts-ignore` without a comment explaining why.
+3. **Conventional commits** — all commit messages follow `type(scope): summary`.
+4. **pnpm only** — do not use `npm install` or `yarn`. Always `pnpm add`.
+5. **Meta-repo exemption** — this repo IS the platform, not a template. Rules targeting templates do not apply here unless explicitly stated.
+6. **OpenSpec = SSOT** — feature decisions live in `openspec/`. Code reflects specs, not the other way around.
+
+## Before Making Changes
+
+- Read `openspec/config.yaml` for context.
+- Check active changes in `openspec/changes/` before introducing new concepts.
+- Prefer updating existing files over creating new ones.
+
+## Acceptance Criteria (for any change)
+
+Before marking a change done, verify:
+1. `pnpm install` — exits 0, no workspace member missing.
+2. `pnpm check-types` — exits 0.
+3. `pnpm build` — exits 0 for all affected packages.
+4. `pnpm format` — no diff after running.
+5. `openspec validate <change-name>` — exits 0.
+6. No real secrets detected.

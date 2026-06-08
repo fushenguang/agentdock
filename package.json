@@ -27,7 +27,6 @@
     "dependency-cruiser": "^16.0.0",
     "eslint": "^9.0.0",
     "lefthook": "^2.1.9",
-    "lint-staged": "^15.0.0",
     "prettier": "^3.7.4",
     "secretlint": "^9.0.0",
     "tsx": "^4.22.4",

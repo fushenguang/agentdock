@@ -26,6 +26,7 @@ dist
 
 # Generated build artifacts
 packages/cli/src/registry.json
+*.tsbuildinfo
 
 
 # Debug

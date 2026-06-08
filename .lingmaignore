@@ -1,0 +1,30 @@
+# Lingma ignore patterns
+# Files and directories that should be excluded from AI context indexing
+# to reduce token consumption and improve response accuracy.
+
+# ── 1. Build artifacts & caches (high token cost) ──
+.turbo/
+dist/
+build/
+out/
+.next/
+coverage/
+*.tsbuildinfo
+
+# ── 2. Dependencies ──
+node_modules/
+pnpm-lock.yaml
+
+# ── 3. Sub-packages that may cause context pollution ──
+scripts/
+openspec/changes/archive/
+
+# ── 4. Static assets, logs, and generated files ──
+public/
+locales/
+*.log
+*.svg
+
+# ── 5. Editor & OS artifacts ──
+.DS_Store
+*.pem

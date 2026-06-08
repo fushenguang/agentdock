@@ -45,6 +45,11 @@ jobs:
           # Authenticate against npm registry for publishing
           registry-url: https://registry.npmjs.org
 
+      - name: Configure npm auth
+        run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
