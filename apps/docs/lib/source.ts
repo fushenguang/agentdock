@@ -7,11 +7,18 @@ import { docsContentRoute, docsImageRoute, docsRoute } from './shared'
 export const source = loader({
   baseUrl: docsRoute,
   source: docs.toFumadocsSource(),
+  i18n: {
+    languages: ['zh', 'en'],
+    defaultLanguage: 'zh',
+    parser: 'dir',
+  },
   plugins: [lucideIconsPlugin()],
 })
 
 export function getPageImage(page: (typeof source)['$inferPage']) {
-  const segments = [...page.slugs, 'image.png']
+  const segments = page.locale
+    ? [page.locale, ...page.slugs, 'image.png']
+    : [...page.slugs, 'image.png']
 
   return {
     segments,
@@ -20,7 +27,9 @@ export function getPageImage(page: (typeof source)['$inferPage']) {
 }
 
 export function getPageMarkdownUrl(page: (typeof source)['$inferPage']) {
-  const segments = [...page.slugs, 'content.md']
+  const segments = page.locale
+    ? [page.locale, ...page.slugs, 'content.md']
+    : [...page.slugs, 'content.md']
 
   return {
     segments,

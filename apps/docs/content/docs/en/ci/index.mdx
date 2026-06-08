@@ -1,0 +1,309 @@
+---
+title: CI 策略总览
+description: >
+  AgentDock monorepo 的 CI 策略、分层防御模型、工具选型决策与最佳实践。
+  覆盖 GitHub Actions、Turborepo 远程缓存、Changesets 发版自动化三条主线。
+  适合人类构建者阅读，也供 AI Agent 查询具体配置决策。
+---
+
+# CI 策略总览
+
+> 深入执行版请看：[Monorepo CI 最佳实践（构造者 + Agent 双视角）](/en/docs/ci/monorepo-best-practices)  
+> 遇到 CI 红了？→ [CI 故障速查手册](/en/docs/ci/troubleshooting)
+
+## 为什么单独沉淀 CI 策略
+
+CI 不是"跑一跑测试"的附属品，它是**平台交付质量的最终守门人**。  
+在 monorepo 中，CI 的复杂度随包数量指数级增长——每次改动可能影响 1 个包，也可能影响 6 个。  
+不经设计的 CI 会在两个极端间摇摆：
+
+- **过于宽松**：漏掉真实影响，merge 了坏代码。
+- **过于保守**：每次改动都跑全量，PR 等待 10+ 分钟，开发者开始绕过 CI。
+
+AgentDock 的 CI 策略基于一个核心原则：**"按影响范围付费"**——只有被改动影响到的包才重新验证。
+
+---
+
+## 技术栈一览
+
+| 工具 | 角色 | 文档 |
+|------|------|------|
+| [GitHub Actions](https://docs.github.com/en/actions) | CI/CD 执行环境 | [Workflow 语法参考](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions) |
+| [Turborepo](https://turborepo.com/docs) | 任务编排 + 增量缓存 | [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) |
+| [pnpm](https://pnpm.io) | 包管理 + workspace | [pnpm/action-setup](https://github.com/pnpm/action-setup) |
+| [Changesets](https://github.com/changesets/changesets) | 版本管理 + npm 发布 | [changesets/action](https://github.com/changesets/action) |
+| [Lefthook](https://lefthook.dev) | 本地 Git hooks | [配置参考](https://lefthook.dev/configuration/) |
+| [secretlint](https://github.com/secretlint/secretlint) | 密钥泄露扫描 | — |
+
+---
+
+## 分层防御模型
+
+防御分三层，从快到慢，从本地到远程：
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 1 — 本地 (lefthook)                                      │
+│  触发：git commit                                                │
+│  耗时：< 5s                                                     │
+│  检查：staged 文件 ESLint + align:check --fast (anti-drift)     │
+└───────────────────────┬─────────────────────────────────────────┘
+                        │ push / PR
+┌───────────────────────▼─────────────────────────────────────────┐
+│  Layer 2 — PR Gate (ci.yml)                                     │
+│  触发：PR + push to main                                        │
+│  耗时：2–5 min (Turbo cache 命中后 < 1 min)                     │
+│  检查：typecheck / build / test / lint（4 个并行 job）          │
+│  阻塞合并：YES                                                   │
+└───────────────────────┬─────────────────────────────────────────┘
+                        │ schedule / openspec/** 变更
+┌───────────────────────▼─────────────────────────────────────────┐
+│  Layer 3 — Integrity (integrity.yml)                            │
+│  触发：每天 02:00 UTC + openspec/** PR + workflow_dispatch      │
+│  耗时：不限                                                      │
+│  检查：全量 align-check / arch-check / secrets-check            │
+│  阻塞合并：NO（失败发 GitHub 通知）                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**设计动机**：慢检查不应阻塞快反馈。`arch:check`（dependency-cruiser 全图扫描）在大型 monorepo 中可能需要 30–60 秒；放在 PR Gate 会显著拖慢 DX。放入定时任务后，开发者仍能在合并后当天收到通知。
+
+---
+
+## Workflow 文件职责划分
+
+```
+.github/workflows/
+├── ci.yml          # PR gate — 4 个并行 job，阻塞 merge
+├── release.yml     # main 分支发版 — Changesets 统一管理
+└── integrity.yml   # 慢速全量检查 — 定时/手动，不阻塞
+```
+
+### 为什么不给每个包单独一个 workflow？
+
+这是 monorepo CI 中最常见的反模式。以 `@cogito.ai/cli` 为例：
+
+```
+❌ 错误做法：release-cli.yml
+   ├─ 手动维护触发条件 (paths: packages/cli/**)
+   ├─ 手动决定何时发布
+   └─ 与其他包的发布产生竞争条件
+
+✅ 正确做法：统一 release.yml + Changesets
+   ├─ 开发者在 PR 中运行 pnpm changeset，添加版本意图
+   ├─ merge 后 Changesets Bot 自动聚合所有意图
+   └─ 生成 "Version Packages" PR → merge → 统一发布所有变更包
+```
+
+Changesets 解决的核心问题是**意图聚合**：一次 release 可能同时发布 3 个包，版本互相关联。分散的 workflow 无法做到这一点。
+
+详见 [→ Monorepo CI 最佳实践](/en/docs/ci/monorepo-best-practices)。
+
+### 路径过滤优化（2026-06 新增）
+
+**问题背景**：每次 push to main 都会触发所有 jobs（build、test、lint、template builds），即使改动只是纯文档或 changeset 元数据。这导致不必要的 CI 资源消耗和等待时间。
+
+**解决方案**：在 `.github/workflows/ci-full.yml` 中实施两层过滤机制。
+
+#### 1. 路径级别过滤（paths-ignore）
+
+```yaml
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'        # 忽略纯 Markdown 文档变更
+      - '**/*.mdx'       # 忽略 MDX 文档变更
+      - '.changeset/**'  # 忽略 changeset 元数据文件
+      - 'LICENSE'
+      - '.gitignore'
+```
+
+**效果**：当提交仅包含上述文件时，整个 workflow 不会触发。典型场景：
+- `pnpm changeset` 生成的 `.changeset/*.md` 文件 → 节省 ~20 分钟 CI 时间
+- 文档更新（`apps/docs/content/**/*.mdx`）→ 不触发完整 CI
+- LICENSE / .gitignore 修改 → 不触发
+
+#### 2. Job 级别条件执行（if 表达式）
+
+对于必须运行的 jobs（如 docs build、template builds），使用 `[skip ci]` 手动覆盖：
+
+```yaml
+jobs:
+  docs-build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    steps:
+      - pnpm docs:sync
+      - pnpm --filter docs build
+  
+  template-web-nextjs-build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    steps:
+      - pnpm --filter web-nextjs build
+```
+
+**使用场景**：
+- 紧急 hotfix，只需验证核心包 → 提交消息加 `[skip ci]`
+- 只改文档但想验证 docs build → 不加 `[skip ci]`，job 会运行
+
+#### 性能对比
+
+| 场景 | 优化前 | 优化后 | 节省 |
+|------|--------|--------|------|
+| Changeset 提交（纯元数据） | ~20 min（全量 jobs） | 0 min（不触发） | **100%** |
+| 纯文档更新 | ~20 min | 0 min | **100%** |
+| 代码变更 + 文档 | ~20 min | ~15 min（跳过 docs build） | **25%** |
+| 紧急 hotfix（[skip ci]） | ~20 min | ~5 min（仅 core jobs） | **75%** |
+
+#### 注意事项
+
+1. **安全检查始终运行**：`secretlint` 等安全相关检查不受路径过滤影响，确保密钥泄露扫描不被跳过
+2. **PR 阶段不过滤**：`pull_request` 事件仍会触发完整 CI，保证 PR 质量
+3. **Template builds 的权衡**：模板构建耗时较长（每个 ~3-5 min），仅在 templates/** 目录变更时才运行是合理的优化
+
+---
+
+## Turbo 缓存策略
+
+Turborepo 的任务缓存是 CI 速度的核心杠杆。
+
+### 本地缓存（默认启用）
+
+每个任务的输入（源文件 hash）→ 输出（`dist/`、`.next/` 等）被 Turbo 缓存。  
+同样的 hash 命中缓存时，任务在毫秒内完成（"replaying logs"）。
+
+关键配置在 `turbo.json` 的 `inputs` / `outputs` 字段：
+
+```json
+{
+  "tasks": {
+    "generate-registry": {
+      "inputs": ["../../templates/*/package.json", "../../packages/*/package.json"],
+      "outputs": ["src/registry.json"]
+    },
+    "build": {
+      "dependsOn": ["^build", "generate-registry"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    }
+  }
+}
+```
+
+**`inputs` 精确声明**：当 `templates/*/package.json` 没有变化时，`generate-registry` 缓存命中，CLI build 跳过 registry 生成步骤。
+
+### 远程缓存（跨 PR 共享，推荐启用）
+
+跨 CI runner 共享缓存，冷启动时间从 3 min → 30s。
+
+```yaml
+# ci.yml 中已预留 env 变量
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+```
+
+启用步骤：
+1. 在 [Vercel Dashboard](https://vercel.com/docs/monorepos/turborepo) 创建 Remote Cache token
+2. 或使用 self-hosted：[ducktape](https://github.com/ducktapeai/ducktape) / [turborepo-remote-cache](https://github.com/fox1t/turborepo-remote-cache)
+3. 将 `TURBO_TOKEN` + `TURBO_TEAM` 添加为 GitHub repository secrets
+
+参考：[Turbo Remote Caching 文档](https://turborepo.com/docs/core-concepts/remote-caching)
+
+---
+
+## 安全规范
+
+### Secrets 管理
+
+GitHub Actions 的 secrets 在两个层级配置：
+
+| 层级 | 用途 | 配置入口 |
+|------|------|----------|
+| Repository secrets | 项目级密钥（NPM_TOKEN、TURBO_TOKEN） | Settings → Secrets → Actions |
+| Environment secrets | 分环境密钥（生产 DB、部署 token） | Settings → Environments → [env] → Secrets |
+
+参考：[GitHub Encrypted Secrets](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions)
+
+**当前项目必须配置的 secrets：**
+
+```
+NPM_TOKEN     — npm Automation token，用于 Changesets 发布
+TURBO_TOKEN   — Vercel Remote Cache token（可选，启用后大幅加速）
+```
+
+### Token 最小权限原则
+
+`release.yml` 中显式声明 `permissions`，避免使用 GitHub Actions 默认的广权限 token：
+
+```yaml
+permissions:
+  contents: write      # 创建 tags、version commits
+  pull-requests: write # 开 "Version Packages" PR
+```
+
+参考：[GitHub Token 权限控制](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token)
+
+### `.npmrc` 认证配置
+
+项目根 `.npmrc` 使用环境变量占位，不含真实 token：
+
+```ini
+//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
+```
+
+`setup-node` action 配置 `registry-url` 后，会自动将 `NODE_AUTH_TOKEN` env 映射到 npm 认证。  
+参考：[actions/setup-node — Publishing to npm](https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#publish-to-npmjs-and-gpr-with-npm)
+
+---
+
+## 并发控制
+
+多个 runner 同时处理同一分支的 push 会产生竞争（尤其是发布任务）。  
+每个 workflow 都配置了 `concurrency` 组以取消过时的运行：
+
+```yaml
+# ci.yml — 同一 ref + sha 的旧运行被取消
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+
+# release.yml — 同一 ref 只允许一个发布运行
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+```
+
+参考：[GitHub Actions 并发控制](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/using-concurrency)
+
+---
+
+## 常见问题 / AI Agent 查询索引
+
+以下为 AI Agent 查询时的快速参考。
+
+**Q: 为什么 `@cogito.ai/cli` 没有单独的发布 workflow？**  
+A: Changesets 统一管理所有包的版本意图聚合。分散 workflow 会引入竞争条件。见 [→ 发版自动化](/en/docs/ci/release-automation)。
+
+**Q: 新增一个 publishable package 需要改哪些 CI 文件？**  
+A: 不需要改任何 CI 文件。只需在包的 `package.json` 中移除 `private: true`，添加 `publishConfig: { "access": "public" }`。Changesets 自动发现 workspace 中所有非私有包。
+
+**Q: 如何在 PR 中只跑特定包的测试？**  
+A: `ci.yml` 的 `test` job 当前使用 `pnpm --filter @cogito.ai/cli test`。如需扩展，在同一行添加更多 `--filter` 或改为 `pnpm -r test`（跑所有有 test 脚本的包）。
+
+**Q: `registry.json` 在 CI 中如何生成？**  
+A: Turbo 任务图：`cli#build` → `generate-registry`（前置任务）。`pnpm build` 触发整个图，`generate-registry` 会先执行 `tsx ../../scripts/generate-registry/index.ts`，输出 `packages/cli/src/registry.json`。
+
+**Q: integrity.yml 失败了怎么处理？**  
+A: integrity.yml 不阻塞 merge，但失败会产生 GitHub Actions 通知和 email。按失败的具体 job 处理：`align` 失败说明有 anti-drift 违规，`arch` 失败说明有循环依赖或层边界越界，`secrets` 失败说明有潜在密钥泄露（高优先级，立即处理）。
+
+**Q: 如何手动触发 integrity 检查？**  
+A: Actions tab → Integrity workflow → "Run workflow" 按钮（`workflow_dispatch` 已配置）。
+
+**Q: 为什么我的 push to main 没有触发 CI？**  
+A: 如果提交仅包含 `.md`、`.mdx`、`.changeset/**`、`LICENSE` 或 `.gitignore` 文件，CI 会被 `paths-ignore` 规则跳过。这是预期行为，节省 CI 资源。如需强制运行，在提交消息中移除这些文件类型或添加其他代码变更。
+
+**Q: 如何在紧急修复时跳过非必要的 jobs？**  
+A: 在 commit message 中添加 `[skip ci]` 标记，例如：`git commit -m "fix: critical bug [skip ci]"`。这会跳过 docs build 和 template builds，只运行核心 jobs（typecheck、build、test、lint）。
+
+**Q: 路径过滤会影响 PR 的 CI 吗？**  
+A: 不会。`paths-ignore` 仅作用于 `push to main` 事件。PR 阶段的 CI 仍会完整运行，确保代码质量不受影响。

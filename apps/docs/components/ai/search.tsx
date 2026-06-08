@@ -433,7 +433,8 @@ export function AISearchPanelList({ className, style, ...props }: ComponentProps
                 Request Failed: {chat.error.name}
               </p>
               <p className="text-sm">
-                {chat.error.message.includes('400') || chat.error.message.includes('OPENROUTER_API_KEY')
+                {chat.error.message.includes('400') ||
+                chat.error.message.includes('OPENROUTER_API_KEY')
                   ? 'AI 服务暂不可用，请检查配置'
                   : chat.error.message}
               </p>

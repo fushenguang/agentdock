@@ -1,0 +1,15 @@
+{
+  "title": "文档",
+  "pages": [
+    "index",
+    "builder-workflow",
+    "ui-design",
+    "cli",
+    "templates",
+    "skills",
+    "testing",
+    "roadmap",
+    "changelog",
+    "llm-eval"
+  ]
+}
