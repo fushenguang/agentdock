@@ -1,8 +1,11 @@
 # ui-design-docs Specification
 
 ## Purpose
+
 TBD - created by archiving change add-landing-page-and-ui-design-system. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: UI 设计专题主文档
 
 `apps/docs/content/docs/ui-design/index.mdx` MUST 作为 UI 设计专题的入口，阐明为什么 AI Coding Era 的 UI 设计是最大困境之一，以及本专题的知识体系。
@@ -127,4 +130,3 @@ TBD - created by archiving change add-landing-page-and-ui-design-system. Update 
 
 - **WHEN** 读取 `research/index.mdx`
 - **THEN** 只有方法论（搜索策略、过滤标准、调研路径），不含任何具体 URL 或结论
-

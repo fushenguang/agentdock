@@ -12,6 +12,7 @@ description: "Archived on 2026-06-05 · roadmap: web-nextjs-builtin-suite"
 模板现在有四层目录契约、Supabase 数据层、monorepo + docs 共生结构，但**没有身份认证**——这是真实应用的硬性前提。没有 auth，路由无法保护、数据无法归属、任何用户相关功能都无法展开。
 
 本 change 的核心原则：**功能跑通优先，数据层要稳，UI 复用成熟开源方案，禁止从头造轮子**。
+
 - Auth 逻辑：Supabase Auth（与已有 `@supabase/ssr` 天然配套，无需换方案）
 - UI：shadcn/ui blocks（`login-03`、`signup-03`、`dashboard-01`），不做自定义设计
 - 表单：react-hook-form + zod（所有超过 1 个字段的表单强制使用）

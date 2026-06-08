@@ -16,16 +16,21 @@
 ## Decisions
 
 ### D1. 内容目录结构：使用 `content/docs/zh/` + `content/docs/en/`（物理目录分离）
+
 Fumadocs 16.x i18n 推荐 `source.config.ts` 配置 `dir: 'content/docs'` + `i18n: true`，然后在目录内用语言子目录或文件名后缀区分。选择**目录分离**（`zh/` + `en/`）而非文件名后缀（`index.zh.mdx`），原因：目录结构清晰，VS Code 文件夹折叠更直观，Fumadocs 官方示例也推荐此方式。
 
 ### D2. 默认语言中文（zh）
+
 中文用户是首要受众，`defaultLanguage: 'zh'`。访问 `/docs` → redirect `/zh/docs`；未来 SEO 如需英文优先，再调整。
 
 ### D3. 英文内容：现有内容迁移到 `en/`，不重写
+
 现有 MDX 文件（英文）整体 `git mv` 到 `content/docs/en/`，保留 git history。`zh/` 下的中文文档为新编写（已有中文部分如 ui-design 中文段落迁移过去）。
 
 ### D4. 无中文版的旧文档：zh/ 创建占位文件
+
 不让构建失败，也不让侧边栏有"断链"。占位文件格式：
+
 ```mdx
 ---
 title: CLI（英文版，待翻译）
@@ -35,12 +40,15 @@ title: CLI（英文版，待翻译）
 ```
 
 ### D5. LanguageSelect：使用 Fumadocs 内建组件
+
 在 `app/[lang]/docs/layout.tsx` 的 `<DocsLayout>` 中，通过 `i18n` prop 或 Fumadocs 导航配置加入语言切换器。具体 API 根据 Fumadocs 16.x 文档确认（实现时查阅）。
 
 ### D6. openspec-docs-sync 输出路径：改为 `zh/changelog/` 和 `zh/roadmap/`
+
 在 `packages/openspec-docs-sync/src/` 中找到输出路径配置，从 `content/docs/changelog` 改为 `content/docs/zh/changelog`。
 
 ### D7. 内部链接审查：全量 grep 替换
+
 i18n 路由完成后，在 `apps/docs/` 内所有 MDX 文件和 `.tsx` 中，将 `href="/docs/` 格式的绝对链接改为 `href="/zh/docs/`（或使用相对链接）。利用 grep 工具全量查找，不遗漏。
 
 ## Migration Plan

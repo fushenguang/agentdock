@@ -1,8 +1,11 @@
 # landing-page Specification
 
 ## Purpose
+
 TBD - created by archiving change add-landing-page-and-ui-design-system. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: 公开路由 group 与 landing page 结构
 
 `apps/web/src/app/[locale]/(public)/` MUST 建立公开 route group，landing page 在 `(public)/page.tsx` 渲染，不受 `(protected)` session 检查影响。
@@ -80,4 +83,3 @@ Landing page MUST 包含以下 Section（从上到下）：
 
 - **WHEN** 访问 `/zh/` 与 `/en/`
 - **THEN** Hero 标题、Features 文案等随 locale 变化，不硬编码字符串
-
