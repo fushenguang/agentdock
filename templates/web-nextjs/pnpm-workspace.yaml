@@ -1,13 +1,6 @@
 packages:
   - 'apps/*'
   - 'packages/*'
-allowBuilds:
-  '@fission-ai/openspec': set this to true or false
-  '@parcel/watcher': set this to true or false
-  '@swc/core': set this to true or false
-  esbuild: set this to true or false
-  msw: set this to true or false
-  sharp: set this to true or false
 onlyBuiltDependencies:
   - '@fission-ai/openspec'
   - '@parcel/watcher'
