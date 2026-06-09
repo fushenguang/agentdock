@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.4.6
+
+### Patch Changes
+
+- 91e8cdc: enhance web-nextjs template
+
 ## 0.4.5
 
 ### Patch Changes
