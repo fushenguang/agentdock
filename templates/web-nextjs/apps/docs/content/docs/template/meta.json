@@ -1,0 +1,13 @@
+{
+  "title": "web-nextjs 模板",
+  "pages": [
+    "getting-started",
+    "deployment",
+    "supabase",
+    "drizzle",
+    "alipay",
+    "wechat-pay",
+    "stripe",
+    "troubleshooting"
+  ]
+}

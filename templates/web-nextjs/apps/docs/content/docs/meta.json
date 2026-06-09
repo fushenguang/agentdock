@@ -1,4 +1,4 @@
 {
   "title": "Documentation",
-  "pages": ["features", "decisions", "changelog", "roadmap"]
+  "pages": ["template", "features", "decisions", "changelog", "roadmap"]
 }

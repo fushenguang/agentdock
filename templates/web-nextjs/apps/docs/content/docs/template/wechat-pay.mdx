@@ -1,0 +1,318 @@
+---
+title: 支付：微信支付
+description: 微信支付集成指南，包括架构、配置、安全和使用方法。
+---
+
+## 概述
+
+本项目集成了 **微信支付**（WeChat Pay），支持 Native 支付（扫码支付）和 JSAPI 支付（公众号/小程序内支付）场景。
+
+## 技术架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        用户浏览器                              │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
+│  │   选择商品    │ -> │  创建订单     │ -> │  扫码/调起支付 │  │
+│  └──────────────┘    └──────────────┘    └──────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Next.js 应用 (Server)                    │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
+│  │  /api/pay    │    │  签名/验签   │    │  回调处理     │  │
+│  │  /api/notify │    │              │    │              │  │
+│  └──────────────┘    └──────────────┘    └──────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                             │
+                             ▼
+                    ┌────────────────┐
+                    │   微信支付网关  │
+                    │  (api.mch.weixin.qq.com) │
+                    └────────────────┘
+```
+
+## 时序图
+
+```
+用户          前端页面         Next.js API      微信支付网关
+ │               │                  │                 │
+ │  1.选择商品   │                  │                 │
+ │─────────────>│                  │                 │
+ │               │  2.POST /create  │                 │
+ │               │─────────────────>│                 │
+ │               │                  │  3.统一下单      │
+ │               │                  │─────────────────>│
+ │               │                  │  4.返回 prepay_id│
+ │               │                  │<─────────────────│
+ │  5.返回支付参数│                  │                 │
+ │<─────────────│                  │                 │
+ │  6.调起微信支付│                  │                 │
+ │─────────────────────────────────────────────────>│
+ │  7.支付成功   │                  │                 │
+ │<─────────────────────────────────────────────────│
+ │               │                  │  8.异步通知      │
+ │               │                  │<─────────────────│
+ │               │                  │  9.验签+更新状态 │
+ │               │                  │                 │
+ │  10.跳转成功页│                  │                 │
+ │<─────────────│                  │                 │
+```
+
+## 前置条件
+
+### 微信支付商户账号
+
+1. 注册 [微信支付商户平台](https://pay.weixin.qq.com/) 账号
+2. 完成商户认证，获取 **商户号 (mch_id)**
+3. 申请 **API 证书** 和 **APIv3 密钥**
+
+### 必要配置
+
+| 配置项 | 说明 | 获取位置 |
+|--------|------|----------|
+| `WECHAT_PAY_MCH_ID` | 商户号 | 微信支付商户平台 → 账户中心 |
+| `WECHAT_PAY_APP_ID` | 应用 APPID | 微信开放平台/公众号平台 |
+| `WECHAT_PAY_API_V3_KEY` | APIv3 密钥 | 微信支付商户平台 → 账户中心 → API安全 |
+| `WECHAT_PAY_CERT_SERIAL_NO` | 证书序列号 | 商户平台 → API安全 → 管理证书 |
+| `WECHAT_PAY_PRIVATE_KEY` | 商户私钥 | 下载的 apiclient_key.pem |
+
+## 开发环境配置
+
+### 1. 配置环境变量
+
+在 `.env.local` 中添加：
+
+```
+WECHAT_PAY_MCH_ID=your-mch-id
+WECHAT_PAY_APP_ID=your-app-id
+WECHAT_PAY_API_V3_KEY=your-api-v3-key
+WECHAT_PAY_CERT_SERIAL_NO=your-cert-serial-no
+WECHAT_PAY_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----
+WECHAT_PAY_NOTIFY_URL=https://your-domain.com/api/payments/wechat/notify
+```
+
+> **注意**: 私钥包含换行符，使用 `\n` 转义。
+
+### 2. 下载 API 证书
+
+1. 登录 [微信支付商户平台](https://pay.weixin.qq.com/)
+2. 进入 **账户中心 → API安全 → 申请API证书**
+3. 下载证书文件（`apiclient_cert.pem` 和 `apiclient_key.pem`）
+
+### 3. 设置 APIv3 密钥
+
+在商户平台 → 账户中心 → API安全 → 设置 APIv3 密钥：
+
+1. 点击"设置密钥"
+2. 使用随机字符串生成器生成 32 位密钥
+3. 保存密钥（只会显示一次）
+
+## 生产环境配置
+
+### 服务器要求
+
+- 公网可访问的 HTTPS 地址
+- 支持接收 POST 请求的回调接口
+- 服务器时间与微信服务器时间误差不超过 5 分钟
+
+### 回调地址配置
+
+在商户平台 → 产品中心 → 开发配置 中配置：
+
+| 配置项 | 值 |
+|--------|-----|
+| 回调通知地址 | `https://your-domain.com/api/payments/wechat/notify` |
+
+## API 路由
+
+### 创建支付订单
+
+```http
+POST /api/payments/wechat/create
+Content-Type: application/json
+
+{
+  "orderId": "ORDER_123456",
+  "amount": 99.99,
+  "description": "商品描述",
+  "openid": "user-openid"  // JSAPI 支付需要
+}
+```
+
+**响应:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "prepayId": "wx20240101120000...",
+    "appId": "wx...",
+    "timeStamp": "1704096000",
+    "nonceStr": "...",
+    "package": "prepay_id=wx...",
+    "signType": "RSA",
+    "paySign": "..."
+  }
+}
+```
+
+### 支付回调通知
+
+```http
+POST /api/payments/wechat/notify
+Content-Type: application/json
+```
+
+微信支付回调请求头包含 `Wechatpay-Serial` 和 `Wechatpay-Signature`：
+
+```ts
+export async function POST(request: Request) {
+  const body = await request.text()
+  const signature = request.headers.get('Wechatpay-Signature')
+  const serial = request.headers.get('Wechatpay-Serial')
+  
+  // 1. 验证签名
+  const isValid = await verifyWechatSignature(body, signature, serial)
+  if (!isValid) {
+    return new Response('Invalid signature', { status: 400 })
+  }
+  
+  // 2. 解密回调数据
+  const data = JSON.parse(body)
+  const decrypted = await decryptWechatPayload(data)
+  
+  // 3. 更新订单状态
+  // ...
+}
+```
+
+### 查询订单状态
+
+```http
+GET /api/payments/wechat/query?outTradeNo=ORDER_123456
+```
+
+## 安全注意事项
+
+### 签名验证
+
+微信支付使用 **RSA 签名** 和 **AES 加密**，必须严格验证：
+
+```ts
+import { verifyWechatSignature, decryptWechatPayload } from '@/lib/wechat-pay'
+
+export async function POST(request: Request) {
+  const body = await request.text()
+  const signature = request.headers.get('Wechatpay-Signature')
+  
+  // 1. 验证签名
+  const isValid = await verifyWechatSignature(body, signature)
+  if (!isValid) {
+    return new Response('Invalid signature', { status: 400 })
+  }
+  
+  // 2. 解密回调数据
+  const data = JSON.parse(body)
+  const decrypted = await decryptWechatPayload(data)
+  
+  // 3. 验证金额（防止篡改）
+  const order = await db.payments.findOne({ outTradeNo: decrypted.out_trade_no })
+  if (order.amount !== decrypted.amount.total) {
+    return new Response('Amount mismatch', { status: 400 })
+  }
+  
+  // 4. 更新订单状态
+  // ...
+}
+```
+
+### 安全最佳实践
+
+| 风险 | 防护措施 |
+|------|----------|
+| 回调伪造 | 严格验证签名和证书序列号 |
+| 金额篡改 | 比对数据库订单金额与回调金额 |
+| 重复通知 | 使用幂等性处理（out_trade_no 去重） |
+| 密钥泄露 | 私钥仅存储在服务器端 |
+| 中间人攻击 | 使用 HTTPS 传输 |
+| 时间戳重放 | 检查时间戳是否在合理范围内（5分钟） |
+
+### 幂等性处理
+
+```ts
+// 使用数据库唯一约束防止重复处理
+await db.payments.updateOne(
+  { outTradeNo: decrypted.out_trade_no, status: { $ne: 'PAID' } },
+  { 
+    $set: { 
+      status: 'PAID', 
+      transactionId: decrypted.transaction_id 
+    } 
+  }
+)
+```
+
+## 开发环境调试
+
+### 沙箱环境
+
+微信支付提供沙箱环境用于开发测试：
+
+1. 登录 [微信支付商户平台](https://pay.weixin.qq.com/)
+2. 进入 **产品中心 → 开发配置 → 沙箱**
+3. 获取沙箱 API 密钥
+4. 修改环境变量为沙箱配置：
+
+```
+WECHAT_PAY_GATEWAY_URL=https://api.mch.weixin.qq.com/sandboxnew
+```
+
+### 调试工具
+
+- [微信支付开发者工具](https://pay.weixin.qq.com/wiki/doc/apiv3/open/pay/Android_JDk.html)
+- [签名调试工具](https://pay.weixin.qq.com/wiki/doc/apiv3/wechatpay/wechatpay6_0.shtml)
+
+## 微信支付 FAQs
+
+**Q: 回调通知收不到？**
+
+A: 检查以下几点：
+1. 服务器是否公网可访问
+2. 回调地址是否正确配置在商户平台
+3. 是否使用 HTTPS（微信要求）
+4. 服务器时间是否准确（误差不超过5分钟）
+5. 防火墙是否放行
+
+**Q: 签名验证失败？**
+
+A: 常见原因：
+1. APIv3 密钥错误
+2. 私钥格式错误（应为 PKCS#8 格式）
+3. 时间戳误差超过 5 分钟
+4. 请求体编码错误（应为 UTF-8）
+
+**Q: 如何测试支付流程？**
+
+A: 使用微信支付沙箱环境：
+1. 在商户平台启用沙箱模式
+2. 使用沙箱 API 密钥
+3. 使用 [微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html) 模拟支付
+
+**Q: 如何获取用户的 OpenID？**
+
+A: 对于 JSAPI 支付，需要通过 OAuth 授权获取用户 OpenID：
+1. 引导用户访问微信 OAuth 授权链接
+2. 用户授权后，微信会重定向到回调地址并附带 `code`
+3. 使用 `code` 换取 `openid`
+
+## 相关资源
+
+- [微信支付商户平台](https://pay.weixin.qq.com/)
+- [微信支付开发文档](https://pay.weixin.qq.com/wiki/doc/apiv3/index.shtml)
+- [Native 支付文档](https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter3_4_1.shtml)
+- [JSAPI 支付文档](https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter3_1_1.shtml)
+- [微信支付沙箱环境](https://pay.weixin.qq.com/wiki/doc/apiv3/wechatpay/wechatpay7_0.shtml)
+- [APIv3 签名指南](https://pay.weixin.qq.com/wiki/doc/apiv3/wechatpay/wechatpay4_0.shtml)
+- [回调通知说明](https://pay.weixin.qq.com/wiki/doc/apiv3/wechatpay/wechatpay4_1.shtml)

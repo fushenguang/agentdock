@@ -1,0 +1,98 @@
+---
+title: 开始使用
+description: 如何初始化、开发和部署 web-nextjs 模板项目。
+---
+
+## 环境要求
+
+- **Node.js**: >= 18
+- **pnpm**: >= 9
+- **Git**
+
+## 通过 CLI 初始化项目
+
+使用 AgentDock CLI 创建新项目：
+
+```bash
+npx @cogito.ai/agentdock-cli create my-project
+```
+
+选择 **web-nextjs** 模板，CLI 会自动完成以下操作：
+
+1. 克隆模板代码
+2. 安装依赖 (`pnpm install`)
+3. 复制环境变量配置文件 (`.env.local`)
+
+## 本地开发
+
+### 安装依赖
+
+```bash
+pnpm install
+```
+
+### 启动开发服务器
+
+```bash
+pnpm dev
+```
+
+这会同时启动：
+- **Web 应用**: http://localhost:3000
+- **文档站点**: http://localhost:3001
+
+### 构建生产版本
+
+```bash
+pnpm build
+```
+
+### 运行测试
+
+```bash
+pnpm test          # 运行单元测试
+pnpm check-types   # TypeScript 类型检查
+pnpm lint          # ESLint 代码检查
+```
+
+## 项目结构
+
+```
+my-project/
+├── apps/
+│   ├── web/          # Next.js 主应用
+│   └── docs/         # Fumadocs 文档站点
+├── packages/         # 共享包
+├── supabase/         # 数据库迁移
+└── scripts/          # 自动化脚本
+```
+
+## 关键配置
+
+### 环境变量
+
+复制 `.env.local.example` 到 `.env.local`，并填写以下配置：
+
+| 变量 | 说明 | 获取方式 |
+|------|------|----------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase 项目 URL | Supabase Dashboard → Project Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名密钥 | Supabase Dashboard → Project Settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase 服务角色密钥 | Supabase Dashboard → Project Settings → API |
+
+### pnpm 工作区
+
+项目使用 pnpm workspace 管理 monorepo：
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'apps/*'
+  - 'packages/*'
+```
+
+## 下一步
+
+- [数据层：Supabase](/docs/template/supabase)
+- [数据层：Drizzle](/docs/template/drizzle)
+- [支付：支付宝](/docs/template/alipay)
+- [支付：微信支付](/docs/template/wechat-pay)
