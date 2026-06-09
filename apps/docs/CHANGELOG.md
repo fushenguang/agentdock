@@ -1,5 +1,11 @@
 # docs
 
+## 0.2.3
+
+### Patch Changes
+
+- 08c8fa8: new content
+
 ## 0.2.2
 
 ### Patch Changes
