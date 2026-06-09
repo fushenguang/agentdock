@@ -1,6 +1,13 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+allowBuilds:
+  '@fission-ai/openspec': true
+  '@parcel/watcher': true
+  '@swc/core': true
+  esbuild: true
+  msw: true
+  sharp: true
 onlyBuiltDependencies:
   - '@fission-ai/openspec'
   - '@parcel/watcher'
