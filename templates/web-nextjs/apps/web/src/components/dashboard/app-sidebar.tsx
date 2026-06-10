@@ -10,6 +10,7 @@ import {
   IconShield,
 } from '@tabler/icons-react'
 
+import { Link } from '@/i18n/navigation'
 import { NavMain } from '@/components/dashboard/nav-main'
 import { NavSecondary } from '@/components/dashboard/nav-secondary'
 import { NavUser } from '@/components/dashboard/nav-user'
@@ -25,21 +26,19 @@ import {
 
 export function AppSidebar({
   user,
-  locale,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user: { name: string; email: string; avatar: string }
-  locale: string
 }) {
   const navMain = [
     {
       title: 'Dashboard',
-      url: `/${locale}/dashboard`,
+      url: '/dashboard',
       icon: IconDashboard,
     },
     {
       title: 'Settings',
-      url: `/${locale}/settings/profile`,
+      url: '/settings/profile',
       icon: IconSettings,
     },
   ]
@@ -47,17 +46,17 @@ export function AppSidebar({
   const navSecondary = [
     {
       title: 'Help',
-      url: `/${locale}/help`,
+      url: '/help',
       icon: IconHelp,
     },
     {
       title: 'Privacy Policy',
-      url: `/${locale}/privacy`,
+      url: '/privacy',
       icon: IconShield,
     },
     {
       title: 'About',
-      url: `/${locale}/about`,
+      url: '/about',
       icon: IconInfoCircle,
     },
   ]
@@ -68,10 +67,10 @@ export function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:p-1.5!">
-              <a href={`/${locale}/dashboard`}>
+              <Link href="/dashboard">
                 <IconInnerShadowTop className="size-5!" />
                 <span className="text-base font-semibold">AgentDock</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -81,7 +80,7 @@ export function AppSidebar({
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} locale={locale} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   )

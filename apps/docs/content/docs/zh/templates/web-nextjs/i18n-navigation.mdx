@@ -1,0 +1,207 @@
+---
+title: 'i18n 导航'
+description: '在 web-nextjs 模板中使用 next-intl 进行国际化导航的最佳实践。'
+---
+
+# i18n 导航
+
+本文档介绍在 `web-nextjs` 模板中使用 `next-intl` 进行国际化时的导航处理方式。内容涵盖 Next.js 原生导航与 next-intl 导航系统的区别，并提供了链接、重定向和程序化导航的具体模式。
+
+---
+
+## 为什么要用 next-intl 导航？
+
+模板使用 `next-intl` 支持基于语言区域的路由（`/[locale]/...`）。Next.js 原生的 `next/link` 和 `next/navigation` 不具备语言区域感知能力。直接使用它们会导致链接丢失当前语言区域前缀，引发 404 错误或语言切换异常。
+
+`next-intl` 通过 `createNavigation` 提供了自动保留语言区域的导航工具。
+
+---
+
+## 集中式导航配置
+
+导航基础组件从单一位置导出：
+
+```ts
+// src/i18n/navigation.ts
+import { createNavigation } from 'next-intl/navigation'
+import { locales } from './config'
+
+export const { Link, redirect, usePathname, useRouter } = createNavigation({
+  locales: [...locales],
+})
+```
+
+**始终从 `@/i18n/navigation` 导入**，而不是 `next/link` 或 `next/navigation`。
+
+---
+
+## 带语言区域保留的链接
+
+### 客户端组件
+
+使用 `@/i18n/navigation` 中的 `Link` 组件。它会自动将当前语言区域前缀添加到 `href`：
+
+```tsx
+import { Link } from '@/i18n/navigation'
+
+// 当前语言区域为 "zh" → href 变为 "/zh/dashboard"
+<Link href="/dashboard">仪表盘</Link>
+
+// 当前语言区域为 "en" → href 变为 "/en/settings/profile"
+<Link href="/settings/profile">设置</Link>
+```
+
+**不要**手动拼接语言区域前缀：
+
+```tsx
+// 错误 — 语言区域切换时会失效
+const locale = useLocale()
+<Link href={`/${locale}/dashboard`}>仪表盘</Link>
+```
+
+### 服务端组件
+
+服务端组件同样可以导入 `@/i18n/navigation` 中的 `Link`：
+
+```tsx
+import { Link } from '@/i18n/navigation'
+
+export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params
+  return <Link href="/dashboard">前往仪表盘</Link>
+}
+```
+
+---
+
+## 重定向
+
+### 服务端 Action
+
+服务端 Action 必须使用 `@/i18n/navigation` 中的 `redirect` 函数，传入包含 `href` 和 `locale` 的对象。
+
+```ts
+import { redirect } from '@/i18n/navigation'
+
+export async function signIn(formData: FormData) {
+  // ... 验证、认证 ...
+
+  const locale = normalizeLocale(formData.get('locale'))
+  return redirect({ href: '/dashboard', locale })
+}
+```
+
+**关键：** 务必 `return` `redirect(...)` 调用。`redirect` 返回 `never`，但 TypeScript 只有在调用前加上 `return` 时才会识别到控制流已终止。
+
+```ts
+// 正确 — TypeScript 知道此路径不会返回
+return redirect({ href: '/login', locale })
+
+// 错误 — TS2366: 函数缺少结束 return 语句
+redirect({ href: '/login', locale })
+```
+
+### 服务端组件（布局与页面）
+
+服务端组件中采用相同的模式：
+
+```tsx
+import { redirect } from '@/i18n/navigation'
+
+export default async function ProtectedPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params
+  const user = await getCurrentUser()
+
+  if (!user) {
+    return redirect({ href: '/login', locale })
+  }
+
+  // TypeScript 此时已确定 `user` 非空
+  return <div>欢迎，{user.email}</div>
+}
+```
+
+---
+
+## 程序化导航
+
+### 客户端组件中使用 useRouter
+
+在客户端组件中进行程序化导航时，使用 `@/i18n/navigation` 中的 `useRouter`：
+
+```tsx
+'use client'
+
+import { useRouter } from '@/i18n/navigation'
+
+export function LogoutButton({ locale }: { locale: string }) {
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await fetch('/api/logout', { method: 'POST' })
+    router.push('/login')
+  }
+
+  return <button onClick={handleLogout}>退出登录</button>
+}
+```
+
+next-intl 提供的 `useRouter` 在导航时会保留语言区域。
+
+---
+
+## 语言区域辅助函数
+
+在服务端与客户端之间传递语言区域时（例如通过隐藏表单字段），使用规范化辅助函数：
+
+```ts
+// src/i18n/config.ts
+export const defaultLocale = 'en'
+export const locales = ['en', 'zh'] as const
+export type Locale = (typeof locales)[number]
+
+export function isLocale(value: string): value is Locale {
+  return locales.includes(value as Locale)
+}
+```
+
+```ts
+// 在服务端 Action 中
+import { defaultLocale, isLocale } from '@/i18n/config'
+
+function normalizeLocale(input: FormDataEntryValue | null): string {
+  const locale = typeof input === 'string' ? input : defaultLocale
+  return isLocale(locale) ? locale : defaultLocale
+}
+```
+
+---
+
+## 导入速查表
+
+| 需求            | 从以下位置导入                       | 避免使用             |
+| --------------- | ------------------------------------ | -------------------- |
+| Link 组件       | `@/i18n/navigation`                  | `next/link`          |
+| `redirect()`    | `@/i18n/navigation`                  | `next/navigation`    |
+| `useRouter()`   | `@/i18n/navigation`                  | `next/navigation`    |
+| `usePathname()` | `@/i18n/navigation`                  | `next/navigation`    |
+| 当前语言区域    | `useLocale()`（来自 `next-intl`）    | `useParams().locale` |
+| 语言区域校验    | `isLocale()`（来自 `@/i18n/config`） | 内联字符串检查       |
+
+---
+
+## 常见陷阱
+
+1. **在服务端 Action 中忘记 `return redirect()`** — 导致 TS2366 错误。
+2. **从 `next/link` 导入 `Link`** — 丢失语言区域前缀，链接失效。
+3. **使用 `useParams().locale` 代替 `useLocale()`** — `useParams` 不受 next-intl 类型约束，可能返回错误值。
+4. **手动拼接带语言区域前缀的 href** — next-intl 会自动处理。
+5. **将 `locale` 作为 prop 层层传递** — 在客户端组件中优先使用 `useLocale()`，减少 prop 传递。
+
+---
+
+## 相关文档
+
+- [next-intl 导航文档](https://next-intl.dev/docs/routing)
+- [Next.js App Router](https://nextjs.org/docs/app)
+- 模板源码：`templates/web-nextjs/apps/web/src/i18n/navigation.ts`

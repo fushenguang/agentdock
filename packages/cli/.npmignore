@@ -7,3 +7,5 @@
 #
 # By having a local .npmignore, npm no longer reads the root .gitignore for this package,
 # and the `files` field alone controls inclusion — leaving nested dist/ directories intact.
+!.gitignore
+!.npmrc

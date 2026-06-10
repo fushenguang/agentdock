@@ -1,9 +1,8 @@
 'use client'
 
 import { useActionState, useEffect, useState } from 'react'
-import Link from 'next/link'
-import { useParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
+import { useTranslations, useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { GalleryVerticalEnd } from 'lucide-react'
@@ -19,8 +18,7 @@ import type { SignUpSuccessData } from '@/features/auth/__contract__'
 
 export default function SignupPage() {
   const t = useTranslations('auth')
-  const routeParams = useParams<{ locale: string }>()
-  const locale = routeParams.locale ?? 'en'
+  const locale = useLocale()
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null)
 
   const {
@@ -158,7 +156,7 @@ export default function SignupPage() {
               {t('termsLink')}
             </Link>{' '}
             {t('andText')}{' '}
-            <Link href={`/${locale}/privacy`} className="underline underline-offset-4">
+            <Link href="/privacy" className="underline underline-offset-4">
               {t('privacyLink')}
             </Link>
             .

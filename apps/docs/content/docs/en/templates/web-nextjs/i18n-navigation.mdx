@@ -1,0 +1,207 @@
+---
+title: i18n Navigation
+description: Best practices for internationalized navigation with next-intl in web-nextjs.
+---
+
+# i18n Navigation
+
+This document describes how to handle navigation in the `web-nextjs` template when using `next-intl` for internationalization. It covers the differences between Next.js native navigation and next-intl's navigation system, and provides concrete patterns for links, redirects, and programmatic navigation.
+
+---
+
+## Why next-intl Navigation?
+
+The template uses `next-intl` to support locale-based routing (`/[locale]/...`). Next.js native `next/link` and `next/navigation` are not locale-aware. Using them directly causes links to lose the current locale prefix, leading to 404s or language switching bugs.
+
+`next-intl` provides its own navigation utilities via `createNavigation` that preserve the locale automatically.
+
+---
+
+## Centralized Navigation Configuration
+
+Navigation primitives are exported from a single location:
+
+```ts
+// src/i18n/navigation.ts
+import { createNavigation } from 'next-intl/navigation'
+import { locales } from './config'
+
+export const { Link, redirect, usePathname, useRouter } = createNavigation({
+  locales: [...locales],
+})
+```
+
+**Always import from `@/i18n/navigation`** instead of `next/link` or `next/navigation`.
+
+---
+
+## Linking with Locale Preservation
+
+### Client Components
+
+Use the `Link` component from `@/i18n/navigation`. It automatically prefixes the `href` with the current locale.
+
+```tsx
+import { Link } from '@/i18n/navigation'
+
+// Current locale is "zh" → href becomes "/zh/dashboard"
+<Link href="/dashboard">Dashboard</Link>
+
+// Current locale is "en" → href becomes "/en/settings/profile"
+<Link href="/settings/profile">Settings</Link>
+```
+
+**Do NOT** manually prepend the locale:
+
+```tsx
+// Bad — breaks when locale changes
+const locale = useLocale()
+<Link href={`/${locale}/dashboard`}>Dashboard</Link>
+```
+
+### Server Components
+
+Server components can also import `Link` from `@/i18n/navigation`:
+
+```tsx
+import { Link } from '@/i18n/navigation'
+
+export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params
+  return <Link href="/dashboard">Go to Dashboard</Link>
+}
+```
+
+---
+
+## Redirects
+
+### Server Actions
+
+Server actions must use the `redirect` function from `@/i18n/navigation` with an object containing `href` and `locale`.
+
+```ts
+import { redirect } from '@/i18n/navigation'
+
+export async function signIn(formData: FormData) {
+  // ... validate, authenticate ...
+
+  const locale = normalizeLocale(formData.get('locale'))
+  return redirect({ href: '/dashboard', locale })
+}
+```
+
+**Critical:** Always `return` the `redirect(...)` call. `redirect` returns `never`, but TypeScript only recognizes the control flow termination when the call is preceded by `return`.
+
+```ts
+// Correct — TypeScript knows this path never returns
+return redirect({ href: '/login', locale })
+
+// Wrong — TS2366: Function lacks ending return statement
+redirect({ href: '/login', locale })
+```
+
+### Server Components (Layouts & Pages)
+
+Same pattern in server components:
+
+```tsx
+import { redirect } from '@/i18n/navigation'
+
+export default async function ProtectedPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params
+  const user = await getCurrentUser()
+
+  if (!user) {
+    return redirect({ href: '/login', locale })
+  }
+
+  // TypeScript now knows `user` is non-null
+  return <div>Welcome, {user.email}</div>
+}
+```
+
+---
+
+## Programmatic Navigation
+
+### Client Components with `useRouter`
+
+For programmatic navigation in client components, use `useRouter` from `@/i18n/navigation`:
+
+```tsx
+'use client'
+
+import { useRouter } from '@/i18n/navigation'
+
+export function LogoutButton({ locale }: { locale: string }) {
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await fetch('/api/logout', { method: 'POST' })
+    router.push('/login')
+  }
+
+  return <button onClick={handleLogout}>Log out</button>
+}
+```
+
+`useRouter` from next-intl preserves the locale when navigating.
+
+---
+
+## Locale Helpers
+
+When passing locale between server and client (e.g., via hidden form fields), use a normalization helper:
+
+```ts
+// src/i18n/config.ts
+export const defaultLocale = 'en'
+export const locales = ['en', 'zh'] as const
+export type Locale = (typeof locales)[number]
+
+export function isLocale(value: string): value is Locale {
+  return locales.includes(value as Locale)
+}
+```
+
+```ts
+// In server actions
+import { defaultLocale, isLocale } from '@/i18n/config'
+
+function normalizeLocale(input: FormDataEntryValue | null): string {
+  const locale = typeof input === 'string' ? input : defaultLocale
+  return isLocale(locale) ? locale : defaultLocale
+}
+```
+
+---
+
+## Summary of Imports
+
+| Need              | Import From                       | Avoid                |
+| ----------------- | --------------------------------- | -------------------- |
+| Link component    | `@/i18n/navigation`               | `next/link`          |
+| `redirect()`      | `@/i18n/navigation`               | `next/navigation`    |
+| `useRouter()`     | `@/i18n/navigation`               | `next/navigation`    |
+| `usePathname()`   | `@/i18n/navigation`               | `next/navigation`    |
+| Current locale    | `useLocale()` from `next-intl`    | `useParams().locale` |
+| Locale validation | `isLocale()` from `@/i18n/config` | Inline string checks |
+
+---
+
+## Common Pitfalls
+
+1. **Forgetting `return` before `redirect()` in server actions** — causes TS2366 errors.
+2. **Importing `Link` from `next/link`** — loses locale prefix, links break.
+3. **Using `useParams().locale` instead of `useLocale()`** — `useParams` is not typed by next-intl and may return wrong values.
+4. **Manually constructing locale-prefixed hrefs** — next-intl handles this automatically.
+5. **Passing `locale` as a prop everywhere** — prefer `useLocale()` in client components to reduce prop drilling.
+
+---
+
+## Related Documentation
+
+- [next-intl Navigation Docs](https://next-intl.dev/docs/routing)
+- [Next.js App Router](https://nextjs.org/docs/app)
+- Template source: `templates/web-nextjs/apps/web/src/i18n/navigation.ts`

@@ -1,8 +1,6 @@
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 
-export default async function TermsPage({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params
-
+export default async function TermsPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-2xl font-semibold">Terms of Service</h1>
@@ -10,7 +8,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
         This template page is a placeholder. Replace it with your actual terms before shipping.
       </p>
       <p className="mt-6">
-        <Link href={`/${locale}/signup`} className="underline underline-offset-4">
+        <Link href="/signup" className="underline underline-offset-4">
           Back to sign up
         </Link>
       </p>

@@ -6,23 +6,17 @@ import { HowItWorks } from '@/components/landing/how-it-works'
 import { PricingTeaser } from '@/components/landing/pricing-teaser'
 import { Footer } from '@/components/landing/footer'
 
-export default function HomePage({ params }: { params: Promise<{ locale: string }> }) {
-  return <HomePageContent params={params} />
-}
-
-async function HomePageContent({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params
-
+export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <Header locale={locale} />
+      <Header />
       <main className="flex-1">
-        <Hero locale={locale} />
+        <Hero />
         <Features />
         <HowItWorks />
         <PricingTeaser />
       </main>
-      <Footer locale={locale} />
+      <Footer />
     </div>
   )
 }

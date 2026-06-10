@@ -1,13 +1,9 @@
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
-interface HeroProps {
-  locale: string
-}
-
-export function Hero({ locale }: HeroProps) {
+export function Hero() {
   const t = useTranslations('landing')
 
   return (
@@ -27,7 +23,7 @@ export function Hero({ locale }: HeroProps) {
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Button asChild size="lg" className="min-h-[44px] min-w-[44px] px-8">
-            <Link href={`/${locale}/signup`}>{t('hero.ctaPrimary')}</Link>
+            <Link href="/signup">{t('hero.ctaPrimary')}</Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="min-h-[44px] min-w-[44px] px-8">
             <Link href="/docs">{t('hero.ctaSecondary')}</Link>

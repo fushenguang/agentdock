@@ -1,4 +1,12 @@
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { execSync } from 'child_process'
@@ -91,6 +99,25 @@ function rewritePackageJson(
  * `dangerouslyDisablePackageManagerCheck: true` in turbo.json.
  * If pnpm is not in PATH, the field is left unchanged (template keeps its own value).
  */
+/**
+ * npm hardcodes exclusion of .gitignore and .npmrc from published tarballs.
+ * During build we rename them to _gitignore / _npmrc so they survive publish.
+ * This function renames them back after the template is copied to the target.
+ */
+function restoreDotfiles(dir: string): void {
+  const entries = readdirSync(dir, { withFileTypes: true })
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      restoreDotfiles(fullPath)
+    } else if (entry.name === '_gitignore') {
+      renameSync(fullPath, join(dir, '.gitignore'))
+    } else if (entry.name === '_npmrc') {
+      renameSync(fullPath, join(dir, '.npmrc'))
+    }
+  }
+}
+
 function injectPackageManager(pkgJsonPath: string): void {
   if (!existsSync(pkgJsonPath)) return
   try {
@@ -135,6 +162,9 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
     const sourceDir = getTemplateSourceDir(template.source)
     mkdirSync(targetDir, { recursive: true })
     cpSync(sourceDir, targetDir, { recursive: true })
+
+    // Restore dotfiles that were renamed to survive npm publish
+    restoreDotfiles(targetDir)
 
     // Rewrite root package.json (name, version, remove internal fields)
     const pkgJsonPath = join(targetDir, 'package.json')

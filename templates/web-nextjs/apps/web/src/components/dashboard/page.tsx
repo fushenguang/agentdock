@@ -17,7 +17,7 @@ export default function Page() {
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" user={{ name: 'User', email: '', avatar: '' }} locale="en" />
+      <AppSidebar variant="inset" user={{ name: 'User', email: '', avatar: '' }} />
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col">

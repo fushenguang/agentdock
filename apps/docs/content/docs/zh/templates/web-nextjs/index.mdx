@@ -21,47 +21,50 @@ description: 基于 Next.js 16 的生产级模板，内置 Supabase Auth 和 i18
 
 从零开始构建现代 Web 应用需要做出许多重复性决策：
 
-| 痛点 | web-nextjs 如何解决 |
-|---|---|
-| 认证配置 | 预配置 Supabase Auth，支持邮箱/密码 + OAuth |
-| UI 一致性 | 基于 shadcn/ui 组件和统一的设计令牌 |
-| i18n 复杂性 | 使用 next-intl 实现基于语言区域的路由 |
-| 架构漂移 | 通过 ESLint 规则强制四层结构 |
-| 表单验证 | react-hook-form + Zod 模式定义在共享位置 |
+| 痛点        | web-nextjs 如何解决                         |
+| ----------- | ------------------------------------------- |
+| 认证配置    | 预配置 Supabase Auth，支持邮箱/密码 + OAuth |
+| UI 一致性   | 基于 shadcn/ui 组件和统一的设计令牌         |
+| i18n 复杂性 | 使用 next-intl 实现基于语言区域的路由       |
+| 架构漂移    | 通过 ESLint 规则强制四层结构                |
+| 表单验证    | react-hook-form + Zod 模式定义在共享位置    |
 | AI 助手困惑 | 为 Copilot 提供清晰的目录契约和 `AGENTS.md` |
 
 ## 为什么选择这个模板？
 
 ### 对于个人开发者
+
 - 立即开始构建功能 —— 无需处理样板代码
 - 认证、国际化和 UI 已预先集成
 - Layer 2 规则防止架构错误
 
 ### 对于团队
+
 - 跨项目保持一致的代码结构
 - 轻松上手 —— 新开发者只需学习一种模式
 - AI 助手可以可靠地浏览代码库
 
 ### 对于 AI 编程助手
+
 - `AGENTS.md` 定义执行边界
 - 目录契约告诉 AI 助手代码应该放在哪里
 - OpenSpec 变更提供结构化的规划
 
 ## 技术栈
 
-| 层级 | 技术 |
-|---|---|
-| 框架 | Next.js 16（App Router, Turbopack） |
-| 语言 | TypeScript 5.9 |
-| 认证 | Supabase Auth（邮箱/密码 + GitHub OAuth） |
-| UI | shadcn/ui + Tailwind CSS 4 |
-| 表单 | react-hook-form + Zod |
-| 国际化 | next-intl |
-| 状态 | React Server Components + Server Actions |
-| 图标 | @tabler/icons-react, lucide-react |
-| 通知 | sonner（toast） |
-| 代码检查 | ESLint 9（flat config）+ Prettier |
-| 包管理器 | pnpm 9+ |
+| 层级     | 技术                                      |
+| -------- | ----------------------------------------- |
+| 框架     | Next.js 16（App Router, Turbopack）       |
+| 语言     | TypeScript 5.9                            |
+| 认证     | Supabase Auth（邮箱/密码 + GitHub OAuth） |
+| UI       | shadcn/ui + Tailwind CSS 4                |
+| 表单     | react-hook-form + Zod                     |
+| 国际化   | next-intl                                 |
+| 状态     | React Server Components + Server Actions  |
+| 图标     | @tabler/icons-react, lucide-react         |
+| 通知     | sonner（toast）                           |
+| 代码检查 | ESLint 9（flat config）+ Prettier         |
+| 包管理器 | pnpm 9+                                   |
 
 ## 架构
 
@@ -113,6 +116,7 @@ infra/（仓库实现 - Supabase SDK）
 ## 已完成的功能
 
 ### 认证
+
 - [x] 邮箱/密码登录
 - [x] 邮箱/密码注册及验证流程
 - [x] GitHub OAuth 集成
@@ -122,18 +126,21 @@ infra/（仓库实现 - Supabase SDK）
 - [x] 认证中间件（会话刷新 + 语言区域检测）
 
 ### 用户账户
+
 - [x] 带头像展示的个人资料页面
 - [x] 显示名称更新
 - [x] 邮箱显示（只读）
 - [x] 修改密码入口（重定向至忘记密码页面）
 
 ### 导航
+
 - [x] 可折叠侧边栏，带用户菜单
 - [x] 设置导航（个人资料、帮助、隐私、关于）
 - [x] 清晰的用户导航下拉菜单（账户链接、退出登录）
 - [x] 无占位符 `#` 链接
 
 ### 页面
+
 - [x] 登录页面
 - [x] 带邮箱验证状态的注册页面
 - [x] 仪表盘页面
@@ -145,10 +152,12 @@ infra/（仓库实现 - Supabase SDK）
 - [x] 关于页面（占位符）
 
 ### 国际化
+
 - [x] 英文（en）和中文（zh）语言区域
 - [x] 基于语言区域的 URL 路由（`/[locale]/...`）
 - [x] next-intl 翻译钩子
 - [x] 翻译文件位于 `messages/` 目录
+- [x] 支持 i18n 的导航 — 请参阅 [i18n 导航指南](/zh/docs/templates/web-nextjs/i18n-navigation)
 
 ## 开发工作流
 
@@ -300,5 +309,6 @@ await repo.someMethod()
 ### 认证回调返回错误
 
 确认你的 Supabase 重定向 URL 包含：
+
 - `http://localhost:3000/auth/callback`
 - `https://your-domain.com/auth/callback`

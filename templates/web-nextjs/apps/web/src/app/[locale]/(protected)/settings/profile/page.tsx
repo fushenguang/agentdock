@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
+import { redirect, Link } from '@/i18n/navigation'
 import { getCurrentUser } from '@/features/auth/server'
 import { ProfileForm } from '@/components/profile/profile-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,7 +11,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
   const user = await getCurrentUser()
 
   if (!user) {
-    redirect(`/${locale}/login`)
+    return redirect({ href: '/login', locale })
   }
 
   const displayName = user.user_metadata?.display_name ?? ''
@@ -82,7 +81,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
         </CardHeader>
         <CardContent>
           <Button asChild variant="outline">
-            <Link href={`/${locale}/forgot-password`}>Change Password</Link>
+            <Link href="/forgot-password">Change Password</Link>
           </Button>
         </CardContent>
       </Card>

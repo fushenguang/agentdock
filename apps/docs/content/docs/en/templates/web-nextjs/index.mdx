@@ -21,47 +21,50 @@ A production-ready Next.js 16 web application template with Supabase Auth, shadc
 
 Building a modern web app from scratch involves many repetitive decisions:
 
-| Pain Point | How web-nextjs Helps |
-|---|---|
-| Auth setup | Pre-configured Supabase Auth with email/password + OAuth |
-| UI consistency | shadcn/ui components with unified design tokens |
-| i18n complexity | next-intl with locale-based routing |
-| Architecture drift | Four-layer structure enforced by ESLint rules |
-| Form validation | react-hook-form + Zod schemas in a shared location |
-| AI agent confusion | Clear directory contracts and `AGENTS.md` for Copilot |
+| Pain Point         | How web-nextjs Helps                                     |
+| ------------------ | -------------------------------------------------------- |
+| Auth setup         | Pre-configured Supabase Auth with email/password + OAuth |
+| UI consistency     | shadcn/ui components with unified design tokens          |
+| i18n complexity    | next-intl with locale-based routing                      |
+| Architecture drift | Four-layer structure enforced by ESLint rules            |
+| Form validation    | react-hook-form + Zod schemas in a shared location       |
+| AI agent confusion | Clear directory contracts and `AGENTS.md` for Copilot    |
 
 ## Why This Template?
 
 ### For Solo Developers
+
 - Start building features immediately — no boilerplate setup
 - Auth, i18n, and UI are pre-integrated
 - Layer 2 rules prevent architectural mistakes
 
 ### For Teams
+
 - Consistent structure across projects
 - Easy onboarding — new devs learn one pattern
 - AI agents can navigate the codebase reliably
 
 ### For AI Coding Assistants
+
 - `AGENTS.md` defines execution boundaries
 - Directory contract tells agents where to put code
 - OpenSpec changes provide structured planning
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 16 (App Router, Turbopack) |
-| Language | TypeScript 5.9 |
-| Auth | Supabase Auth (email/password + GitHub OAuth) |
-| UI | shadcn/ui + Tailwind CSS 4 |
-| Forms | react-hook-form + Zod |
-| i18n | next-intl |
-| State | React Server Components + Server Actions |
-| Icons | @tabler/icons-react, lucide-react |
-| Notifications | sonner (toast) |
-| Linting | ESLint 9 (flat config) + Prettier |
-| Package Manager | pnpm 9+ |
+| Layer           | Technology                                    |
+| --------------- | --------------------------------------------- |
+| Framework       | Next.js 16 (App Router, Turbopack)            |
+| Language        | TypeScript 5.9                                |
+| Auth            | Supabase Auth (email/password + GitHub OAuth) |
+| UI              | shadcn/ui + Tailwind CSS 4                    |
+| Forms           | react-hook-form + Zod                         |
+| i18n            | next-intl                                     |
+| State           | React Server Components + Server Actions      |
+| Icons           | @tabler/icons-react, lucide-react             |
+| Notifications   | sonner (toast)                                |
+| Linting         | ESLint 9 (flat config) + Prettier             |
+| Package Manager | pnpm 9+                                       |
 
 ## Architecture
 
@@ -113,6 +116,7 @@ This ensures business logic stays independent of infrastructure details. Use rep
 ## Completed Features
 
 ### Authentication
+
 - [x] Email/password sign-in
 - [x] Email/password sign-up with verification flow
 - [x] GitHub OAuth integration
@@ -122,18 +126,21 @@ This ensures business logic stays independent of infrastructure details. Use rep
 - [x] Auth middleware (session refresh + locale detection)
 
 ### User Account
+
 - [x] Profile page with avatar display
 - [x] Display name update
 - [x] Email display (read-only)
 - [x] Password change entry point (redirects to forgot-password)
 
 ### Navigation
+
 - [x] Collapsible sidebar with user menu
 - [x] Settings navigation (profile, help, privacy, about)
 - [x] Clean nav-user dropdown (Account link, Log out)
 - [x] No placeholder `#` links
 
 ### Pages
+
 - [x] Login page
 - [x] Sign-up page with email verification state
 - [x] Dashboard page
@@ -145,10 +152,12 @@ This ensures business logic stays independent of infrastructure details. Use rep
 - [x] About page (placeholder)
 
 ### Internationalization
+
 - [x] English (en) and Chinese (zh) locales
 - [x] Locale-based URL routing (`/[locale]/...`)
 - [x] next-intl translation hooks
 - [x] Translation files in `messages/`
+- [x] i18n-aware navigation — see [i18n Navigation Guide](/en/docs/templates/web-nextjs/i18n-navigation)
 
 ## Development Workflow
 
@@ -300,5 +309,6 @@ Check your `tsconfig.json` paths configuration:
 ### Auth callback returns error
 
 Verify your Supabase redirect URLs include:
+
 - `http://localhost:3000/auth/callback`
 - `https://your-domain.com/auth/callback`

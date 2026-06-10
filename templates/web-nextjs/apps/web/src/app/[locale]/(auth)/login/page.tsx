@@ -1,9 +1,9 @@
 'use client'
 
 import { useActionState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useRouter } from '@/i18n/navigation'
+import { Link } from '@/i18n/navigation'
+import { useTranslations, useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { GalleryVerticalEnd } from 'lucide-react'
@@ -25,8 +25,7 @@ import type { ActionResult } from '@/core/types/auth'
 export default function LoginPage() {
   const t = useTranslations('auth')
   const router = useRouter()
-  const routeParams = useParams<{ locale: string }>()
-  const locale = routeParams.locale ?? 'en'
+  const locale = useLocale()
 
   const {
     register,
@@ -136,7 +135,7 @@ export default function LoginPage() {
                     </Button>
                     <FieldDescription className="text-center">
                       {t('noAccountText')}{' '}
-                      <Link href={`/${locale}/signup`} className="underline underline-offset-4">
+                      <Link href="/signup" className="underline underline-offset-4">
                         {t('signUpLink')}
                       </Link>
                     </FieldDescription>

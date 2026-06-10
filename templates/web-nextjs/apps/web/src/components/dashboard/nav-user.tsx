@@ -1,6 +1,7 @@
 'use client'
 
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
+import { useLocale } from 'next-intl'
 import { IconDotsVertical, IconLogout, IconUserCircle } from '@tabler/icons-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -23,16 +24,15 @@ import { signOut } from '@/features/auth'
 
 export function NavUser({
   user,
-  locale,
 }: {
   user: {
     name: string
     email: string
     avatar: string
   }
-  locale: string
 }) {
   const { isMobile } = useSidebar()
+  const locale = useLocale()
 
   return (
     <SidebarMenu>
@@ -75,10 +75,7 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link
-                  href={`/${locale}/settings/profile`}
-                  className="flex w-full items-center gap-2"
-                >
+                <Link href="/settings/profile" className="flex w-full items-center gap-2">
                   <IconUserCircle />
                   Account
                 </Link>

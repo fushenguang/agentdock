@@ -17,7 +17,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "pnpm run generate-registry && bun build bin/agentdock.ts --outfile dist/index.js --target node && cp src/registry.json dist/registry.json && rm -rf dist/templates && mkdir -p dist/templates && rsync -a --exclude='node_modules/' --exclude='.next/' --exclude='.turbo/' ../../templates/ dist/templates/",
+    "build": "pnpm run generate-registry && bun build bin/agentdock.ts --outfile dist/index.js --target node && cp src/registry.json dist/registry.json && rm -rf dist/templates && mkdir -p dist/templates && rsync -a --exclude='node_modules/' --exclude='.next/' --exclude='.turbo/' ../../templates/ dist/templates/ && find dist/templates -name '.gitignore' -exec sh -c 'mv \"$1\" \"${1%/*}/_gitignore\"' _ {} \\; && find dist/templates -name '.npmrc' -exec sh -c 'mv \"$1\" \"${1%/*}/_npmrc\"' _ {} \\;",
     "generate-registry": "tsx ../../scripts/generate-registry/index.ts",
     "check-types": "tsc --noEmit",
     "test": "vitest run"

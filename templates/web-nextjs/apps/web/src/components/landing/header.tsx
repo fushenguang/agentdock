@@ -1,24 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 import { useTranslations } from 'next-intl'
 import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
-interface HeaderProps {
-  locale: string
-}
-
-export function Header({ locale }: HeaderProps) {
+export function Header() {
   const t = useTranslations('landing')
   const [open, setOpen] = useState(false)
 
   const navLinks = [
-    { href: `/${locale}/#features`, label: t('nav.features') },
-    { href: `/${locale}/#pricing`, label: t('nav.pricing') },
+    { href: '/#features', label: t('nav.features') },
+    { href: '/#pricing', label: t('nav.pricing') },
     { href: '/docs', label: t('nav.docs') },
   ]
 
@@ -26,7 +22,7 @@ export function Header({ locale }: HeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="mx-auto flex h-(--header-height, 4rem) max-w-7xl items-center justify-between px-4 md:px-6">
         {/* Logo */}
-        <Link href={`/${locale}`} className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <span className="text-lg font-semibold tracking-tight">AgentDock</span>
         </Link>
 
@@ -47,10 +43,10 @@ export function Header({ locale }: HeaderProps) {
         <div className="hidden items-center gap-2 md:flex">
           <ThemeToggle />
           <Button variant="ghost" asChild size="sm" className="min-h-[44px]">
-            <Link href={`/${locale}/login`}>{t('nav.login')}</Link>
+            <Link href="/login">{t('nav.login')}</Link>
           </Button>
           <Button asChild size="sm" className="min-h-[44px]">
-            <Link href={`/${locale}/signup`}>{t('nav.getStarted')}</Link>
+            <Link href="/signup">{t('nav.getStarted')}</Link>
           </Button>
         </div>
 
@@ -78,12 +74,12 @@ export function Header({ locale }: HeaderProps) {
                 ))}
                 <hr className="my-2" />
                 <Button asChild className="w-full min-h-[44px]">
-                  <Link href={`/${locale}/signup`} onClick={() => setOpen(false)}>
+                  <Link href="/signup" onClick={() => setOpen(false)}>
                     {t('nav.getStarted')}
                   </Link>
                 </Button>
                 <Button variant="outline" asChild className="w-full min-h-[44px]">
-                  <Link href={`/${locale}/login`} onClick={() => setOpen(false)}>
+                  <Link href="/login" onClick={() => setOpen(false)}>
                     {t('nav.login')}
                   </Link>
                 </Button>

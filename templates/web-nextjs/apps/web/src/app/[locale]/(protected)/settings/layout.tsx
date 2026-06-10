@@ -1,8 +1,7 @@
 'use client'
 
 import { ReactNode } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { Link, usePathname } from '@/i18n/navigation'
 import { useTranslations } from 'next-intl'
 import { User, CreditCard } from 'lucide-react'
 import { cn } from '@/lib/utils'

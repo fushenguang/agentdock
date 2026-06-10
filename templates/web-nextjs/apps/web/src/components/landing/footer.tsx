@@ -1,19 +1,15 @@
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 import { useTranslations } from 'next-intl'
 import { IconBrandGithub } from '@tabler/icons-react'
 
-interface FooterProps {
-  locale: string
-}
-
-export function Footer({ locale }: FooterProps) {
+export function Footer() {
   const t = useTranslations('landing')
   const year = new Date().getFullYear()
 
   const links = [
-    { href: `/${locale}/help`, label: t('footer.help') },
-    { href: `/${locale}/privacy`, label: t('footer.privacy') },
-    { href: `/${locale}/about`, label: t('footer.about') },
+    { href: '/help', label: t('footer.help') },
+    { href: '/privacy', label: t('footer.privacy') },
+    { href: '/about', label: t('footer.about') },
   ]
 
   return (

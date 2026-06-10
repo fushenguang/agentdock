@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+import { redirect } from '@/i18n/navigation'
 import { getCurrentUser } from '@/features/auth/server'
 
 export default async function ProtectedLayout({
@@ -12,7 +12,7 @@ export default async function ProtectedLayout({
   const user = await getCurrentUser()
 
   if (!user) {
-    redirect(`/${locale}/login`)
+    redirect({ href: '/login', locale })
   }
 
   return <>{children}</>

@@ -27,7 +27,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" user={userInfo} locale={locale} />
+      <AppSidebar variant="inset" user={userInfo} />
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col">

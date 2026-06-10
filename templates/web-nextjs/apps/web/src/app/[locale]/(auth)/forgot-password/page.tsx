@@ -1,9 +1,8 @@
 'use client'
 
 import { useActionState, useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
+import { useTranslations, useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { GalleryVerticalEnd } from 'lucide-react'
@@ -18,8 +17,7 @@ import type { ActionResult } from '@/core/types/auth'
 
 export default function ForgotPasswordPage() {
   const t = useTranslations('auth')
-  const routeParams = useParams<{ locale: string }>()
-  const locale = routeParams.locale ?? 'en'
+  const locale = useLocale()
   const [step, setStep] = useState<'send' | 'verify'>('send')
   const [email, setEmail] = useState('')
   const [countdown, setCountdown] = useState(0)
@@ -102,7 +100,7 @@ export default function ForgotPasswordPage() {
     return (
       <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
         <div className="flex w-full max-w-sm flex-col gap-6">
-          <Link href={`/${locale}`} className="flex items-center gap-2 self-center font-medium">
+          <Link href="/" className="flex items-center gap-2 self-center font-medium">
             <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <GalleryVerticalEnd className="size-4" />
             </div>
@@ -137,7 +135,7 @@ export default function ForgotPasswordPage() {
                       {isSendPending ? '\u2026' : t('sendVerificationCode')}
                     </Button>
                     <FieldDescription className="text-center">
-                      <Link href={`/${locale}/login`} className="underline underline-offset-4">
+                      <Link href="/login" className="underline underline-offset-4">
                         {t('backToLogin')}
                       </Link>
                     </FieldDescription>

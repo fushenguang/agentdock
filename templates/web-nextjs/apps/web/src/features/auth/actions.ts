@@ -1,6 +1,6 @@
 'use server'
 
-import { redirect } from 'next/navigation'
+import { redirect } from '@/i18n/navigation'
 import { getAuthRepository } from '@/infra/providers'
 import {
   signInSchema,
@@ -40,7 +40,7 @@ export async function signIn(
   }
 
   const locale = normalizeLocale(formData.get('locale'))
-  redirect(`/${locale}/dashboard`)
+  return redirect({ href: '/dashboard', locale })
 }
 
 export async function signUp(
@@ -71,7 +71,7 @@ export async function signOut(formData: FormData): Promise<void> {
   const repo = getAuthRepository()
   await repo.signOut()
   const locale = normalizeLocale(formData.get('locale'))
-  redirect(`/${locale}/login`)
+  return redirect({ href: '/login', locale })
 }
 
 export async function signInWithGithub(): Promise<ActionResult<OAuthData>> {
@@ -136,7 +136,7 @@ export async function resetPassword(
   }
 
   const locale = normalizeLocale(formData.get('locale'))
-  redirect(`/${locale}/login`)
+  return redirect({ href: '/login', locale })
 }
 
 export async function updateDisplayName(
@@ -207,5 +207,5 @@ export async function resetPasswordWithOTP(
   }
 
   const locale = normalizeLocale(formData.get('locale'))
-  redirect(`/${locale}/login`)
+  return redirect({ href: '/login', locale })
 }

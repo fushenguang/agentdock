@@ -1,9 +1,9 @@
 'use client'
 
 import { useActionState, useEffect } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useSearchParams } from 'next/navigation'
+import { Link } from '@/i18n/navigation'
+import { useTranslations, useLocale } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { GalleryVerticalEnd } from 'lucide-react'
@@ -18,9 +18,8 @@ import type { ActionResult } from '@/core/types/auth'
 
 export default function ResetPasswordPage() {
   const t = useTranslations('auth')
-  const routeParams = useParams<{ locale: string }>()
   const searchParams = useSearchParams()
-  const locale = routeParams.locale ?? 'en'
+  const locale = useLocale()
   const error = searchParams.get('error')
 
   const {
@@ -100,7 +99,7 @@ export default function ResetPasswordPage() {
                     {isPending ? '\u2026' : t('resetPasswordButton')}
                   </Button>
                   <FieldDescription className="text-center">
-                    <Link href={`/${locale}/login`} className="underline underline-offset-4">
+                    <Link href="/login" className="underline underline-offset-4">
                       {t('backToLogin')}
                     </Link>
                   </FieldDescription>
