@@ -18,10 +18,11 @@
     "changeset:publish": "changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.31.0",
     "@cogito.ai/eslint-config": "workspace:*",
     "@cogito.ai/tsconfig": "workspace:*",
-    "@changesets/cli": "^2.31.0",
     "@secretlint/secretlint-rule-preset-recommend": "^9.0.0",
+    "@types/node": "^25.9.3",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "dependency-cruiser": "^16.0.0",

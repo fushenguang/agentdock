@@ -1,0 +1,115 @@
+---
+title: DeepSeek v4 Pro 编码能力预评估（2026-06-11）
+description: 基于 change fix-template-routing-and-cli-data-layer 的真实代码改动进行预评估（小样本）
+---
+
+# DeepSeek v4 Pro 编码能力预评估（小样本）
+
+## 评估范围
+
+- 样本来源：change fix-template-routing-and-cli-data-layer（规划由 Claude Sonnet 4.6 完成，实现由 Cline + deepseek v4 pro 完成）
+- 核心改动面：
+  - CLI 参数与交互扩展（data-layer、schema）
+  - 脚手架 SQL 占位符替换（**SCHEMA**）
+  - web-nextjs 模板路由与文档跳转修复
+  - Supabase migration 表名 schema 化
+- 证据类型：真实代码 diff + 静态审查 + 命令验证
+
+## 验证结果（可复核）
+
+- OpenSpec 校验：通过
+  - 命令：openspec validate fix-template-routing-and-cli-data-layer
+  - 结果：Change 'fix-template-routing-and-cli-data-layer' is valid
+- CLI 类型检查：通过
+  - 命令：pnpm --filter @cogito.ai/cli check-types
+  - 结果：tsc --noEmit 通过
+- 说明：本次未进行完整端到端手工回归（例如实际 init 产物运行与页面点击流），因此结论为预评估，不等价于发布验收。
+
+## 代码审查发现（按严重级别）
+
+### 高风险
+
+1. Agent 模式默认值与描述不一致，会导致 schema 替换默认不生效
+
+- 现象：命令参数描述写的是 data layer 默认 supabase，但实现只有当显式传入 data-layer=supabase 才会注入 schema。
+- 影响：在 agent 模式下，如果用户不传 data-layer，生成项目中的 SQL 仍保留 **SCHEMA**，与预期默认 public 不一致。
+- 证据：
+  - 参数描述为默认 supabase：[packages/cli/src/commands/init.ts](packages/cli/src/commands/init.ts#L35)
+  - 实际传递 dataLayer 为可选值，无默认化：[packages/cli/src/commands/init.ts](packages/cli/src/commands/init.ts#L57)
+  - 仅在 dataLayer === supabase 时注入 schema：[packages/cli/src/adapters/agent.ts](packages/cli/src/adapters/agent.ts#L85)
+
+### 中风险
+
+2. Auth 页面仍有手动 locale 拼接残留，和 i18n Link 自动前缀机制不一致
+
+- 现象：signup/login/forgot/reset 中仍存在 href=/${locale} 或 href=/${locale}/terms。
+- 影响：在 next-intl createNavigation 下，手动拼接 locale 可能引发重复前缀或路由不一致，属于潜在回归点。
+- 证据：
+  - i18n Link 来源于 createNavigation（自动 locale）：[templates/web-nextjs/apps/web/src/i18n/navigation.ts](templates/web-nextjs/apps/web/src/i18n/navigation.ts#L4)
+  - 残留手动拼接示例：[templates/web-nextjs/apps/web/src/app/[locale]/(auth)/signup/page.tsx](<templates/web-nextjs/apps/web/src/app/[locale]/(auth)/signup/page.tsx#L46>)
+  - 残留 terms 手动拼接：[templates/web-nextjs/apps/web/src/app/[locale]/(auth)/signup/page.tsx](<templates/web-nextjs/apps/web/src/app/[locale]/(auth)/signup/page.tsx#L155>)
+  - login 中同类写法：[templates/web-nextjs/apps/web/src/app/[locale]/(auth)/login/page.tsx](<templates/web-nextjs/apps/web/src/app/[locale]/(auth)/login/page.tsx#L56>)
+
+### 低风险
+
+3. 命名细节可读性问题
+
+- 现象：replaceSchemePlaceholder 命名应为 replaceSchemaPlaceholder（拼写语义不一致）。
+- 影响：不影响运行，但影响长期可维护性与代码沟通成本。
+- 证据：[packages/cli/src/core/scaffold.ts](packages/cli/src/core/scaffold.ts#L123)
+
+## 正向能力表现
+
+1. 能正确完成跨层改动
+
+- CLI 参数层、adapter 层、core scaffold 层联动较完整。
+- 证据：
+  - 新增 args：[packages/cli/src/commands/init.ts](packages/cli/src/commands/init.ts#L35)
+  - human adapter 采集 schema：[packages/cli/src/adapters/human.ts](packages/cli/src/adapters/human.ts#L64)
+  - scaffold 执行占位符替换：[packages/cli/src/core/scaffold.ts](packages/cli/src/core/scaffold.ts#L194)
+
+2. 安全与配置意识基本到位
+
+- Hero 外链使用新窗口并包含 noopener/noreferrer。
+- docs URL 可通过环境变量覆盖。
+- 证据：[templates/web-nextjs/apps/web/src/components/landing/hero.tsx](templates/web-nextjs/apps/web/src/components/landing/hero.tsx#L30)
+
+3. SQL schema 化替换覆盖面较全
+
+- create table、alter table、policy on、references、seed insert 均已带 **SCHEMA** 前缀。
+- 证据：
+  - 订阅表定义：[templates/web-nextjs/supabase/migrations/20250608_add_subscription_tables.sql](templates/web-nextjs/supabase/migrations/20250608_add_subscription_tables.sql#L7)
+  - 关联引用：[templates/web-nextjs/supabase/migrations/20250608_add_subscription_tables.sql](templates/web-nextjs/supabase/migrations/20250608_add_subscription_tables.sql#L44)
+  - seed 语句：[templates/web-nextjs/supabase/migrations/20250608_add_subscription_tables.sql](templates/web-nextjs/supabase/migrations/20250608_add_subscription_tables.sql#L121)
+
+## 预评估结论（小样本）
+
+结论：在本次真实改动样本中，deepseek v4 pro 的编码能力达到 可用到中上 水平，适合在有明确 OpenSpec 任务约束下承担功能实现；但在默认值一致性、路由机制细节对齐方面仍需要稳定的人类 review 闸门。
+
+建议评分（仅限本样本，不外推）：
+
+- 需求实现完整度：8.0/10
+- 代码工程化质量：7.5/10
+- 细节一致性与回归风险控制：6.5/10
+- 综合建议：7.3/10（可用，需 review + 验收）
+
+## 实施建议
+
+1. 保留当前工作流
+
+- 继续采用 Claude 规划 + deepseek 实现 + 人类/高可靠模型 review 的三段式。
+
+2. 为该类改动补两类回归检查
+
+- Agent 模式默认参数回归（未传 data-layer 时 schema 应按默认策略生效）
+- i18n Link 路由回归（禁止手动 locale 拼接）
+
+3. 在任务模板中新增一致性检查项
+
+- 参数描述中的默认值必须与运行时默认逻辑一致。
+- 使用 i18n Link 时禁止 href 手工拼接 /${locale}。
+
+## 评估边界声明
+
+- 这是单 change、小样本预评估，不代表 deepseek v4 pro 在高并发、复杂重构、多包大迁移场景下的稳定性上限。
+- 若用于采购或全面替换决策，至少再补 2 个不同类型样本（例如支付流程改造、跨包重构）后再做最终判断。

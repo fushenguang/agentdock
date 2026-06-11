@@ -36,6 +36,11 @@ Landing page MUST 包含以下 Section（从上到下）：
 - **WHEN** 用户点击 Hero 区的主 CTA 按钮
 - **THEN** 跳转到 `/${locale}/signup`
 
+#### Scenario: 点击「查看文档」跳转到独立文档站
+
+- **WHEN** 用户在首页点击「查看文档」
+- **THEN** 在新标签页打开 `NEXT_PUBLIC_DOCS_URL` 指定的文档地址，默认 `http://localhost:3001/docs`，不修改当前页 locale 路由
+
 #### Scenario: landing page 在移动端（375px）可用
 
 - **WHEN** 在 375px 宽度视口访问 landing page

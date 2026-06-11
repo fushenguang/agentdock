@@ -2,9 +2,9 @@
 -- Created: 2025-06-08
 
 -- ============================================
--- subscription_plans: plan catalog
+-- __SCHEMA__.subscription_plans: plan catalog
 -- ============================================
-create table if not exists subscription_plans (
+create table if not exists __SCHEMA__.subscription_plans (
   id serial primary key,
   plan_code text not null unique,
   plan_name text not null,
@@ -20,28 +20,28 @@ create table if not exists subscription_plans (
 );
 
 -- Enable RLS
-alter table subscription_plans enable row level security;
+alter table __SCHEMA__.subscription_plans enable row level security;
 
 -- RLS policies: all authenticated users can SELECT
  create policy "Allow authenticated select on subscription_plans"
-  on subscription_plans for select
+  on __SCHEMA__.subscription_plans for select
   to authenticated
   using (true);
 
 -- service_role only for INSERT/UPDATE/DELETE
  create policy "Allow service_role all on subscription_plans"
-  on subscription_plans for all
+  on __SCHEMA__.subscription_plans for all
   to service_role
   using (true)
   with check (true);
 
 -- ============================================
--- user_subscriptions: user subscription records
+-- __SCHEMA__.user_subscriptions: user subscription records
 -- ============================================
-create table if not exists user_subscriptions (
+create table if not exists __SCHEMA__.user_subscriptions (
   id serial primary key,
   user_id uuid references auth.users not null,
-  plan_id int references subscription_plans(id) not null,
+  plan_id int references __SCHEMA__.subscription_plans(id) not null,
   status text not null default 'pending' check (status in ('trial', 'active', 'expired', 'cancelled', 'pending')),
   billing_cycle text not null default 'monthly' check (billing_cycle in ('monthly', 'yearly')),
   current_period_start timestamptz,
@@ -56,34 +56,34 @@ create table if not exists user_subscriptions (
 );
 
 -- Enable RLS
-alter table user_subscriptions enable row level security;
+alter table __SCHEMA__.user_subscriptions enable row level security;
 
 -- Users can only SELECT their own records
  create policy "Allow users select own subscriptions"
-  on user_subscriptions for select
+  on __SCHEMA__.user_subscriptions for select
   to authenticated
   using (user_id = auth.uid());
 
 -- Users can UPDATE their own records (for cancel_at_period_end)
  create policy "Allow users update own subscriptions"
-  on user_subscriptions for update
+  on __SCHEMA__.user_subscriptions for update
   to authenticated
   using (user_id = auth.uid());
 
 -- service_role for INSERT
  create policy "Allow service_role all on user_subscriptions"
-  on user_subscriptions for all
+  on __SCHEMA__.user_subscriptions for all
   to service_role
   using (true)
   with check (true);
 
 -- ============================================
--- payments: payment records
+-- __SCHEMA__.payments: payment records
 -- ============================================
-create table if not exists payments (
+create table if not exists __SCHEMA__.payments (
   id serial primary key,
   user_id uuid references auth.users not null,
-  subscription_id int references user_subscriptions(id),
+  subscription_id int references __SCHEMA__.user_subscriptions(id),
   order_no text not null unique,
   amount int not null,
   currency text default 'CNY',
@@ -100,17 +100,17 @@ create table if not exists payments (
 );
 
 -- Enable RLS
-alter table payments enable row level security;
+alter table __SCHEMA__.payments enable row level security;
 
 -- Users can SELECT their own payment records
  create policy "Allow users select own payments"
-  on payments for select
+  on __SCHEMA__.payments for select
   to authenticated
   using (user_id = auth.uid());
 
 -- service_role for INSERT/UPDATE
  create policy "Allow service_role all on payments"
-  on payments for all
+  on __SCHEMA__.payments for all
   to service_role
   using (true)
   with check (true);
@@ -118,7 +118,7 @@ alter table payments enable row level security;
 -- ============================================
 -- Seed data: Free + Pro plans
 -- ============================================
-insert into subscription_plans (plan_code, plan_name, description, price_monthly, price_yearly, features, display_order, is_active, is_featured)
+insert into __SCHEMA__.subscription_plans (plan_code, plan_name, description, price_monthly, price_yearly, features, display_order, is_active, is_featured)
 values
   ('free', 'Free', '基础免费方案', 0, 0, '{"maxProjects": 3, "maxApiCalls": 1000}'::jsonb, 1, true, false),
   ('pro', 'Pro', '专业版方案', 3900, 29900, '{"maxProjects": 50, "maxApiCalls": 100000, "prioritySupport": true}'::jsonb, 2, true, true)

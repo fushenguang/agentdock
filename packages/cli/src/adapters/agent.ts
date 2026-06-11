@@ -10,6 +10,10 @@ export interface AgentAdapterOptions {
   json?: boolean
   /** Explicit target directory. Absolute or relative to cwd. Defaults to ./<name>. */
   dir?: string
+  /** Data layer selection: 'supabase' | 'drizzle'. Defaults to undefined (no SQL schema replacement). */
+  dataLayer?: 'supabase' | 'drizzle' | undefined
+  /** Supabase schema name. Defaults to 'public' when dataLayer is 'supabase'. */
+  schema?: string
 }
 
 function emit(obj: unknown, json: boolean): void {
@@ -19,7 +23,16 @@ function emit(obj: unknown, json: boolean): void {
 }
 
 export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> {
-  const { name, template: templateId, pm, silent = false, json = false, dir } = opts
+  const {
+    name,
+    template: templateId,
+    pm,
+    silent = false,
+    json = false,
+    dir,
+    dataLayer,
+    schema,
+  } = opts
 
   const output = json || silent
 
@@ -64,11 +77,13 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
     console.log(`Scaffolding project "${name}" using template "${templateId}"...`)
   }
 
+  const effectiveDataLayer = dataLayer ?? 'supabase'
   const result = scaffoldProject({
     targetDir,
     name,
     template,
     packageManager: (pm as 'pnpm' | 'npm' | 'yarn' | 'bun') ?? 'pnpm',
+    ...(effectiveDataLayer === 'supabase' ? { schema: schema ?? 'public' } : {}),
   })
 
   if (output) {

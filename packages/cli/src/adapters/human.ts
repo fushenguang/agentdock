@@ -49,6 +49,41 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
     process.exit(0)
   }
 
+  const dataLayer = await p.select({
+    message: 'Select a data layer',
+    options: [
+      { value: 'supabase', label: 'supabase', hint: 'recommended' },
+      { value: 'drizzle', label: 'drizzle', hint: 'coming soon' },
+    ],
+  })
+
+  if (p.isCancel(dataLayer)) {
+    p.cancel('Cancelled.')
+    process.exit(0)
+  }
+
+  let schemaName: string | undefined = undefined
+  if (dataLayer === 'supabase') {
+    const schemaInput = await p.text({
+      message: 'Supabase schema name',
+      placeholder: 'public',
+      defaultValue: 'public',
+      validate(value) {
+        const v = value.trim() || 'public'
+        if (!/^[a-z_][a-z0-9_]*$/.test(v))
+          return 'Schema name must be lowercase letters, numbers, or underscores, starting with a letter or underscore'
+        return undefined
+      },
+    })
+
+    if (p.isCancel(schemaInput)) {
+      p.cancel('Cancelled.')
+      process.exit(0)
+    }
+
+    schemaName = (schemaInput as string).trim() || 'public'
+  }
+
   const pm = await p.select<PackageManager>({
     message: 'Package manager',
     options: [
@@ -93,6 +128,7 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
     name: projectName as string,
     template,
     packageManager: pm as PackageManager,
+    ...(schemaName !== undefined ? { schema: schemaName } : {}),
   })
 
   if (!result.ok) {

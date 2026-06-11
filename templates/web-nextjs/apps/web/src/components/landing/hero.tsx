@@ -26,7 +26,13 @@ export function Hero() {
             <Link href="/signup">{t('hero.ctaPrimary')}</Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="min-h-[44px] min-w-[44px] px-8">
-            <Link href="/docs">{t('hero.ctaSecondary')}</Link>
+            <a
+              href={process.env.NEXT_PUBLIC_DOCS_URL ?? 'http://localhost:3001/docs'}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t('hero.ctaSecondary')}
+            </a>
           </Button>
         </div>
       </div>
