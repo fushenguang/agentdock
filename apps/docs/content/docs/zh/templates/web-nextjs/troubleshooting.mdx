@@ -1,0 +1,149 @@
+---
+title: 故障排查
+description: web-nextjs 模板常见问题排查指南，涵盖认证、路由、支付和数据层问题。
+---
+
+# 故障排查
+
+## 认证相关
+
+### "Direct DB access in features is not allowed"
+
+你在功能文件中从 `@/infra/db/client` 导入。请改用仓库模式：
+
+```ts
+// 错误 —— 在 src/features/auth/actions.ts 中
+import { getServerClient } from '@/infra/db/client'
+
+// 正确
+import { getAuthRepository } from '@/infra/providers'
+const repo = getAuthRepository()
+await repo.someMethod()
+```
+
+### "Module not found: Can't resolve '@/xxx'"
+
+检查你的 `tsconfig.json` 路径配置：
+
+```json
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
+
+### 认证回调返回错误
+
+确认你的 Supabase 重定向 URL 包含：
+
+- `http://localhost:3000/auth/callback`
+- `https://your-domain.com/auth/callback`
+
+## 路由和 i18n 相关
+
+### 链接跳转到 `/zh/zh/xxx` 双 locale
+
+原因：在 i18n `Link` 的 `href` 中手动拼接了 `/{locale}/`。
+
+**解决**：改为 `href="/xxx"`，`next-intl` 的 `Link` 组件会自动添加当前语言前缀。
+
+```tsx
+// 错误
+<Link href={`/${locale}/settings`}>设置</Link>
+
+// 正确
+<Link href="/settings">设置</Link>
+```
+
+### 文档链接跳转 404
+
+检查 `NEXT_PUBLIC_DOCS_URL` 环境变量是否配置正确：
+
+```bash
+# 本地开发
+NEXT_PUBLIC_DOCS_URL=http://localhost:3002
+
+# 生产环境
+NEXT_PUBLIC_DOCS_URL=https://docs.your-domain.com
+```
+
+## 支付相关
+
+### 支付宝回调收不到
+
+1. 检查 `ALIPAY_NOTIFY_URL` 是否公网可访问
+2. 确认已启动内网穿透工具（natapp/cpolar）
+3. 检查 `.env.local` 中 URL 是 HTTPS 且指向正确的路径
+
+### 支付宝验签失败（`ISV.INVALID-SIGNATURE`）
+
+1. 在支付宝开放平台确认使用的是「**支付宝公钥**」而非「应用公钥」
+2. 检查公钥字符串格式（不含 PEM header/footer）
+3. 确认 APPID 与密钥匹配
+
+### 微信支付 `SIGNERROR`
+
+1. 私钥格式必须是 **PKCS8**（`-----BEGIN PRIVATE KEY-----`），而非 PKCS1（`-----BEGIN RSA PRIVATE KEY-----`）
+2. 可使用 OpenSSL 转换：`openssl pkcs8 -topk8 -inform PEM -in rsa_private_key.pem -outform PEM -nocrypt -out private_key.p8`
+
+### 微信回调验签失败
+
+1. 确认用的是「**微信支付平台公钥**」（不是商户证书中的公钥）
+2. 检查 `Wechatpay-Serial` 请求头是否与平台证书序列号一致
+3. 确认用 `await req.text()` 读取原始请求体（不能解析为 JSON）
+
+### 支付记录状态没有更新
+
+1. 检查 `SERVICE_ROLE_KEY` 是否正确
+2. 检查数据库 RLS 策略是否允许 insert/update 到 `payments` 表
+3. 在 Supabase Studio → SQL Editor 测试：
+   ```sql
+   SELECT * FROM payments ORDER BY created_at DESC LIMIT 10;
+   ```
+
+## Supabase 相关
+
+### RLS 导致查询返回空
+
+1. 在 Supabase Studio → Authentication → Policies 检查 policy 定义
+2. 临时用 `SERVICE_ROLE_KEY` 测试（绕过 RLS）
+3. 确认表已启用 RLS：
+   ```sql
+   SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public';
+   ```
+
+### 自部署 Supabase 邮件收不到
+
+1. 检查 SMTP 配置（特别是 `SMTP_HOST`、`SMTP_PORT`、`SMTP_USER`、`SMTP_PASS`）
+2. 使用 Inbucket 调试：访问 `http://localhost:54324` 查看所有发出的邮件
+3. 确认 Docker 容器网络正常：`docker compose ps`
+
+### `__SCHEMA__` 占位符未替换
+
+1. 在 SQL 文件中全局搜索 `__SCHEMA__`
+2. 替换为你的实际 schema 名称（如 `myapp`）
+3. 或使用 CLI 创建项目时通过 `--schema` 参数指定
+
+## 构建和类型检查
+
+### `pnpm check-types` 失败
+
+常见原因：
+
+1. **Layer 2 导入错误**：在 `features/` 中直接导入了 `@/infra/db/*`，改用仓库接口
+2. **缺少依赖**：运行 `pnpm install` 重新安装
+3. **类型定义缺失**：检查 `src/core/types/` 中是否定义了所需类型
+4. **tsconfig 路径问题**：确认 `@/*` 路径映射正确
+
+### `pnpm build` 失败
+
+1. 先运行 `pnpm check-types` 修复类型错误
+2. 检查 `next.config.ts` 配置是否正确
+3. 确认所有环境变量已设置（`.env.local` 存在且配置完整）
+4. 清除缓存重试：
+   ```bash
+   rm -rf .next && pnpm build
+   ```

@@ -1,0 +1,15 @@
+{
+  "title": "web-nextjs",
+  "pages": [
+    "index",
+    "usage",
+    "deployment",
+    "supabase",
+    "drizzle",
+    "alipay",
+    "wechat-pay",
+    "stripe",
+    "troubleshooting",
+    "i18n-navigation"
+  ]
+}

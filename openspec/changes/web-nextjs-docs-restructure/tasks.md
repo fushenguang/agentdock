@@ -1,17 +1,18 @@
 ## 0. Git 分支准备
 
-- [ ] 0. `git checkout main && git pull`
-- [ ] 0. `git checkout -b docs/web-nextjs-restructure`
+- [x] 0. `git checkout main && git pull`
+- [x] 0. `git checkout -b docs/web-nextjs-restructure`
 
 ## 1. Mermaid 组件：安装依赖
 
-- [ ] 1. 在 `apps/docs` 目录下安装 mermaid：`pnpm add mermaid --filter @agentdock/docs`
+- [x] 1. 在 `apps/docs` 目录下安装 mermaid：`pnpm add mermaid --filter @agentdock/docs`
 
 ## 2. Mermaid 组件：创建组件文件
 
 文件：`apps/docs/components/mermaid.tsx`
 
-- [ ] 2. 创建客户端组件，完整实现：
+- [x] 2. 创建客户端组件，完整实现：
+
   ```tsx
   'use client'
 
@@ -48,7 +49,9 @@
       }
 
       render()
-      return () => { cancelled = true }
+      return () => {
+        cancelled = true
+      }
     }, [chart, id])
 
     return <div ref={containerRef} className="my-4 overflow-x-auto" />
@@ -59,12 +62,12 @@
 
 文件：`apps/docs/components/mdx.tsx`
 
-- [ ] 3. 在文件顶部新增 import：
+- [x] 3. 在文件顶部新增 import：
   ```ts
   import dynamic from 'next/dynamic'
   const Mermaid = dynamic(() => import('./mermaid'), { ssr: false })
   ```
-- [ ] 3. 在 `getMDXComponents` 的返回对象中新增 `Mermaid`：
+- [x] 3. 在 `getMDXComponents` 的返回对象中新增 `Mermaid`：
   ```ts
   return {
     ...defaultMdxComponents,
@@ -77,7 +80,7 @@
 
 文件：`apps/docs/content/docs/zh/templates/web-nextjs/meta.json`
 
-- [ ] 4. 若文件不存在则创建，内容为：
+- [x] 4. 若文件不存在则创建，内容为：
   ```json
   {
     "title": "web-nextjs",
@@ -100,13 +103,14 @@
 
 文件：`apps/docs/content/docs/zh/templates/web-nextjs/index.mdx`
 
-- [ ] 5. 从现有 `index.mdx` 中**移除**以下章节（内容将在后续任务中写入对应子页面）：
+- [x] 5. 从现有 `index.mdx` 中**移除**以下章节（内容将在后续任务中写入对应子页面）：
   - `## 开发工作流`（及其所有子节）
   - `## 配置`（及其所有子节）
   - `## 非目标（有意排除）`
   - `## 迁移指南`（及其所有子节）
   - `## 故障排查`（及其所有子节）
-- [ ] 5. 在文件末尾追加子页面导航引导段落：
+- [x] 5. 在文件末尾追加子页面导航引导段落：
+
   ```md
   ## 接下来
 
@@ -124,14 +128,14 @@
 
 文件：`apps/docs/content/docs/zh/templates/web-nextjs/usage.mdx`
 
-- [ ] 6. frontmatter：
+- [x] 6. frontmatter：
   ```yaml
   ---
   title: 模板开发和使用
   description: 如何使用 AgentDock CLI 创建 web-nextjs 项目，以及本地开发、配置和迁移指南。
   ---
   ```
-- [ ] 6. 内容包含以下章节（从 index.mdx 移出的内容 + 补充 CLI 使用说明）：
+- [x] 6. 内容包含以下章节（从 index.mdx 移出的内容 + 补充 CLI 使用说明）：
   - `## 使用 CLI 创建项目`：说明 `npx @cogito.ai/cli init` 交互步骤（项目名 → 模板选择 → 数据层选择（supabase/drizzle）→ Supabase schema 名称（默认 public）→ 包管理器 → 确认），以及 agent 模式参数（`--name`、`--template`、`--data-layer`、`--schema`）
   - `## 本地设置`：从 index.mdx「开发工作流 > 本地设置」迁移，补充 `NEXT_PUBLIC_DOCS_URL` 说明
   - `## 验证命令`：从 index.mdx「开发工作流 > 验证命令」迁移
@@ -143,7 +147,8 @@
 
 文件：`apps/docs/content/docs/zh/templates/web-nextjs/deployment.mdx`
 
-- [ ] 7. 内容：
+- [x] 7. 内容：
+
   ```mdx
   ---
   title: 部署
@@ -166,7 +171,8 @@
 
 文件：`apps/docs/content/docs/zh/templates/web-nextjs/supabase.mdx`
 
-- [ ] 8. frontmatter：
+- [x] 8. frontmatter：
+
   ```yaml
   ---
   title: 数据层：Supabase
@@ -174,7 +180,7 @@
   ---
   ```
 
-- [ ] 8. 按以下大纲编写完整内容，每个操作步骤须具体可执行，附命令和配置示例：
+- [x] 8. 按以下大纲编写完整内容，每个操作步骤须具体可执行，附命令和配置示例：
 
   **## Supabase Cloud vs 自部署**
   对比表格：云端（快速上手、免费额度、有存储限制、数据在第三方）vs 自部署（数据掌控、无限制、需要 Docker 和服务器）。建议：开发用 Cloud，生产推荐自部署。
@@ -236,6 +242,7 @@
 
   **## 数据备份**
   - `pg_dump` 方式（最通用，推荐）：
+
     ```bash
     # 备份（在宿主机执行）
     docker exec -t supabase-db pg_dump -U postgres -d postgres > backup_$(date +%Y%m%d_%H%M%S).sql
@@ -243,6 +250,7 @@
     # 恢复
     docker exec -i supabase-db psql -U postgres -d postgres < backup_20250101_000000.sql
     ```
+
   - Docker volume 备份：直接备份 Docker volume 目录（`/var/lib/docker/volumes/supabase_db_data`）
   - 自动化定时备份（cron 示例，每天凌晨 3 点）：
     ```bash
@@ -256,9 +264,13 @@
     ```ts
     const channel = supabase
       .channel('payments-changes')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'payments' }, (payload) => {
-        console.log('Change received!', payload)
-      })
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'payments' },
+        (payload) => {
+          console.log('Change received!', payload)
+        },
+      )
       .subscribe()
     ```
   - 参考：https://supabase.com/docs/guides/realtime
@@ -292,7 +304,14 @@
       "servers": {
         "supabase": {
           "command": "npx",
-          "args": ["-y", "@supabase/mcp-server-supabase@latest", "--supabase-url", "http://localhost:8000", "--supabase-key", "<your-service-role-key>"]
+          "args": [
+            "-y",
+            "@supabase/mcp-server-supabase@latest",
+            "--supabase-url",
+            "http://localhost:8000",
+            "--supabase-key",
+            "<your-service-role-key>"
+          ]
         }
       }
     }
@@ -317,7 +336,8 @@
 
 文件：`apps/docs/content/docs/zh/templates/web-nextjs/drizzle.mdx`
 
-- [ ] 9. 内容：
+- [x] 9. 内容：
+
   ```mdx
   ---
   title: 数据层：Drizzle
@@ -340,7 +360,8 @@
 
 文件：`apps/docs/content/docs/zh/templates/web-nextjs/alipay.mdx`
 
-- [ ] 10. frontmatter：
+- [x] 10. frontmatter：
+
   ```yaml
   ---
   title: 支付宝支付
@@ -348,7 +369,7 @@
   ---
   ```
 
-- [ ] 10. 按以下大纲编写完整内容（目标读者是新手，操作步骤要详细）：
+- [x] 10. 按以下大纲编写完整内容（目标读者是新手，操作步骤要详细）：
 
   **## 技术架构图**
   使用 `<Mermaid>` 组件渲染 flowchart 架构图，展示：
@@ -357,8 +378,10 @@
   - 支付宝服务器 → 同步回调 → Route Handler: `/api/payments/alipay/return` → 重定向到支付状态页
 
   示例代码：
+
   ```mdx
-  <Mermaid chart={`
+  <Mermaid
+    chart={`
   flowchart LR
     User[用户浏览器] -->|1. 点击支付| CreateAPI[POST /api/payments/alipay/create]
     CreateAPI -->|2. 调用 SDK| Alipay[支付宝服务器]
@@ -368,7 +391,8 @@
     NotifyAPI -->|6. 验签 + 更新| DB[(Supabase DB)]
     Alipay -->|7. 同步回调| ReturnAPI[GET /api/payments/alipay/return]
     ReturnAPI -->|8. 跳转| StatusPage[支付状态页]
-  `} />
+  `}
+  />
   ```
 
   **## 支付时序图**
@@ -384,6 +408,7 @@
 
   **## 环境变量配置**
   说明 `.env.local` 中各变量来源和格式，以代码块展示完整示例（含注释）：
+
   ```bash
   ALIPAY_APP_ID=2021xxxxxxxx          # 应用 ID，在开放平台「我的应用」获取
   ALIPAY_PRIVATE_KEY=MIIEowIBAAK...   # 应用私钥，RSA2048，PKCS1 格式，不含 PEM header
@@ -425,7 +450,8 @@
 
 文件：`apps/docs/content/docs/zh/templates/web-nextjs/wechat-pay.mdx`
 
-- [ ] 11. frontmatter：
+- [x] 11. frontmatter：
+
   ```yaml
   ---
   title: 微信支付
@@ -433,7 +459,7 @@
   ---
   ```
 
-- [ ] 11. 按以下大纲编写完整内容（目标读者是新手，操作步骤要详细）：
+- [x] 11. 按以下大纲编写完整内容（目标读者是新手，操作步骤要详细）：
 
   **## 技术架构图**
   使用 `<Mermaid>` 组件渲染 flowchart 架构图，展示 Native 支付流程：
@@ -455,6 +481,7 @@
 
   **## 环境变量配置**
   说明各变量来源，以代码块展示完整示例：
+
   ```bash
   WECHAT_PAY_APP_ID=wx1234567890abcdef    # 公众号/小程序/移动应用 AppID
   WECHAT_PAY_MCH_ID=1234567890           # 商户号
@@ -501,7 +528,8 @@
 
 文件：`apps/docs/content/docs/zh/templates/web-nextjs/stripe.mdx`
 
-- [ ] 12. 内容：
+- [x] 12. 内容：
+
   ```mdx
   ---
   title: Stripe 支付
@@ -524,14 +552,14 @@
 
 文件：`apps/docs/content/docs/zh/templates/web-nextjs/troubleshooting.mdx`
 
-- [ ] 13. frontmatter：
+- [x] 13. frontmatter：
   ```yaml
   ---
   title: 故障排查
   description: web-nextjs 模板常见问题排查指南，涵盖认证、路由、支付和数据层问题。
   ---
   ```
-- [ ] 13. 内容包含以下章节：
+- [x] 13. 内容包含以下章节：
   - **## 认证相关**（从 `index.mdx` 的「故障排查」章节迁移：Layer 2 导入错误、Module not found、认证回调错误）
   - **## 路由和 i18n 相关**（新增）：
     - 链接跳转到 `/zh/zh/xxx` 双 locale → 原因：在 i18n `Link` 的 `href` 中手动拼接了 `/{locale}/`，解决：改为 `href="/xxx"`
@@ -552,7 +580,8 @@
 
 在 `apps/docs/content/docs/en/templates/web-nextjs/` 目录下创建以下文件：
 
-- [ ] 14. `usage.mdx`：
+- [x] 14. `usage.mdx`：
+
   ```mdx
   ---
   title: Template Development & Usage
@@ -563,19 +592,20 @@
 
   > 📖 This page is available in [Chinese](/zh/docs/templates/web-nextjs/usage). English translation coming soon.
   ```
-- [ ] 14. `deployment.mdx`（标题：Deployment）：同样格式
-- [ ] 14. `supabase.mdx`（标题：Data Layer: Supabase）：同样格式
-- [ ] 14. `drizzle.mdx`（标题：Data Layer: Drizzle）：同样格式
-- [ ] 14. `alipay.mdx`（标题：Alipay Payment）：同样格式
-- [ ] 14. `wechat-pay.mdx`（标题：WeChat Pay）：同样格式
-- [ ] 14. `stripe.mdx`（标题：Stripe Payment）：同样格式
-- [ ] 14. `troubleshooting.mdx`（标题：Troubleshooting）：同样格式
+
+- [x] 14. `deployment.mdx`（标题：Deployment）：同样格式
+- [x] 14. `supabase.mdx`（标题：Data Layer: Supabase）：同样格式
+- [x] 14. `drizzle.mdx`（标题：Data Layer: Drizzle）：同样格式
+- [x] 14. `alipay.mdx`（标题：Alipay Payment）：同样格式
+- [x] 14. `wechat-pay.mdx`（标题：WeChat Pay）：同样格式
+- [x] 14. `stripe.mdx`（标题：Stripe Payment）：同样格式
+- [x] 14. `troubleshooting.mdx`（标题：Troubleshooting）：同样格式
 
 ## 15. 更新 en meta.json
 
 文件：`apps/docs/content/docs/en/templates/web-nextjs/meta.json`
 
-- [ ] 15. 若文件不存在则创建，内容与中文 meta.json 相同：
+- [x] 15. 若文件不存在则创建，内容与中文 meta.json 相同：
   ```json
   {
     "title": "web-nextjs",
@@ -596,11 +626,11 @@
 
 ## 16. 验收
 
-- [ ] 16. `pnpm build`（`apps/docs`）成功，无 MDX 编译错误
-- [ ] 16. `pnpm check-types`（`apps/docs`）通过
+- [x] 16. `pnpm build`（`apps/docs`）成功，无 MDX 编译错误
+- [x] 16. `pnpm check-types`（`apps/docs`）通过
 - [ ] 16. 启动 `apps/docs` 开发服务器（`pnpm dev`），访问 `/zh/docs/templates/web-nextjs`，确认左侧导航显示全部新子页面（usage、deployment、supabase、drizzle、alipay、wechat-pay、stripe、troubleshooting、i18n-navigation）
 - [ ] 16. 访问 `supabase.mdx`、`alipay.mdx`、`wechat-pay.mdx` 页面，确认 Mermaid 图表正常渲染（客户端渲染，页面加载后出现 SVG 图形）
 - [ ] 16. 确认 `index.mdx` 已精简，末尾显示子页面导航链接，无「开发工作流」「故障排查」等原始章节
 - [ ] 16. 确认 `i18n-navigation.mdx` 内容未被修改
-- [ ] 16. `openspec validate web-nextjs-docs-restructure` 通过
+- [x] 16. `openspec validate web-nextjs-docs-restructure` 通过
 - [ ] 16. PR 合并 main，删除分支

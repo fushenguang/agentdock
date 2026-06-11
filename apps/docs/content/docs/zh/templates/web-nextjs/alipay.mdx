@@ -1,0 +1,168 @@
+---
+title: 支付宝支付
+description: 在 web-nextjs 中集成支付宝 PC 网页支付和 H5 手机网站支付，含沙箱调试、安全配置和常见问题。
+---
+
+# 支付宝支付
+
+## 技术架构图
+
+<Mermaid
+  chart={`
+flowchart LR
+    User[用户浏览器] -->|1. 点击支付| CreateAPI[POST /api/payments/alipay/create]
+    CreateAPI -->|2. 调用 SDK| Alipay[支付宝服务器]
+    Alipay -->|3. 跳转收银台| User
+    User -->|4. 完成支付| Alipay
+    Alipay -->|5. 异步通知| NotifyAPI[POST /api/payments/alipay/notify]
+    NotifyAPI -->|6. 验签 + 更新| DB[(Supabase DB)]
+    Alipay -->|7. 同步回调| ReturnAPI[GET /api/payments/alipay/return]
+    ReturnAPI -->|8. 跳转| StatusPage[支付状态页]
+`}
+/>
+
+## 支付时序图
+
+<Mermaid chart={`
+sequenceDiagram
+    participant User as 用户
+    participant Browser as 浏览器
+    participant NextJS as Next.js Server
+    participant Alipay as 支付宝 Server
+    participant DB as Database
+
+    User->>Browser: 点击支付按钮
+    Browser->>NextJS: POST /api/payments/alipay/create
+    NextJS->>Alipay: alipaySdk.pageExecute(trade)
+    Alipay-->>NextJS: 返回支付表单 HTML
+    NextJS-->>Browser: 返回支付页面（含自动提交表单）
+    Browser->>Alipay: 跳转到支付宝收银台
+    User->>Alipay: 登录并完成支付
+    Alipay->>NextJS: POST /api/payments/alipay/notify（异步）
+    NextJS->>NextJS: 验证签名 verifyAlipayNotify()
+    NextJS->>DB: UPDATE payments SET status='paid'
+    DB-->>NextJS: 更新成功
+    NextJS-->>Alipay: 返回 'success'
+    Alipay->>Browser: 重定向到 return_url
+    Browser->>NextJS: GET /api/payments/alipay/return
+    NextJS-->>Browser: 重定向到支付状态页
+
+`} />
+
+## 准备工作
+
+### 步骤 1：注册支付宝商家账号
+
+前往 [支付宝商家中心](https://b.alipay.com) 注册商家账号，完成实名认证。
+
+### 步骤 2：创建应用
+
+登录 [支付宝开放平台](https://open.alipay.com) → 控制台 → 创建应用，选择「网页&移动应用」。
+
+### 步骤 3：申请支付产品
+
+在应用中申请以下产品（需上传营业执照等资质材料）：
+
+- **电脑网站支付** — PC 端网页支付
+- **手机网站支付** — H5 手机端支付
+
+### 步骤 4：配置应用公钥
+
+1. 下载 [支付宝密钥生成工具](https://opendocs.alipay.com/common/02kipk)
+2. 在本地生成 RSA2048 密钥对（推荐 PKCS8 格式）
+3. 将**应用公钥**（公钥字符串，不含 PEM header/footer）粘贴到开放平台配置
+4. 妥善保存**应用私钥**（`-----BEGIN RSA PRIVATE KEY-----` 格式，后续配置环境变量使用）
+
+### 步骤 5：获取配置信息
+
+在开放平台「我的应用」页面记录以下信息：
+
+- **应用 ID（APPID）**：形如 `2021xxxxxxxx`
+- **应用私钥**：步骤 4 生成的 RSA2048 私钥
+- **支付宝公钥**：在「查看支付宝公钥」页面获取（注意：是**支付宝公钥**，不是你自己生成的应用公钥）
+
+### 步骤 6：配置回调 URL
+
+在应用设置中配置回调地址：
+
+- 开发阶段：使用内网穿透 URL（详见「开发环境调试」章节）
+- 生产阶段：使用真实 HTTPS 域名
+
+## 环境变量配置
+
+在 `.env.local` 中添加：
+
+```bash
+ALIPAY_APP_ID=2021xxxxxxxx          # 应用 ID，在开放平台「我的应用」获取
+ALIPAY_PRIVATE_KEY=MIIEowIBAAK...   # 应用私钥，RSA2048，PKCS1 格式，不含 PEM header
+ALIPAY_PUBLIC_KEY=MIIBIjANBgk...    # 支付宝公钥（不是应用公钥），在开放平台「查看」
+ALIPAY_NOTIFY_URL=https://你的域名/api/payments/alipay/notify
+```
+
+## 开发环境调试
+
+### 沙箱环境
+
+1. 登录开放平台 → 进入「沙箱环境」
+2. 获取沙箱 APPID 和密钥（与正式密钥不同）
+3. 沙箱买家账号：在「沙箱账号」页签获取测试用账号（账号 + 登录密码 + 支付密码）
+
+> 参考：[支付宝沙箱环境文档](https://opendocs.alipay.com/common/02kkv7)
+
+### 内网穿透配置
+
+支付宝需要向本地发送异步通知，必须使用内网穿透工具：
+
+1. 推荐 [natapp](https://natapp.cn)：
+   - 注册账号 → 购买免费隧道 → 下载客户端
+   - 配置 `authtoken`，启动隧道指向 `127.0.0.1:3000`
+   - 获得公网域名如 `abc.natapp.cc`
+2. 将 `https://abc.natapp.cc/api/payments/alipay/notify` 填入 `.env.local` 的 `ALIPAY_NOTIFY_URL`
+
+### 完整沙箱测试流程
+
+1. 启动 natapp + `pnpm dev`
+2. 访问 `/pricing` → 选择支付宝
+3. 跳转到沙箱收银台
+4. 用沙箱买家账号登录并支付
+5. 在终端观察 notify 回调日志
+6. 检查数据库 `payments` 表状态是否变为 `paid`
+
+## 生产环境配置
+
+1. 将 `.env.local` 中的沙箱 APPID 和密钥替换为正式密钥
+2. `ALIPAY_NOTIFY_URL` 改为生产 HTTPS 域名（必须 HTTPS，IP 地址不支持）
+3. 在开放平台将应用提交上线审核（需完善资质材料）
+4. 审核通过后即可正式使用
+
+> 官方上线指引：https://opendocs.alipay.com/open/common/get-started
+
+## 安全注意事项
+
+- ⚠️ **私钥绝不泄露到客户端**：`ALIPAY_PRIVATE_KEY` 仅在 Route Handler（服务端）使用，绝不能以 `NEXT_PUBLIC_` 开头或出现在前端代码中
+- ⚠️ **回调验签必须执行**：每次收到支付宝异步通知（notify）时，必须调用 `verifyAlipayNotify(formData)` 验证签名，拒绝签名不通过的请求（直接返回 HTTP 400），不可跳过
+- ⚠️ **幂等性处理**：根据 `out_trade_no` 查询数据库，若已是 `paid` 状态则直接返回 `'success'`，避免重复处理
+- ⚠️ **金额精度**：支付宝金额单位为「元」（字符串，最多 2 位小数），数据库存储建议使用整数「分」，转换时：`分 / 100` 格式化为 `'0.01'`
+- ⚠️ **HTTPS 强制**：生产环境的 notify URL 必须是 HTTPS；同步回调（return URL）也建议 HTTPS
+
+> 官方安全文档：https://opendocs.alipay.com/common/02nm2b
+
+## 常见问题（FAQs）
+
+**Q: 本地开发时收不到支付宝回调？**
+→ 需要内网穿透工具（natapp/cpolar），将公网 URL 配置为 `ALIPAY_NOTIFY_URL`。
+
+**Q: 验签失败（`ISV.INVALID-SIGNATURE`）？**
+→ 检查是否使用了「支付宝公钥」（不是应用公钥），以及公钥格式是否正确（不含 PEM header）。
+
+**Q: 支付后页面没有跳转到 return URL？**
+→ `return_url` 必须是 HTTPS 才会触发同步回调。
+
+**Q: 沙箱可以正常支付，生产环境失败？**
+→ 检查是否替换为正式密钥，应用是否已通过审核上线。
+
+**Q: 出现 `INVALID_PARAMETER` 错误？**
+→ 检查 APPID 是否与密钥匹配，金额格式是否正确（字符串，非负数）。
+
+**Q: 回调接收到但数据库未更新？**
+→ 检查 Supabase `SERVICE_ROLE_KEY` 是否正确，RLS 策略是否允许 insert/update。
