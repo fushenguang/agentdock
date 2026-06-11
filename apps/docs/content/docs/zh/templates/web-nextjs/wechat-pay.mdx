@@ -110,9 +110,9 @@ openssl rand -hex 16
 WECHAT_PAY_APP_ID=wx1234567890abcdef    # 公众号/小程序/移动应用 AppID
 WECHAT_PAY_MCH_ID=1234567890           # 商户号
 WECHAT_PAY_API_V3_KEY=your32charkey... # APIv3 密钥（32 位）
-WECHAT_PAY_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+WECHAT_PAY_PRIVATE_KEY="-- 你的商户私钥（PKCS8 格式，含 PEM header/footer） --"
 WECHAT_PAY_SERIAL_NO=证书序列号（大写十六进制字符串）
-WECHAT_PAY_PLATFORM_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+WECHAT_PAY_PLATFORM_PUBLIC_KEY="-- 微信支付平台公钥（含 PEM header/footer） --"
 WECHAT_PAY_BASE_URL=https://api.mch.weixin.qq.com
 WECHAT_PAY_NOTIFY_URL=https://你的域名/api/payments/wechat/notify
 ```

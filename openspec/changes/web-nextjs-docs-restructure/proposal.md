@@ -23,6 +23,13 @@ roadmap-id: web-nextjs-builtin-suite
 - **文档重组（英文）** — `apps/docs/content/docs/en/templates/web-nextjs/` 同步新增对应英文占位页
 - **meta.json 更新** — 两个语言目录下更新导航顺序
 
+## Non-goals
+
+- 不修改 `apps/docs` 的框架配置（不改 next.config.ts 等）
+- 不改已有 `i18n-navigation.mdx`
+- 不写 Stripe 和 Drizzle 的正文内容（仅占位）
+- 不写英文正文内容（仅标题和简短 coming soon 声明）
+
 ## Capabilities
 
 ### New Capabilities
