@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
+import Script from 'next/script'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages } from 'next-intl/server'
 import { notFound } from 'next/navigation'
@@ -54,7 +55,9 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning className={geist.variable}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <Script id="theme-init" strategy="beforeInteractive">
+          {themeInitScript}
+        </Script>
       </head>
       <body className={`${geist.variable} min-h-screen bg-background font-sans antialiased`}>
         <ThemeProvider>
