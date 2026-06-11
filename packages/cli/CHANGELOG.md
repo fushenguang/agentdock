@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.4.10
+
+### Patch Changes
+
+- 2ba5b10: add supabase schema
+
 ## 0.4.9
 
 ### Patch Changes
