@@ -1,5 +1,12 @@
 # @cogito.ai/cli
 
+## 0.4.8
+
+### Patch Changes
+
+- 9978b27: fixed react-query issues
+- 9978b27: to correct the right version
+
 ## 0.4.6
 
 ### Patch Changes
