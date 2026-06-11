@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.4.9
+
+### Patch Changes
+
+- add data layer & schema selection to CLI init flow, fix template routing bugs with i18n Link double-locale, parameterize SQL migrations with **SCHEMA** placeholder
+
 ## 0.4.8
 
 ### Patch Changes

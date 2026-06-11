@@ -23,6 +23,8 @@ export interface ScaffoldOptions {
   template: RegistryTemplate
   /** Package manager hint written into generated README / lock hint */
   packageManager?: 'pnpm' | 'npm' | 'yarn' | 'bun'
+  /** Schema name to substitute for __SCHEMA__ in .sql files. Undefined = skip substitution. */
+  schema?: string | undefined
 }
 
 export interface ScaffoldResult {
@@ -118,6 +120,19 @@ function restoreDotfiles(dir: string): void {
   }
 }
 
+function replaceSchemaPlaceholder(dir: string, schema: string): void {
+  const entries = readdirSync(dir, { withFileTypes: true })
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      replaceSchemaPlaceholder(fullPath, schema)
+    } else if (entry.name.endsWith('.sql')) {
+      const content = readFileSync(fullPath, 'utf-8')
+      writeFileSync(fullPath, content.replace(/__SCHEMA__/g, schema), 'utf-8')
+    }
+  }
+}
+
 function injectPackageManager(pkgJsonPath: string): void {
   if (!existsSync(pkgJsonPath)) return
   try {
@@ -136,7 +151,7 @@ function injectPackageManager(pkgJsonPath: string): void {
 }
 
 export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | ScaffoldError {
-  const { targetDir, name, template, packageManager: _pm } = options
+  const { targetDir, name, template, packageManager: _pm, schema } = options
 
   // Version compatibility check
   try {
@@ -175,6 +190,11 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
     // Inject detected pnpm version so Turborepo can validate the package manager
     // without needing dangerouslyDisablePackageManagerCheck in turbo.json.
     injectPackageManager(pkgJsonPath)
+
+    // Substitute __SCHEMA__ placeholder in .sql files
+    if (schema) {
+      replaceSchemaPlaceholder(targetDir, schema)
+    }
 
     return {
       ok: true,

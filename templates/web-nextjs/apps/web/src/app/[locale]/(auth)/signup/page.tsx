@@ -43,7 +43,7 @@ export default function SignupPage() {
     return (
       <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
         <div className="flex w-full max-w-sm flex-col gap-6">
-          <Link href={`/${locale}`} className="flex items-center gap-2 self-center font-medium">
+          <Link href="/" className="flex items-center gap-2 self-center font-medium">
             <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <GalleryVerticalEnd className="size-4" />
             </div>
@@ -56,7 +56,7 @@ export default function SignupPage() {
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <Link href={`/${locale}/login`} className="underline underline-offset-4 text-sm">
+                <Link href="/login" className="underline underline-offset-4 text-sm">
                   {t('signInLink')}
                 </Link>
               </div>
@@ -70,7 +70,7 @@ export default function SignupPage() {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">
-        <Link href={`/${locale}`} className="flex items-center gap-2 self-center font-medium">
+        <Link href="/" className="flex items-center gap-2 self-center font-medium">
           <div className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <GalleryVerticalEnd className="size-4" />
           </div>
@@ -141,7 +141,7 @@ export default function SignupPage() {
                     </Button>
                     <FieldDescription className="text-center">
                       {t('hasAccountText')}{' '}
-                      <Link href={`/${locale}/login`} className="underline underline-offset-4">
+                      <Link href="/login" className="underline underline-offset-4">
                         {t('signInLink')}
                       </Link>
                     </FieldDescription>
@@ -152,7 +152,7 @@ export default function SignupPage() {
           </Card>
           <FieldDescription className="px-6 text-center">
             {t('termsText')}{' '}
-            <Link href={`/${locale}/terms`} className="underline underline-offset-4">
+            <Link href="/terms" className="underline underline-offset-4">
               {t('termsLink')}
             </Link>{' '}
             {t('andText')}{' '}

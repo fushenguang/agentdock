@@ -82,3 +82,26 @@ Middleware 职责：
 
 - **WHEN** 用户点击退出登录
 - **THEN** session cookie 清除，重定向到 `/en/login`；再次访问 `/en/dashboard` 被重定向回 login
+
+### Requirement: Auth 页面 i18n 路由正确性
+
+`templates/web-nextjs/apps/web/src/app/[locale]/(auth)/` 下的 auth 页面 MUST 使用 i18n-aware `Link`（来自 `@/i18n/navigation`）时，不手动拼接 `/{locale}/` 前缀，因为该 `Link` 组件会自动处理 locale。
+
+受影响的路由链接：
+
+- `signup/page.tsx`：登录、服务条款、Logo 链接使用裸路径（`/login`、`/terms`、`/`）
+- `login/page.tsx`：忘记密码、注册、Logo 链接使用裸路径（`/forgot-password`、`/signup`、`/`）
+- `forgot-password/page.tsx`：返回登录、Logo 链接使用裸路径（`/login`、`/`）
+- `reset-password/page.tsx`：返回登录、Logo 链接使用裸路径（`/login`、`/`）
+
+#### Scenario: 注册页跳转登录页不出现双 locale
+
+- **WHEN** 用户在 `/zh/signup` 页面点击「立即登录」
+- **THEN** 跳转到 `/zh/login`（非 `/zh/zh/login`），页面正常渲染
+
+#### Scenario: 登录页跳转忘记密码不出现双 locale
+
+- **WHEN** 用户在 `/en/login` 页面点击「忘记密码」
+- **THEN** 跳转到 `/en/forgot-password`（非 `/en/en/forgot-password`），页面正常渲染
+
+---

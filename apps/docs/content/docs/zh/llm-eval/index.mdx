@@ -5,17 +5,21 @@ description: AI 辅助编程工具链迁移评估：GitHub Copilot + Claude Sonn
 
 # LLM 代码能力评估报告
 
+## 最新评估
+
+- [DeepSeek v4 Pro 编码能力预评估（2026-06-11）](./deepseek-v4-pro-pre-eval-20260611)
+
 ## 评估概述
 
-| 项目 | 详情 |
-|---|---|
-| **评估日期** | 2026-06-06 |
-| **评估版本** | v1.0（Lingma + Qwen 基准评估） |
-| **评估分支** | `feat/add-user-account-features` |
-| **对照基准** | GitHub Copilot + Claude Sonnet 4.6（原工具链） |
-| **被评估工具** | Lingma 代码编辑器 + Qwen 系列 LLM |
-| **规划工具** | Claude Sonnet 4.6（仅做规划，不写代码） |
-| **评估方法** | 真实项目代码 diff 分析 + 架构合规性检测 + 安全审计 |
+| 项目           | 详情                                               |
+| -------------- | -------------------------------------------------- |
+| **评估日期**   | 2026-06-06                                         |
+| **评估版本**   | v1.0（Lingma + Qwen 基准评估）                     |
+| **评估分支**   | `feat/add-user-account-features`                   |
+| **对照基准**   | GitHub Copilot + Claude Sonnet 4.6（原工具链）     |
+| **被评估工具** | Lingma 代码编辑器 + Qwen 系列 LLM                  |
+| **规划工具**   | Claude Sonnet 4.6（仅做规划，不写代码）            |
+| **评估方法**   | 真实项目代码 diff 分析 + 架构合规性检测 + 安全审计 |
 
 ---
 
@@ -47,30 +51,30 @@ description: AI 辅助编程工具链迁移评估：GitHub Copilot + Claude Sonn
 
 **功能代码（templates/web-nextjs）**：
 
-| 文件 | 新增行 | 删除行 |
-|---|---|---|
-| `messages/en.json` | +52 | -1 |
-| `messages/zh.json` | +52 | -1 |
-| `src/features/auth/actions.ts` | +72 | 0 |
-| `src/features/auth/__contract__.ts` | +9 | 0 |
-| `src/features/auth/index.ts` | +11 | -1 |
-| `src/features/auth/server.ts` | +3 | 0 |
-| `src/infra/db/SupabaseAuthRepository.ts` | +25 | 0 |
-| `src/core/repositories/IAuthRepository.ts` | +3 | 0 |
-| `src/lib/validations/auth.ts` | +21 | 0 |
-| `src/app/auth/callback/route.ts` | +7 | -1 |
-| `src/app/[locale]/(auth)/login/page.tsx` | +8 | -1 |
-| `src/app/[locale]/(auth)/forgot-password/page.tsx` | 新建 | — |
-| `src/app/[locale]/(auth)/reset-password/page.tsx` | 新建 | — |
-| `src/app/[locale]/(protected)/settings/layout.tsx` | 新建 | — |
-| `src/app/[locale]/(protected)/settings/page.tsx` | 新建 | — |
-| `src/app/[locale]/(protected)/settings/profile/page.tsx` | 新建 | — |
-| `src/app/[locale]/help/page.tsx` | 新建 | — |
-| `src/app/[locale]/privacy/page.tsx` | 新建 | — |
-| `src/app/[locale]/about/page.tsx` | 新建 | — |
-| `src/components/dashboard/app-sidebar.tsx` | +45 | -151 |
-| `src/components/dashboard/nav-user.tsx` | +3 | -19 |
-| **功能代码合计** | **~705 净变更行** | |
+| 文件                                                     | 新增行            | 删除行 |
+| -------------------------------------------------------- | ----------------- | ------ |
+| `messages/en.json`                                       | +52               | -1     |
+| `messages/zh.json`                                       | +52               | -1     |
+| `src/features/auth/actions.ts`                           | +72               | 0      |
+| `src/features/auth/__contract__.ts`                      | +9                | 0      |
+| `src/features/auth/index.ts`                             | +11               | -1     |
+| `src/features/auth/server.ts`                            | +3                | 0      |
+| `src/infra/db/SupabaseAuthRepository.ts`                 | +25               | 0      |
+| `src/core/repositories/IAuthRepository.ts`               | +3                | 0      |
+| `src/lib/validations/auth.ts`                            | +21               | 0      |
+| `src/app/auth/callback/route.ts`                         | +7                | -1     |
+| `src/app/[locale]/(auth)/login/page.tsx`                 | +8                | -1     |
+| `src/app/[locale]/(auth)/forgot-password/page.tsx`       | 新建              | —      |
+| `src/app/[locale]/(auth)/reset-password/page.tsx`        | 新建              | —      |
+| `src/app/[locale]/(protected)/settings/layout.tsx`       | 新建              | —      |
+| `src/app/[locale]/(protected)/settings/page.tsx`         | 新建              | —      |
+| `src/app/[locale]/(protected)/settings/profile/page.tsx` | 新建              | —      |
+| `src/app/[locale]/help/page.tsx`                         | 新建              | —      |
+| `src/app/[locale]/privacy/page.tsx`                      | 新建              | —      |
+| `src/app/[locale]/about/page.tsx`                        | 新建              | —      |
+| `src/components/dashboard/app-sidebar.tsx`               | +45               | -151   |
+| `src/components/dashboard/nav-user.tsx`                  | +3                | -19    |
+| **功能代码合计**                                         | **~705 净变更行** |        |
 
 **OpenSpec 规划文档（`openspec/changes/add-user-account-features/`）**：
 
@@ -126,9 +130,8 @@ description: AI 辅助编程工具链迁移评估：GitHub Copilot + Claude Sonn
 // templates/web-nextjs/apps/web/src/app/auth/callback/route.ts
 const ALLOWED_NEXT = ['/reset-password']
 
-const safePath = nextParam && ALLOWED_NEXT.includes(nextParam)
-  ? nextParam
-  : `/${defaultLocale}/dashboard`
+const safePath =
+  nextParam && ALLOWED_NEXT.includes(nextParam) ? nextParam : `/${defaultLocale}/dashboard`
 ```
 
 **评估**：✅ 完全符合规范。原代码仅检查 `startsWith('/')` 无法防止二级路径跳转，新代码改为严格白名单，杜绝了 `?next=//evil.com` 等变体攻击。
@@ -195,14 +198,14 @@ export const resetPasswordSchema = z
 
 **评估标准**：是否与现有代码库风格一致。
 
-| 检查项 | 结论 |
-|---|---|
-| 图标库一致性（@tabler/icons-react） | ✅ 新增 `IconShield` / `IconInfoCircle` 来自同一库 |
-| 表单处理方式（react-hook-form + zod） | ✅ 与 login / signup 页面完全一致 |
-| Server Action 签名（useActionState 兼容） | ✅ 所有 action 均接受 `_prevState, formData` |
-| i18n 文案 key 命名（`namespace.key`） | ✅ 新增命名空间 `auth.*` / `settings.profile.*` / `pages.*` |
-| 组件组织（`"use client"` 明确声明） | ✅ Client Component 均有 `"use client"` 标注 |
-| shadcn 组件复用 | ✅ 无自定义 UI，全部使用 Card / Form / Input / Button / Avatar |
+| 检查项                                    | 结论                                                           |
+| ----------------------------------------- | -------------------------------------------------------------- |
+| 图标库一致性（@tabler/icons-react）       | ✅ 新增 `IconShield` / `IconInfoCircle` 来自同一库             |
+| 表单处理方式（react-hook-form + zod）     | ✅ 与 login / signup 页面完全一致                              |
+| Server Action 签名（useActionState 兼容） | ✅ 所有 action 均接受 `_prevState, formData`                   |
+| i18n 文案 key 命名（`namespace.key`）     | ✅ 新增命名空间 `auth.*` / `settings.profile.*` / `pages.*`    |
+| 组件组织（`"use client"` 明确声明）       | ✅ Client Component 均有 `"use client"` 标注                   |
+| shadcn 组件复用                           | ✅ 无自定义 UI，全部使用 Card / Form / Input / Button / Avatar |
 
 ---
 
@@ -212,21 +215,21 @@ export const resetPasswordSchema = z
 
 tasks.md 共 12 组任务。经 git diff 分析：
 
-| 任务组 | 完成情况 | 证据 |
-|---|---|---|
-| 0. Git 分支准备 | ✅ | 分支 `feat/add-user-account-features` 存在 |
-| 1. 数据层扩展 | ✅ | `IAuthRepository` + `SupabaseAuthRepository` 均已实现 3 个新方法 |
-| 2. Zod schemas | ✅ | `validations/auth.ts` 新增 3 个 schema + 对应类型导出 |
-| 3. Server Actions | ✅ | `actions.ts` 新增 `requestPasswordReset` / `resetPassword` / `updateDisplayName` |
-| 4. auth/callback 扩展 | ✅ | 白名单校验实现，`ALLOWED_NEXT = ['/reset-password']` |
-| 5. 密码重置页面 | ✅ | `forgot-password/page.tsx` + `reset-password/page.tsx` 均新建 |
-| 6. 登录页更新 | ✅ | `login/page.tsx` 新增"忘记密码？"链接 |
-| 7. Profile 页 | ✅ | `settings/layout.tsx` + `settings/page.tsx` + `settings/profile/page.tsx` |
-| 8. 侧边栏清理 | ✅ | `app-sidebar.tsx` 删除 151 行 demo 内容，重构为通用导航 |
-| 9. 静态占位页 | ✅ | `help/` + `privacy/` + `about/` 页面均新建 |
-| 10. i18n 文案 | ✅ | `en.json` + `zh.json` 各新增 52 行，命名空间完整 |
-| 11. docs 更新 | ✅ | `apps/docs/content/docs/templates/web-nextjs/index.mdx` 创建 |
-| 12. 验收 | 🔶 部分 | TypeScript / lint / build 通过；端到端测试（Supabase 真实环境）未在报告期内验证 |
+| 任务组                | 完成情况 | 证据                                                                             |
+| --------------------- | -------- | -------------------------------------------------------------------------------- |
+| 0. Git 分支准备       | ✅       | 分支 `feat/add-user-account-features` 存在                                       |
+| 1. 数据层扩展         | ✅       | `IAuthRepository` + `SupabaseAuthRepository` 均已实现 3 个新方法                 |
+| 2. Zod schemas        | ✅       | `validations/auth.ts` 新增 3 个 schema + 对应类型导出                            |
+| 3. Server Actions     | ✅       | `actions.ts` 新增 `requestPasswordReset` / `resetPassword` / `updateDisplayName` |
+| 4. auth/callback 扩展 | ✅       | 白名单校验实现，`ALLOWED_NEXT = ['/reset-password']`                             |
+| 5. 密码重置页面       | ✅       | `forgot-password/page.tsx` + `reset-password/page.tsx` 均新建                    |
+| 6. 登录页更新         | ✅       | `login/page.tsx` 新增"忘记密码？"链接                                            |
+| 7. Profile 页         | ✅       | `settings/layout.tsx` + `settings/page.tsx` + `settings/profile/page.tsx`        |
+| 8. 侧边栏清理         | ✅       | `app-sidebar.tsx` 删除 151 行 demo 内容，重构为通用导航                          |
+| 9. 静态占位页         | ✅       | `help/` + `privacy/` + `about/` 页面均新建                                       |
+| 10. i18n 文案         | ✅       | `en.json` + `zh.json` 各新增 52 行，命名空间完整                                 |
+| 11. docs 更新         | ✅       | `apps/docs/content/docs/templates/web-nextjs/index.mdx` 创建                     |
+| 12. 验收              | 🔶 部分  | TypeScript / lint / build 通过；端到端测试（Supabase 真实环境）未在报告期内验证  |
 
 **任务完成率：11/12 组（核心功能 100% 完成，端到端 e2e 验证待真实 Supabase 环境确认）**
 
@@ -238,11 +241,11 @@ tasks.md 共 12 组任务。经 git diff 分析：
 
 Lingma + Qwen 独立完成了将 `.github/skills/` 中的 10 个 OpenSpec workflow skills 同步适配到 3 个 AI 编辑器的任务：
 
-| 编辑器 | Skills | Commands |
-|---|---|---|
+| 编辑器                   | Skills         | Commands                 |
+| ------------------------ | -------------- | ------------------------ |
 | Claude Code (`.claude/`) | 10 个 SKILL.md | 10 个 `/opsx:*` commands |
-| Codex (`.codex/`) | 10 个 SKILL.md | — |
-| Lingma (`.lingma/`) | 10 个 SKILL.md | 10 个 `/opsx:*` commands |
+| Codex (`.codex/`)        | 10 个 SKILL.md | —                        |
+| Lingma (`.lingma/`)      | 10 个 SKILL.md | 10 个 `/opsx:*` commands |
 
 **共 50 个文件，9,670 行插入。**
 
@@ -287,17 +290,17 @@ Lingma + Qwen 独立完成了将 `.github/skills/` 中的 10 个 OpenSpec workfl
 
 > **注意**：此对比基于团队使用两套工具链的经验观察，非同期 A/B 测试。
 
-| 维度 | GitHub Copilot + Claude Sonnet 4.6 | Lingma + Qwen |
-|---|---|---|
-| **规划质量** | 高（作为当前规划工具保留） | — |
-| **架构合规性** | 高 | 高（本次评估 0 违规） |
-| **安全实现** | 高 | 高（白名单、枚举防护均到位） |
-| **TypeScript 严格性** | 高 | 高（0 个 any / ts-ignore） |
-| **代码一致性** | 高 | 高（风格无缝对接） |
-| **大规模文档生成** | 中（受 token 限制）| 高（9,670 行一次性完成） |
-| **端到端测试生成** | 需主动要求 | 需主动要求（本次未生成） |
-| **工具链成本** | 高（2026-06 调价后） | 低（国内 Qwen API 价格显著更低） |
-| **IDE 集成体验** | 优秀（VS Code 原生） | 良好（Lingma 插件，与 VS Code 体验相近） |
+| 维度                  | GitHub Copilot + Claude Sonnet 4.6 | Lingma + Qwen                            |
+| --------------------- | ---------------------------------- | ---------------------------------------- |
+| **规划质量**          | 高（作为当前规划工具保留）         | —                                        |
+| **架构合规性**        | 高                                 | 高（本次评估 0 违规）                    |
+| **安全实现**          | 高                                 | 高（白名单、枚举防护均到位）             |
+| **TypeScript 严格性** | 高                                 | 高（0 个 any / ts-ignore）               |
+| **代码一致性**        | 高                                 | 高（风格无缝对接）                       |
+| **大规模文档生成**    | 中（受 token 限制）                | 高（9,670 行一次性完成）                 |
+| **端到端测试生成**    | 需主动要求                         | 需主动要求（本次未生成）                 |
+| **工具链成本**        | 高（2026-06 调价后）               | 低（国内 Qwen API 价格显著更低）         |
+| **IDE 集成体验**      | 优秀（VS Code 原生）               | 良好（Lingma 插件，与 VS Code 体验相近） |
 
 ---
 
@@ -308,12 +311,14 @@ Lingma + Qwen 独立完成了将 `.github/skills/` 中的 10 个 OpenSpec workfl
 **Lingma + Qwen 系列 LLM 在本次评估的功能范围内，代码实现质量达到可用于生产的基准**。
 
 具体体现：
+
 - 架构合规（Layer 2 零违规）
 - 安全意识（Open Redirect 白名单、邮箱枚举防护）
 - 类型安全（TypeScript strict 零报错）
 - 任务完成度（12 组任务中核心功能 100% 完成）
 
 主要缺口（对比 Claude Sonnet 4.6 作为执行工具时的表现）：
+
 - Server Component 层的 i18n 调用缺失（hardcoded strings）
 - 无自动化测试产出
 
@@ -330,13 +335,13 @@ Lingma + Qwen 独立完成了将 `.github/skills/` 中的 10 个 OpenSpec workfl
 
 ### A. 评估原始数据来源
 
-| 数据 | 来源命令 |
-|---|---|
-| 变更文件列表 | `git diff main --stat` |
-| 功能提交详情 | `git show fc53196 --numstat` |
-| Skills 提交详情 | `git show aa31f1c --numstat` |
-| 架构检测 | 阅读 diff + ESLint 规则 |
-| 安全分析 | 代码 diff 人工审计（Open Redirect / Email Enumeration） |
+| 数据            | 来源命令                                                |
+| --------------- | ------------------------------------------------------- |
+| 变更文件列表    | `git diff main --stat`                                  |
+| 功能提交详情    | `git show fc53196 --numstat`                            |
+| Skills 提交详情 | `git show aa31f1c --numstat`                            |
+| 架构检测        | 阅读 diff + ESLint 规则                                 |
+| 安全分析        | 代码 diff 人工审计（Open Redirect / Email Enumeration） |
 
 ### B. 相关文件索引
 

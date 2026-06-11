@@ -38,3 +38,29 @@ Drizzle 扩展边界（**不实现，仅保留**）：
 
 - **WHEN** `features/` 内文件 `import { createClient } from '@supabase/ssr'`
 - **THEN** ESLint `no-direct-db-in-features` 报 error（仓储接口是唯一合法访问路径）
+
+---
+
+### Requirement: SQL 迁移文件 schema 参数化
+
+`templates/web-nextjs/supabase/migrations/` 下所有自定义 schema 的表名 MUST 使用 `__SCHEMA__` 占位符而非裸表名，以支持自部署 Supabase 的自定义 schema 场景。
+
+替换规则：
+
+- `subscription_plans` → `__SCHEMA__.subscription_plans`
+- `user_subscriptions` → `__SCHEMA__.user_subscriptions`
+- `payments` → `__SCHEMA__.payments`
+- `auth.users` **保持不变**（固定 schema）
+- Policy 名称字符串和 Index 名称标识符 **保持不变**
+
+CLI 脚手架在项目生成时 (`scaffoldProject`)，根据用户选择的 schema 名称通过 `replaceSchemaPlaceholder()` 递归替换所有 `.sql` 文件内的 `__SCHEMA__` 为实际值。
+
+#### Scenario: 用户选择 schema=myapp 后 SQL 文件正确替换
+
+- **WHEN** 用户通过 `agentdock init` 选择 supabase + schema `myapp`
+- **THEN** 生成项目中所有 `.sql` 文件的 `__SCHEMA__` 被替换为 `myapp`
+
+#### Scenario: 用户选择 drizzle 时 SQL 文件保持占位符
+
+- **WHEN** 用户选择 drizzle 数据层
+- **THEN** 生成项目中 `.sql` 文件的 `__SCHEMA__` 保持不变（用户手动替换或忽略）
