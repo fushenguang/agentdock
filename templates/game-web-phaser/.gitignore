@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+
+# Vite
+.vite
+*.local
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs (agents redirect background server output here — see AGENTS.md)
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/*
+!.vscode/extensions.json

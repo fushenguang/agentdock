@@ -1,0 +1,26 @@
+{
+  "name": "@cogito.ai/template-game-web-phaser",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Phaser 3 + Vite + TypeScript starter for AI coding agents building small browser games — Scale Manager (FIT/CENTER_BOTH) by default, capture-safe keyboard input, and a fixed port 8080 for VM share links",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "agentdock": {
+    "minCliVersion": "0.1.0"
+  },
+  "scripts": {
+    "dev": "vite --host --port 8080 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host --port 8080 --strictPort",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vite": "^7.3.6"
+  }
+}
