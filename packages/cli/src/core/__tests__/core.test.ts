@@ -115,7 +115,20 @@ describe('scaffoldProject', () => {
     expect((result as { error: string }).error).toBe('CLI_VERSION_OUTDATED')
   })
 
-  it('scaffolds web-nextjs template and rewrites workspace deps', () => {
+  /**
+   * `rewritePackageJson` is applied to the ROOT package.json only (one call
+   * site in scaffold.ts), which is what makes the second half of this test
+   * meaningful rather than incidental.
+   *
+   * Since `e79d283` restructured web-nextjs into a turborepo+pnpm monorepo,
+   * `@cogito.ai/eslint-config` and `@cogito.ai/tsconfig` ship *inside* the
+   * template as workspace members (`templates/web-nextjs/packages/*`). They
+   * are therefore deliberately absent from the root package.json, and the
+   * sub-packages that consume them must KEEP `workspace:*` — rewriting those
+   * to a registry version would point the generated project at npm for
+   * packages it already contains locally.
+   */
+  it('scaffolds web-nextjs: rewrites root package.json, keeps internal workspace deps', () => {
     const targetDir = join(tmpDir, 'my-app')
     const template: RegistryTemplate = {
       id: 'web-nextjs',
@@ -124,8 +137,8 @@ describe('scaffoldProject', () => {
       minCliVersion: '0.1.0',
       source: 'templates/web-nextjs',
       resolvedDependencies: {
-        '@cogito.ai/eslint-config': '^0.1.0',
-        '@cogito.ai/tsconfig': '^0.1.0',
+        '@fission-ai/openspec': '^1.3.1',
+        turbo: 'latest',
       },
     }
 
@@ -141,6 +154,7 @@ describe('scaffoldProject', () => {
 
     const pkg = JSON.parse(readFileSync(join(targetDir, 'package.json'), 'utf-8')) as {
       name: string
+      version?: string
       private?: boolean
       dependencies?: Record<string, string>
       devDependencies?: Record<string, string>
@@ -148,10 +162,17 @@ describe('scaffoldProject', () => {
     }
 
     expect(pkg.name).toBe('my-app')
+    expect(pkg.version).toBe('0.1.0')
     expect(pkg.private).toBeUndefined()
     expect(pkg.agentdock).toBeUndefined()
-    expect(pkg.devDependencies?.['@cogito.ai/eslint-config']).toBe('^0.1.0')
-    expect(pkg.devDependencies?.['@cogito.ai/tsconfig']).toBe('^0.1.0')
+
+    // Internal workspace packages must survive untouched in the sub-packages.
+    const webPkg = JSON.parse(
+      readFileSync(join(targetDir, 'apps', 'web', 'package.json'), 'utf-8'),
+    ) as { devDependencies?: Record<string, string> }
+
+    expect(webPkg.devDependencies?.['@cogito.ai/eslint-config']).toBe('workspace:*')
+    expect(webPkg.devDependencies?.['@cogito.ai/tsconfig']).toBe('workspace:*')
   })
 })
 
