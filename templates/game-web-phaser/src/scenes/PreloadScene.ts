@@ -78,5 +78,23 @@ export class PreloadScene extends Phaser.Scene {
     bullet.fillCircle(6, 6, 6)
     bullet.generateTexture('bullet', 12, 12)
     bullet.destroy()
+
+    // coin/obstacle: what GameScene's 'score'/'gameover' triggers spawn
+    // (see registerTrigger calls in GameScene.create()) — the assertion
+    // runner's `fire()` needs *something* in the world to overlap with the
+    // player, since triggers may only place objects and let physics react
+    // naturally (ia-assertion-runner design D3), never write score/state
+    // directly.
+    const coin = this.add.graphics()
+    coin.fillStyle(0x34d399, 1)
+    coin.fillCircle(8, 8, 8)
+    coin.generateTexture('coin', 16, 16)
+    coin.destroy()
+
+    const obstacle = this.add.graphics()
+    obstacle.fillStyle(0xef4444, 1)
+    obstacle.fillRect(0, 0, 32, 32)
+    obstacle.generateTexture('obstacle', 32, 32)
+    obstacle.destroy()
   }
 }
