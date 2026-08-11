@@ -20,7 +20,7 @@
 // — a check that can be silently skipped is not a check.
 
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -41,11 +41,77 @@ const DEVTOOLS_LISTEN_TIMEOUT_MS = 10_000
 // BH-1 can also catch an exception thrown just after load, not only during it.
 const SETTLE_MS = 1000
 
+/**
+ * Machine-readable gate results, written to RESULT_FILE on the way out —
+ * on failure as well as on success.
+ *
+ * 🔴 **Writing it on failure is the whole point.** The upstream product reads
+ * this file off the VM to surface gate outcomes in its web UI (framework
+ * 阶段二 row 6: "results flow back to Run events — the verdict must not stay
+ * inside the VM"). If the file only appeared when everything passed, the web
+ * side would only ever be able to show successes: a verification layer that
+ * is invisible exactly when it has something to say. That is the same
+ * self-deception this whole change exists to remove.
+ *
+ * `schemaVersion` is deliberate: the consumer is a *different repo* on its own
+ * release cadence. It should be able to reject a shape it does not understand
+ * rather than silently mis-parse a newer one.
+ */
+const RESULT_FILE = join(PROJECT_ROOT, '.verify-result.json')
+const gateResults = []
+let resultWritten = false
+
+function recordGate(id, label, passed, detail) {
+  gateResults.push({ id, label, passed, detail: detail ?? null })
+}
+
+/**
+ * 🔴 Catch-all so that **every** exit path leaves a result file behind.
+ *
+ * Writing it inside `fail()` alone was not enough, and that was caught by
+ * actually running the failure path rather than by reading the code: the
+ * "no Chromium found" branch lives in lib/find-browser.mjs and exits on its
+ * own, so the very first real failure produced **no file at all** — the web
+ * side would have seen silence and been unable to distinguish "gates passed"
+ * from "verify never got off the ground".
+ *
+ * An exit hook covers today's three exit sites and any a later contributor
+ * adds, which a per-site fix would not.
+ */
+process.on('exit', (code) => {
+  if (!resultWritten) writeResultFile(code === 0)
+})
+
+function writeResultFile(passed) {
+  if (resultWritten) return
+  resultWritten = true
+  const payload = {
+    schemaVersion: 1,
+    ranAt: new Date().toISOString(),
+    passed,
+    gates: gateResults,
+    // Empty `gates` + passed:false means the run aborted before any gate could
+    // be judged (environment problem: no browser, Node too old, …) — which is
+    // a different thing from "a gate failed", and the consumer must be able to
+    // tell them apart.
+    abortedBeforeAnyGate: !passed && gateResults.length === 0,
+  }
+  try {
+    writeFileSync(RESULT_FILE, JSON.stringify(payload, null, 2) + '\n')
+  } catch (err) {
+    // Never let a reporting failure change the gate verdict — but do say so,
+    // because a missing result file is what the web side will notice.
+    console.error(`[verify] warning: could not write ${RESULT_FILE}: ${err.message}`)
+  }
+}
+
 function fail(stage, expected, actual, extra) {
   console.error(`\n[verify] ${stage} — FAILED`)
   console.error(`  expected: ${expected}`)
   console.error(`  actual:   ${actual}`)
   if (extra) console.error(`  detail:   ${extra}`)
+  recordGate(stage, stage, false, `expected: ${expected} | actual: ${actual}`)
+  writeResultFile(false)
   process.exit(1)
 }
 
@@ -86,6 +152,7 @@ function runBuild() {
   if (result.status !== 0) {
     fail('BH-0 build', 'exit code 0', `exit code ${result.status}`)
   }
+  recordGate('BH-0', '构建', true, 'vite build --mode play exited 0')
   console.log('[verify] BH-0 build — passed')
 }
 
@@ -281,7 +348,8 @@ async function main() {
         ),
       )
     }
-    console.log('[verify] BH-1 load — passed (no uncaught exceptions, no failed resource requests)')
+    recordGate('BH-1', '加载', true, 'no uncaught exceptions, no failed resource requests')
+  console.log('[verify] BH-1 load — passed (no uncaught exceptions, no failed resource requests)')
 
     if (result.canvasWidth <= 0 || result.canvasHeight <= 0) {
       fail(
@@ -301,12 +369,14 @@ async function main() {
         judged.reason,
       )
     }
-    console.log(
-      `[verify] BH-2 render — passed (canvas ${result.canvasWidth}x${result.canvasHeight}, ` +
-        `${judged.uniqueColors} unique colours, variance ${judged.variance.toFixed(2)})`,
-    )
+    const bh2Detail =
+      `canvas ${result.canvasWidth}x${result.canvasHeight}, ` +
+      `${judged.uniqueColors} unique colours, variance ${judged.variance.toFixed(2)}`
+    recordGate('BH-2', '渲染', true, bh2Detail)
+    console.log(`[verify] BH-2 render — passed (${bh2Detail})`)
 
-    console.log('\n[verify] All gates passed.')
+    writeResultFile(true)
+    console.log(`\n[verify] All gates passed. Wrote ${RESULT_FILE}`)
   } finally {
     proc.kill()
     server.close()

@@ -144,3 +144,27 @@ bare Node 跑不了，所以刻意重复；改了记得同步"。
 `ERR_MODULE_NOT_FOUND`，而那恰好会让契约退回"只能在浏览器里跑"、丢掉它存在的意义。
 （tsconfig 已开 `allowImportingTsExtensions`，类型检查认。）
 **第一次改完就是这么红的**，`node --test` 直接失败。
+
+## D9 · 结构化结果落盘 `.verify-result.json`（阶段二第 6 行的 VM 半边）
+
+判据要能回流到 web，光有人读的日志不够。`verify.mjs` 额外写一份机器可读结果：
+
+```json
+{ "schemaVersion": 1, "ranAt": "<iso>", "passed": true,
+  "gates": [ { "id": "BH-0", "label": "构建", "passed": true, "detail": "…" }, … ],
+  "abortedBeforeAnyGate": false }
+```
+
+🔴 **必须在失败时也写。** 只在全过时才出现的话，web 侧永远只看得见成功——
+一个恰好在有话要说的时候隐身的验证层，正是这一刀要消灭的自欺。
+
+🔴 **落盘用 `process.on('exit')` 兜底，不是只在 `fail()` 里写。**
+这一条是**跑失败路径跑出来的，不是读代码读出来的**：「找不到浏览器」那条分支住在
+`lib/find-browser.mjs` 里、自己 `process.exit(1)`，所以第一次真实失败**一个文件都没留下**。
+退出钩子覆盖当下三个退出点，也覆盖后来人新加的——逐点去补则覆盖不到。
+
+`abortedBeforeAnyGate` 区分「某道闸红了」与「还没跑到任何闸就崩了」（环境问题）——
+两者对下游是不同的处置，不能合成一个 `passed: false`。
+
+`schemaVersion` 是给**另一个仓库、另一条发布节奏**的消费者用的：
+它应当能拒绝一个自己不认识的形状，而不是把新版本悄悄解析错。

@@ -64,7 +64,7 @@ ship 之后为真、现在不为真的事：
 | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **IA 断言运行器**（把验收项编译成断言逐条判定）                                | 上游 web 侧已落地模板注册表与失败信息格式（`acceptance-assertions`），但**运行器要吃 `jump` 作驱动器**——本刀先把 `jump` 交付出来，运行器归下一刀                         |
 | **失败信息回流给 agent**                                                       | 需要运行器先存在。本刀只产出**可读**的失败信息，不做结构化回流通道                                                                                                       |
-| `pnpm.onlyBuiltDependencies`                                                   | Gate ② 未选。⚠️ 它有真实代价：不加会让 pnpm 自动写出残缺的 `pnpm-workspace.yaml`（`allowBuilds: esbuild: set this to true or false`），M3 那次真实踩过并把它未填就提交了 |
+| ~~`pnpm.onlyBuiltDependencies`~~ **已反转，见下** | 原判 Gate ② 未选；**实测证明它是拦路的**，已加回 |
 | 模板的 `lint` 脚本                                                             | Gate ② 未选。模板至今没有 eslint，代码质量靠每轮运气                                                                                                                     |
 | 把 `templates/game-web-phaser/**` 加进 `template-validation.yml` 的 paths 过滤 | Gate ② 未选。⚠️ **后果是改这个模板目前零 CI 保护**——本刀新增的 `verify.mjs` 与遍历断言在 CI 里不会被跑到                                                                 |
 | 修 guest 镜像的 `/dev/shm`                                                     | 归 `fushenguang/tarit#34`，构建者已定「专门处理」。本刀带 flag 绕过；镜像修好后无非是可以去掉那个 flag                                                                   |
@@ -84,3 +84,26 @@ guest 是 v22.23.2，没问题；但 `engines` 是对**每一个生成项目**�
 
 `verify.mjs` 同时在运行时自检：`typeof WebSocket !== 'function'` 时**报错退出**，
 **不静默跳过 BH-1**——一个能被静默跳过的闸等于不存在。
+
+
+## 🔴 一处 Gate ② 范围反转（新证据驱动，2026-08-10）
+
+原本 `pnpm.onlyBuiltDependencies` 被 Gate ② 切出去，我当时向构建者报告它"只是一条警告，
+不是拦路"。**那个报告是错的**——它基于一次**悄悄带了 `pnpm approto-builds` 变通步骤**的运行。
+
+去掉那个变通步骤后实测：`pnpm install` 报 `ERR_PNPM_IGNORED_BUILDS: esbuild`，
+随后 **任何 `pnpm run <script>` 都跑不了**（pnpm 的 `runDepsStatusCheck` 先拦下来）。
+也就是说**本刀刚装好的验证闸门一次都跑不起来**，除非有人先手动跑一次 `pnpm approve-builds`。
+
+**一个需要人先做一步额外动作才能跑的闸门，对无人监督的执行者等于不存在**——
+那正好把这一刀的全部意义抵消掉。所以加回来，不是"顺手做了范围外的事"，
+而是"不做它，范围内的东西就是坏的"。
+
+⚠️ 同时纠正一个技术细节：**pnpm 11 不读 package.json 的 `onlyBuiltDependencies`**，
+它读 `pnpm-workspace.yaml` 的 `allowBuilds`（实测 pnpm 11.17.0，`approve-builds --all`
+写出来的就是那两行）。所以修法是给模板补一个 `pnpm-workspace.yaml`；package.json 那份
+留着只为 pnpm 10 及更早，并已注明只有 yaml 那份经过实测。
+
+🟡 **残留、如实记下**：加了之后 `pnpm install` **仍然打印**那行
+`ERR_PNPM_IGNORED_BUILDS` 警告，但**不再阻塞脚本执行**——干净安装后 `pnpm test`（7/7）
+与 `pnpm verify`（三闸全过）都能直接跑。噪音还在，拦路没了。
