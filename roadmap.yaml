@@ -37,6 +37,14 @@ now:
     status: in-progress
     owner: "@sunny"
 
+  # 由 @sunny 于 2026-08-10 明确授权 AI 代为添加（该文件通常为人工持有 / CODEOWNERS 保护）。
+  # 补锚点的起因：`game-web-phaser` 这条线此前从未有过路线图条目——模板那次提交
+  # (f351439) 不含任何 openspec change，所以 orphan-change 检查从未对它触发。
+  - id: game-web-phaser-template
+    title: "game-web-phaser template (Phaser 3 + verification layer: BH gates / state-jump contract / dual ports)"
+    status: in-progress
+    owner: "@sunny"
+
 next:
   - id: cli-mvp-scaffolder
     title: "Scaffold CLI MVP (agentdock init + agentdock mcp, dual-mode human/agent)"

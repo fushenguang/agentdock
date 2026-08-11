@@ -10,7 +10,7 @@ import { defineConfig } from 'vite'
 //
 // `host: true` binds to 0.0.0.0 so the dev server is reachable from outside
 // the VM's loopback interface (required for the platform to proxy/share it).
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   server: {
     port: 8080,
     strictPort: true,
@@ -21,4 +21,18 @@ export default defineConfig({
     strictPort: true,
     host: true,
   },
-})
+  build: {
+    // Two build targets, two output dirs — `build:play` (public share
+    // link, no debug panel) and `build:learn` (debug panel, not public;
+    // see package.json and src/debug/panel.ts). Separate outDirs mean the
+    // two artifacts can never clobber each other and scripts/verify.mjs
+    // always knows exactly which one it's serving.
+    //
+    // Which target wins is decided by `--mode` on the CLI, never by
+    // anything read at runtime in the browser — see design D6 for why a
+    // client-side switch was rejected (anyone can flip it, and the whole
+    // point of build:play is a link a student can't see the debug panel
+    // through).
+    outDir: mode === 'learn' ? 'dist-learn' : 'dist-play',
+  },
+}))

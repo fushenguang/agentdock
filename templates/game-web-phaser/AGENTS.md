@@ -33,6 +33,8 @@ curl -sf http://localhost:8080/ > /dev/null && echo "server is up" || cat /tmp/v
 
 If port 8080 is already in use when you start the server, that is a bug to fix (find and stop whatever's squatting on it), not a reason to move to a different port.
 
+This project also has a second, non-public build target — `build:learn`, served on port 8090 (`preview:learn`) — that includes a debug panel `build:play` deliberately excludes. Which target you get is decided entirely by which npm script built it (`vite.config.ts`'s `build.outDir` branches on `--mode`), never by anything read at runtime in the browser. Don't add a client-side switch for the panel; see `src/debug/panel.ts`.
+
 ### 3. Commit after every completed step
 
 This project's local git history is the only rollback mechanism available. There is no other undo. After each meaningful, working step (a scene added, a bug fixed, an asset wired in) — commit it:
@@ -56,17 +58,25 @@ If the game needs Chinese (or other non-Latin) copy, set a system font stack in 
 
 So, before calling a UI or input change verified:
 
-- Take an actual screenshot / rendered snapshot (headless browser, Playwright, whatever tool you have) and look at where things actually are — not just at attribute values in the DOM or console-logged numbers.
-- If the feature involves more than one key/input/branch, exercise **all** of them, not just the first one that comes to mind. Space and arrow keys specifically — this template captures them (rule in `src/scenes/GameScene.ts`), but if you add more keys, verify each one individually.
+- Take an actual screenshot / rendered snapshot (headless browser, Playwright, whatever tool you have) and look at where things actually are — not just at attribute values in the DOM or console-logged numbers. **`pnpm verify` now automates the floor of this** (build succeeds, page loads with no uncaught exception/failed request, screenshot is provably non-empty, canvas has real size) — see the acceptance checklist below. It does not replace looking at the game, it replaces "I forgot to look at all."
+- If the feature involves more than one key/input/branch, exercise **all** of them, not just the first one that comes to mind. Space and arrow keys specifically — this template captures them (rule in `src/scenes/GameScene.ts`), but if you add more keys, verify each one individually. `pnpm verify` does **not** simulate keyboard input — this part is still yours to do by hand.
 
 ## Project layout
 
 ```text
 index.html            # entry HTML + the CSS reset that keeps the canvas positioned correctly
-vite.config.ts         # dev/preview server config — port 8080 pinned, see rule 2
+vite.config.ts         # dev/preview server config — port 8080 pinned (rule 2), build:play/build:learn outDir split
+scripts/
+└── verify.mjs          # pnpm verify — the executable BH-0/BH-1/BH-2 gates, see acceptance checklist below
+tests/
+├── state-jump.test.mjs # traversal assertion for src/debug/state-jump.ts
+└── png.test.mjs         # non-empty-screenshot judgement, incl. the required solid-colour negative case
 src/
 ├── main.ts            # creates the Phaser.Game instance — should rarely need edits
 ├── config.ts           # Phaser.Types.Core.GameConfig — Scale Manager lives here
+├── debug/
+│   ├── state-jump.ts    # listStates/jump/isValidStart contract + reference impl (Boot/Preload/Game)
+│   └── panel.ts          # learn-build-only debug panel; never gate this with a runtime switch
 └── scenes/
     ├── BootScene.ts     # engine-level setup only, runs first
     ├── PreloadScene.ts  # load assets, generate placeholder textures, show progress
@@ -77,7 +87,7 @@ Keep this split. Don't collapse Boot/Preload/Game back into one file — it's wh
 
 ## May execute autonomously
 
-- `pnpm install`, `pnpm build`, `pnpm check-types`
+- `pnpm install`, `pnpm build`, `pnpm check-types`, `pnpm test`, `pnpm verify`
 - Starting/stopping the dev server **in the background** (rule 1)
 - Adding scenes under `src/scenes/`, adding assets under `public/`
 - Editing any file in `src/`
@@ -100,8 +110,7 @@ Keep this split. Don't collapse Boot/Preload/Game back into one file — it's wh
 ## Acceptance checklist before calling a task done
 
 1. `pnpm check-types` — exits 0.
-2. `pnpm build` — exits 0, produces `dist/`.
+2. `pnpm verify` — exits 0. This is the executable replacement for "build it and take a screenshot": it builds `dist-play/` (BH-0), loads it in real headless Chromium over CDP and fails loudly if the page throws an uncaught exception or has a failed resource request (BH-1), and fails loudly if the rendered screenshot is provably empty (solid-colour PNG, not just "a PNG exists") or the game canvas has zero size (BH-2). Read `scripts/verify.mjs` for the exact judgement, and `pnpm test` for the unit tests behind it (`tests/`).
 3. Dev server started **in the background** (rule 1), and reachable at `http://localhost:8080/`.
-4. Visual behavior verified by actually looking at the rendered page (rule 5) — not just by reading property values.
-5. Every interactive key/control your change touches has been pressed and observed, not just one of them (rule 5).
-6. Working state committed to git (rule 3).
+4. Every interactive key/control your change touches has been pressed and observed, not just one of them (rule 5) — `pnpm verify` does not simulate keyboard input, so this one is still a judgment call for you, not the machine.
+5. Working state committed to git (rule 3).

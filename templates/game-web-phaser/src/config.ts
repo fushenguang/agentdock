@@ -1,16 +1,19 @@
 import Phaser from 'phaser'
+import { GAME_WIDTH, GAME_HEIGHT } from './dimensions.ts'
 import { BootScene } from './scenes/BootScene'
 import { PreloadScene } from './scenes/PreloadScene'
 import { GameScene } from './scenes/GameScene'
 
 /**
- * Design-resolution size. Phaser's Scale Manager (below) fits and centers
- * this virtual resolution into whatever space the browser gives it — write
- * all gameplay/layout code against these constants, never against
- * `window.innerWidth/innerHeight`.
+ * Design-resolution size — declared in `./dimensions.ts` (a leaf module with
+ * no imports) and re-exported here so existing `from './config'` importers
+ * keep working.
+ *
+ * It lives there rather than here because `debug/state-jump.ts` needs the
+ * same numbers but must stay importable by a bare Node process; this module
+ * pulls in Phaser and every scene. See `dimensions.ts` for the full reason.
  */
-export const GAME_WIDTH = 960
-export const GAME_HEIGHT = 540
+export { GAME_WIDTH, GAME_HEIGHT } from './dimensions.ts'
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
