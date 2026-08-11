@@ -5,7 +5,7 @@
   "description": "Phaser 3 + Vite + TypeScript starter for AI coding agents building small browser games — Scale Manager (FIT/CENTER_BOTH) by default, capture-safe keyboard input, and a fixed port 8080 for VM share links",
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "agentdock": {
     "minCliVersion": "0.1.0"
@@ -13,8 +13,13 @@
   "scripts": {
     "dev": "vite --host --port 8080 --strictPort",
     "build": "vite build",
+    "build:play": "vite build --mode play",
+    "build:learn": "vite build --mode learn",
     "preview": "vite preview --host --port 8080 --strictPort",
-    "check-types": "tsc --noEmit"
+    "preview:learn": "vite preview --mode learn --host --port 8090 --strictPort",
+    "check-types": "tsc --noEmit",
+    "test": "node --test",
+    "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0"
