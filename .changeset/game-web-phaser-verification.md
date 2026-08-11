@@ -38,3 +38,20 @@ Minor, not patch: this is new opt-in capability layered onto an already-shipped
 template (a new `verify`/`test`/`build:learn` script and a new `src/debug/`
 module), not a bug fix — nothing existing was broken or removed, and the CLI's
 own `engines.node` requirement is unchanged.
+
+Also in this release:
+
+- `verify.mjs` writes a machine-readable `.verify-result.json` (gate ids, pass/fail,
+  detail) so the outcome can be surfaced outside the VM. It is written on failure as
+  well as success — a verification layer that is invisible exactly when it has
+  something to say is worse than none.
+- The template now ships `pnpm-workspace.yaml` with `allowBuilds: esbuild: true`.
+  Without it `pnpm install` leaves esbuild's build unapproved and pnpm then refuses
+  to run **any** script, so `pnpm verify` could not run at all on a freshly
+  scaffolded project until someone manually ran `pnpm approve-builds`. Note pnpm 11
+  reads `allowBuilds` from this file, not `pnpm.onlyBuiltDependencies` in
+  package.json.
+- 🔴 `engines.node` is now `>=22` (the zero-dependency CDP transport uses the
+  built-in `WebSocket` global). Generated projects on Node 18–21 will fail
+  `pnpm verify` with an explicit message rather than skipping the gate.
+
