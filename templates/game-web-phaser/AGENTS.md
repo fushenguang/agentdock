@@ -61,26 +61,51 @@ So, before calling a UI or input change verified:
 - Take an actual screenshot / rendered snapshot (headless browser, Playwright, whatever tool you have) and look at where things actually are — not just at attribute values in the DOM or console-logged numbers. **`pnpm verify` now automates the floor of this** (build succeeds, page loads with no uncaught exception/failed request, screenshot is provably non-empty, canvas has real size) — see the acceptance checklist below. It does not replace looking at the game, it replaces "I forgot to look at all."
 - If the feature involves more than one key/input/branch, exercise **all** of them, not just the first one that comes to mind. Space and arrow keys specifically — this template captures them (rule in `src/scenes/GameScene.ts`), but if you add more keys, verify each one individually. `pnpm verify` does **not** simulate keyboard input — this part is still yours to do by hand.
 
+### 6. If the game's acceptance criteria include machine-judgable ("machine") items, keep `window.__gameHarness` honest as you change scenes
+
+The outer platform can attach a project-root `assertions.json` (see the sample one already in this project) — a list of the 7 upstream assertion templates (`loads_clean` / `controllable` / `restart` / `hud_text_present` / `value_persists` / `score_feedback` / `game_over_trigger`) with parameters. `pnpm verify` judges every one of them against the **built artifact**, right after the BH gates, using `src/debug/harness.ts`'s `window.__gameHarness` — the same contract `src/debug/state-jump.ts`'s `jump()`/`isValidStart()` already established for state legality. If you add a scene, a new key, a new triggerable event, or a new persisting stat, this harness has to keep describing the *real* game, or the templates that depend on it silently degrade to "can't judge this" (never a false pass — see below):
+
+- **New `StateRole`**: every `id` returned by `listStates()` (`src/debug/state-jump.ts`) needs an entry in `harness.ts`'s `STATE_ROLES` map. `game_over_trigger`/`restart` judge by **role** (`'gameplay'`/`'gameover'`), never by the scene's engine key — that's what lets a template's judgement survive you renaming a scene.
+- **New key**: add it to `harness.ts`'s `KEY_TABLE` (DOM `KeyboardEvent.code` → Phaser `KeyCodes`) or `controllable`/`restart` assertions referencing it will report "not recognized by press()" instead of judging your game.
+- **New triggerable event** (a scoring condition, a failure condition, …): call `registerTrigger('name', handler)` from the scene's `create()` (see `GameScene.ts`'s two calls for the pattern) so `score_feedback`/`game_over_trigger` can `fire()` it. 🔴 **The handler may only do what a real player's own actions could cause** — spawn something in the world and let the existing overlap/collision logic react (`GameScene.ts`'s `spawnCoinAtPlayer`/`spawnObstacleAtPlayer`) — **never write score/state directly** (`this.score += n` inside a trigger handler is a violation, even though nothing mechanically stops it — see `src/debug/harness-types.ts`'s `GameHarness` doc for the allow/forbid table this is part of). This one line is enforced by human review, not by the type system; do not treat "the linter didn't complain" as permission.
+- **New persisting stat** (a second `highScore`-shaped value, lives, an inventory count, …): expose it from `harness.ts`'s `readValues()` the same way `highScore` already is, so `value_persists` has something to check. A value that only exists in a scene's local field and is never read back here will make that template report "can't judge this," not fail — see the next paragraph.
+- **Do not add a setter to `GameHarness`** (`setScore`, `setState`, anything that writes a value directly). Every method on it is either a pure read or something a real player could already trigger (`press()` dispatches a real `KeyboardEvent`, `applyState()` only lands on states `isValidStart()` accepts). If a change genuinely needs a new write-shaped harness method, that is a contract change, not a scene change — stop and ask a human before adding one.
+
+`pnpm verify`'s IA output distinguishes three things and will never blur them together: **judged & passed**, **judged & failed** (a real defect — the failure detail names the assertion and what it saw), and **can't judge** (`absent` — no `assertions.json` — or `unavailable` — the harness above doesn't cover what an assertion needs yet, or isn't installed at all). 🔴 `absent` and `unavailable` are **not** the same thing, and only one of them is benign:
+
+- **`absent`** — nobody asked for IA. Nothing was skipped, nothing turns red, `pnpm verify` still exits 0.
+- **`unavailable`** — someone *did* ask (there is an `assertions.json`) and the gate could not run: no harness in the artifact, a `schemaVersion` this runner doesn't understand, the runner threw. That is a gate being skipped, so it counts as a failure: `passed: false`, a red `IA` row in `gates[]`, and a non-zero exit — exactly like a BH gate failure. **If you see `unavailable`, implement rule 6's harness; do not read it as "nothing to do here".**
+- **`judged` with at least one failing item** — a real defect. Same treatment: non-zero exit, `passed: false`.
+
 ## Project layout
 
 ```text
 index.html            # entry HTML + the CSS reset that keeps the canvas positioned correctly
 vite.config.ts         # dev/preview server config — port 8080 pinned (rule 2), build:play/build:learn outDir split
+assertions.json        # sample machine-judgable acceptance items (rule 6) — one per upstream template
 scripts/
-└── verify.mjs          # pnpm verify — the executable BH-0/BH-1/BH-2 gates, see acceptance checklist below
+├── verify.mjs          # pnpm verify — BH-0/BH-1/BH-2 gates + IA assertion judging, one CDP session
+├── assert.mjs           # the IA judging engine verify.mjs calls; also runnable standalone (`node scripts/assert.mjs`)
+└── lib/                 # shared CDP/browser/static-server/PNG plumbing both scripts above use
 tests/
-├── state-jump.test.mjs # traversal assertion for src/debug/state-jump.ts
-└── png.test.mjs         # non-empty-screenshot judgement, incl. the required solid-colour negative case
+├── state-jump.test.mjs  # traversal assertion for src/debug/state-jump.ts
+├── harness-types.test.mjs # bare-Node import guard for src/debug/harness-types.ts
+├── assert.test.mjs        # per-template judge tests (positive + negative) and design D6's order-independence test
+├── exit-decision.test.mjs # design D8's exit-code rule
+└── png.test.mjs           # non-empty-screenshot judgement, incl. the required solid-colour negative case
 src/
 ├── main.ts            # creates the Phaser.Game instance — should rarely need edits
 ├── config.ts           # Phaser.Types.Core.GameConfig — Scale Manager lives here
 ├── debug/
-│   ├── state-jump.ts    # listStates/jump/isValidStart contract + reference impl (Boot/Preload/Game)
+│   ├── state-jump.ts    # listStates/jump/isValidStart contract + reference impl (Boot/Preload/Game/GameOver)
+│   ├── harness-types.ts # window.__gameHarness contract types — zero imports, see rule 6
+│   ├── harness.ts        # window.__gameHarness reference implementation — see rule 6 before editing scenes
 │   └── panel.ts          # learn-build-only debug panel; never gate this with a runtime switch
 └── scenes/
     ├── BootScene.ts     # engine-level setup only, runs first
     ├── PreloadScene.ts  # load assets, generate placeholder textures, show progress
-    └── GameScene.ts     # the actual playable scene + the input-capture reference pattern
+    ├── GameScene.ts     # the actual playable scene + the input-capture reference pattern
+    └── GameOverScene.ts # the failure state (`role: 'gameover'`) + restart-to-gameplay
 ```
 
 Keep this split. Don't collapse Boot/Preload/Game back into one file — it's what makes the loading screen, the asset pipeline, and gameplay independently replaceable and testable.
@@ -110,7 +135,7 @@ Keep this split. Don't collapse Boot/Preload/Game back into one file — it's wh
 ## Acceptance checklist before calling a task done
 
 1. `pnpm check-types` — exits 0.
-2. `pnpm verify` — exits 0. This is the executable replacement for "build it and take a screenshot": it builds `dist-play/` (BH-0), loads it in real headless Chromium over CDP and fails loudly if the page throws an uncaught exception or has a failed resource request (BH-1), and fails loudly if the rendered screenshot is provably empty (solid-colour PNG, not just "a PNG exists") or the game canvas has zero size (BH-2). Read `scripts/verify.mjs` for the exact judgement, and `pnpm test` for the unit tests behind it (`tests/`).
+2. `pnpm verify` — exits 0. This is the executable replacement for "build it and take a screenshot": it builds `dist-play/` (BH-0), loads it in real headless Chromium over CDP and fails loudly if the page throws an uncaught exception or has a failed resource request (BH-1), and fails loudly if the rendered screenshot is provably empty (solid-colour PNG, not just "a PNG exists") or the game canvas has zero size (BH-2). Read `scripts/verify.mjs` for the exact judgement, and `pnpm test` for the unit tests behind it (`tests/`). If this project has an `assertions.json`, `pnpm verify` also judges every item in it against `window.__gameHarness` right after the BH gates (same CDP session, no second page load) and exits non-zero if any of them fail — see rule 6 above before touching scenes if this project uses machine-judgable acceptance items.
 3. Dev server started **in the background** (rule 1), and reachable at `http://localhost:8080/`.
 4. Every interactive key/control your change touches has been pressed and observed, not just one of them (rule 5) — `pnpm verify` does not simulate keyboard input, so this one is still a judgment call for you, not the machine.
 5. Working state committed to git (rule 3).

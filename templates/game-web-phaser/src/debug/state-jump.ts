@@ -16,18 +16,19 @@
 import { GAME_WIDTH, GAME_HEIGHT } from '../dimensions.ts'
 
 /**
- * State-jump contract (design D5) — the shape a future IA assertion runner
- * will drive against (see the proposal's Non-goals: that runner is out of
- * scope for this change, this file only ships the contract it will need).
+ * State-jump contract (design D5) — the pure driver `harness.ts`'s
+ * `applyState()` sits on top of (ia-assertion-runner design D2: `jump()`
+ * stays a pure function, `applyState()` is the browser-side consumer that
+ * applies its output to a live instance).
  *
  * This file also ships a minimal reference implementation for this
- * template's own three states (Boot/Preload/Game). It deliberately does
- * NOT decide how a larger, discrete-state game should enumerate
+ * template's own four states (Boot/Preload/Game/GameOver). It deliberately
+ * does NOT decide how a larger, discrete-state game should enumerate
  * `listStates()` — the proposal explicitly leaves that undecided until a
  * real platformer track needs it.
  */
 
-export type StateId = 'Boot' | 'Preload' | 'Game'
+export type StateId = 'Boot' | 'Preload' | 'Game' | 'GameOver'
 
 /**
  * A snapshot of the state `jump()` landed on. Deliberately plain,
@@ -45,7 +46,7 @@ export interface GameState {
 
 /** Every state this template's reference implementation knows about. */
 export function listStates(): StateId[] {
-  return ['Boot', 'Preload', 'Game']
+  return ['Boot', 'Preload', 'Game', 'GameOver']
 }
 
 /**
@@ -64,6 +65,16 @@ export function jump(id: StateId, seed = 0): GameState {
   // exercised end-to-end, and so a future state that DOES need randomness
   // (e.g. procedurally placed enemies) has somewhere to plug it in without
   // changing the contract.
+  //
+  // 🔴 GameOverScene has no player sprite of its own, so `playerX`/`playerY`
+  // here are just the same placeholder shape every other state gets — they
+  // are never applied to anything for `id === 'GameOver'` (see
+  // `harness.ts`'s `applyState`, which only calls a scene's
+  // `applyHarnessState` hook when one exists). Keeping the shape uniform
+  // across all four states, instead of making it conditional per id, is
+  // what keeps this function's reproducibility property simple to state and
+  // simple to test — see `tests/state-jump.test.mjs`'s traversal assertion,
+  // which iterates `listStates()` without special-casing any one of them.
   return {
     id,
     seed,
@@ -96,6 +107,10 @@ export function isValidStart(id: StateId, state: GameState): boolean {
     if (state.playerX < 0 || state.playerX > GAME_WIDTH) return false
     if (state.playerY < 0 || state.playerY > GAME_HEIGHT) return false
   }
+
+  // GameOver deliberately gets no extra checks beyond the base ones above —
+  // it has no world bounds of its own to violate. Add a branch here only if
+  // GameOverScene grows state that can genuinely be half-baked.
 
   return true
 }

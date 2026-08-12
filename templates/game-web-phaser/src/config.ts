@@ -3,6 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from './dimensions.ts'
 import { BootScene } from './scenes/BootScene'
 import { PreloadScene } from './scenes/PreloadScene'
 import { GameScene } from './scenes/GameScene'
+import { GameOverScene } from './scenes/GameOverScene'
 
 /**
  * Design-resolution size — declared in `./dimensions.ts` (a leaf module with
@@ -58,8 +59,9 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     },
   },
 
-  // Boot -> Preload -> Game. Keep scenes single-purpose and split like this
+  // Boot -> Preload -> Game -> GameOver (on the 'obstacle' overlap) -> Game
+  // again (R restarts). Keep scenes single-purpose and split like this
   // instead of doing loading + gameplay in one file — it's what makes the
   // loading screen and the actual game independently testable/replaceable.
-  scene: [BootScene, PreloadScene, GameScene],
+  scene: [BootScene, PreloadScene, GameScene, GameOverScene],
 }

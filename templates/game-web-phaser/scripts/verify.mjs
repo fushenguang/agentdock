@@ -19,27 +19,22 @@
 // and calls process.exit(1). None of them may print "skipping" and exit 0
 // — a check that can be silently skipped is not a check.
 
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { existsSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { resolveBrowser } from './lib/find-browser.mjs'
 import { startStaticServer } from './lib/static-server.mjs'
-import { createCdpClient } from './lib/cdp.mjs'
+import { launchBrowser } from './lib/browser-launch.mjs'
+import { inspectPage } from './lib/inspect-page.mjs'
 import { decodePng, judgeScreenshotNonEmpty } from './lib/png.mjs'
+import { runAssertions, RemoteHarness } from './assert.mjs'
+import { decideExitCode, decideVerdict } from './lib/exit-decision.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = join(__dirname, '..')
 const DIST_DIR = join(PROJECT_ROOT, 'dist-play')
-
-const PAGE_LOAD_TIMEOUT_MS = 15_000
-const DEVTOOLS_LISTEN_TIMEOUT_MS = 10_000
-// Grace period after `Page.loadEventFired` before we take the screenshot —
-// Phaser boots across Boot -> Preload -> Game scenes and generates its
-// placeholder textures on the way; this gives that a moment to settle so
-// BH-1 can also catch an exception thrown just after load, not only during it.
-const SETTLE_MS = 1000
 
 /**
  * Machine-readable gate results, written to RESULT_FILE on the way out —
@@ -56,10 +51,34 @@ const SETTLE_MS = 1000
  * `schemaVersion` is deliberate: the consumer is a *different repo* on its own
  * release cadence. It should be able to reject a shape it does not understand
  * rather than silently mis-parse a newer one.
+ *
+ * ia-assertion-runner adds a top-level `assertions` field (see
+ * `writeResultFile` below) but 🔴 deliberately does NOT bump `schemaVersion` —
+ * see the proposal's "一处需要显式批准的契约变更". Upstream's
+ * `normalizeGateResults` drops unknown fields but rejects unknown versions
+ * outright; bumping the version would turn every existing generated
+ * project's BH results `unavailable` the moment they next ran `pnpm verify`,
+ * for a field they don't even use yet.
  */
 const RESULT_FILE = join(PROJECT_ROOT, '.verify-result.json')
 const gateResults = []
 let resultWritten = false
+
+/**
+ * What gets written into `assertions` when `pnpm verify` aborts (a BH gate
+ * failed, the browser never launched, ...) before IA ever got a chance to
+ * run. This is itself an `unavailable` outcome, not a fourth status — design
+ * D4's three-state rule ("judged / absent / unavailable") has no room for
+ * "never asked", and "never asked" and "asked but couldn't judge" read the
+ * same to a consumer: neither one means IA passed.
+ */
+const ASSERTIONS_NOT_RUN = {
+  status: 'unavailable',
+  reason: 'assertion runner did not run — verify aborted before the BH gates completed',
+  passedCount: 0,
+  total: 0,
+  results: [],
+}
 
 function recordGate(id, label, passed, detail) {
   gateResults.push({ id, label, passed, detail: detail ?? null })
@@ -75,14 +94,19 @@ function recordGate(id, label, passed, detail) {
  * side would have seen silence and been unable to distinguish "gates passed"
  * from "verify never got off the ground".
  *
- * An exit hook covers today's three exit sites and any a later contributor
- * adds, which a per-site fix would not.
+ * An exit hook covers today's exit sites and any a later contributor adds,
+ * which a per-site fix would not. This also covers the new IA exit path
+ * (design D8: IA failures now make `pnpm verify` exit non-zero too) because
+ * `main()` always calls `writeResultFile()` itself before touching
+ * `process.exitCode` — by the time this hook runs, `resultWritten` is
+ * already `true` and it's a no-op. It only ever does real work for a crash
+ * this file's own code didn't anticipate.
  */
 process.on('exit', (code) => {
   if (!resultWritten) writeResultFile(code === 0)
 })
 
-function writeResultFile(passed) {
+function writeResultFile(passed, assertions = ASSERTIONS_NOT_RUN) {
   if (resultWritten) return
   resultWritten = true
   const payload = {
@@ -95,6 +119,15 @@ function writeResultFile(passed) {
     // a different thing from "a gate failed", and the consumer must be able to
     // tell them apart.
     abortedBeforeAnyGate: !passed && gateResults.length === 0,
+    // 🔴 `assertions` MUST NOT be read as "IA passed" unless
+    // `assertions.status === 'judged'` AND every entry in `results` passed.
+    //
+    // `passed` above is the combined BH+IA verdict (`decideVerdict()`), not
+    // BH alone. It was BH-only in the first implementation, which meant a run
+    // with a failing assertion wrote `passed: true` while exiting 1 — and the
+    // web side renders 「验收结论」 straight off this field, so that run
+    // displayed as a pass. One artifact must not carry two answers.
+    assertions,
   }
   try {
     writeFileSync(RESULT_FILE, JSON.stringify(payload, null, 2) + '\n')
@@ -156,163 +189,6 @@ function runBuild() {
   console.log('[verify] BH-0 build — passed')
 }
 
-/**
- * Launch the resolved browser headless, and resolve once it prints its
- * DevTools WebSocket endpoint to stderr (design D3: "从 stderr 抓 ws 地址").
- */
-function launchBrowser(browser) {
-  const args = [
-    '--no-sandbox', // the guest runs as root; the sandbox can't start
-    // The guest image has no /dev/shm — Chromium FATALs on startup without
-    // this flag. Filed as fushenguang/tarit#34; once that's fixed this flag
-    // can be dropped, but it's harmless to keep either way.
-    '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--hide-scrollbars',
-    '--mute-audio',
-    '--remote-debugging-port=0',
-    '--remote-debugging-address=127.0.0.1',
-  ]
-  // chrome-headless-shell is inherently headless and doesn't understand
-  // --headless; a full chrome/chromium binary needs it explicitly.
-  if (!browser.isHeadlessShell) {
-    args.unshift('--headless=new')
-  }
-
-  const proc = spawn(browser.path, args, { stdio: ['ignore', 'ignore', 'pipe'] })
-
-  return new Promise((resolve, reject) => {
-    let stderrBuf = ''
-    let settled = false
-
-    const timeout = setTimeout(() => {
-      if (settled) return
-      settled = true
-      proc.kill()
-      reject(
-        new Error(
-          `Timed out waiting for Chromium to print its DevTools listening address ` +
-            `(${DEVTOOLS_LISTEN_TIMEOUT_MS}ms). stderr so far:\n${stderrBuf}`,
-        ),
-      )
-    }, DEVTOOLS_LISTEN_TIMEOUT_MS)
-
-    proc.stderr.on('data', (chunk) => {
-      stderrBuf += chunk.toString()
-      const match = stderrBuf.match(/DevTools listening on (ws:\/\/\S+)/)
-      if (match && !settled) {
-        settled = true
-        clearTimeout(timeout)
-        resolve({ proc, wsUrl: match[1] })
-      }
-    })
-
-    proc.on('error', (err) => {
-      if (settled) return
-      settled = true
-      clearTimeout(timeout)
-      reject(new Error(`Failed to launch Chromium at ${browser.path}: ${err.message}`))
-    })
-
-    proc.on('exit', (code) => {
-      if (settled) return
-      if (code !== null && code !== 0) {
-        settled = true
-        clearTimeout(timeout)
-        reject(new Error(`Chromium exited early (code ${code}). stderr:\n${stderrBuf}`))
-      }
-    })
-  })
-}
-
-/**
- * Run BH-1 + BH-2 over CDP against `pageUrl`. Returns the raw evidence
- * (uncaught exceptions, failed requests, canvas size, screenshot) —
- * verify.mjs's main() decides pass/fail so the judgement stays visible at
- * the top level instead of buried in here.
- */
-async function runCdpChecks(browserWsUrl, pageUrl) {
-  const client = createCdpClient(browserWsUrl)
-  await client.ready
-
-  const { targetId } = await client.send('Target.createTarget', { url: 'about:blank' })
-  const { sessionId } = await client.send('Target.attachToTarget', { targetId, flatten: true })
-
-  const exceptions = []
-  const failedRequests = []
-
-  client.on('Runtime.exceptionThrown', (params, sid) => {
-    if (sid !== sessionId) return
-    exceptions.push(params)
-  })
-  client.on('Network.loadingFailed', (params, sid) => {
-    if (sid !== sessionId) return
-    failedRequests.push(params)
-  })
-
-  // 🔴 These MUST be enabled before Page.navigate — an exception thrown
-  // during the page's earliest script evaluation is otherwise missed
-  // entirely, which silently turns BH-1 into "verified something, just not
-  // the thing it claims to verify" (design D3).
-  await client.send('Runtime.enable', {}, sessionId)
-  await client.send('Log.enable', {}, sessionId)
-  await client.send('Network.enable', {}, sessionId)
-  await client.send('Page.enable', {}, sessionId)
-
-  const loadEventFired = new Promise((resolve) => {
-    const unsubscribe = client.on('Page.loadEventFired', (params, sid) => {
-      if (sid !== sessionId) return
-      unsubscribe()
-      resolve(undefined)
-    })
-  })
-
-  await client.send('Page.navigate', { url: pageUrl }, sessionId)
-
-  await Promise.race([
-    loadEventFired,
-    new Promise((_, reject) =>
-      setTimeout(
-        () =>
-          reject(
-            new Error(`Timed out waiting for Page.loadEventFired (${PAGE_LOAD_TIMEOUT_MS}ms)`),
-          ),
-        PAGE_LOAD_TIMEOUT_MS,
-      ),
-    ),
-  ])
-
-  await new Promise((resolve) => setTimeout(resolve, SETTLE_MS))
-
-  const canvasEval = await client.send(
-    'Runtime.evaluate',
-    {
-      expression:
-        "(() => { const c = document.querySelector('canvas'); return c ? { w: c.clientWidth, h: c.clientHeight } : { w: 0, h: 0 } })()",
-      returnByValue: true,
-    },
-    sessionId,
-  )
-  const canvasWidth = canvasEval.result?.value?.w ?? 0
-  const canvasHeight = canvasEval.result?.value?.h ?? 0
-
-  const screenshot = await client.send('Page.captureScreenshot', { format: 'png' }, sessionId)
-
-  client.close()
-
-  return {
-    exceptions: exceptions.map((e) => e.exception?.description ?? e.text ?? JSON.stringify(e)),
-    failedRequests: failedRequests.map((f) => ({
-      requestId: f.requestId,
-      errorText: f.errorText,
-      type: f.type,
-    })),
-    canvasWidth,
-    canvasHeight,
-    screenshotBase64: screenshot.data,
-  }
-}
-
 async function main() {
   checkNodeWebSocket()
   runBuild()
@@ -333,33 +209,37 @@ async function main() {
   const { proc, wsUrl } = launched
   console.log(`[verify] Chromium DevTools endpoint: ${wsUrl}`)
 
+  // Declared outside the try so `finally` can close the CDP client too —
+  // design D7 needs this exact session kept open through IA, right up until
+  // the whole run is done, not closed the moment BH-2's evidence is read.
+  let inspected
   try {
-    const result = await runCdpChecks(wsUrl, staticUrl)
+    inspected = await inspectPage(wsUrl, staticUrl)
 
-    if (result.exceptions.length > 0 || result.failedRequests.length > 0) {
+    if (inspected.exceptions.length > 0 || inspected.failedRequests.length > 0) {
       fail(
         'BH-1 load',
         'no uncaught exceptions and no failed resource requests',
-        `${result.exceptions.length} uncaught exception(s), ${result.failedRequests.length} failed request(s)`,
+        `${inspected.exceptions.length} uncaught exception(s), ${inspected.failedRequests.length} failed request(s)`,
         JSON.stringify(
-          { exceptions: result.exceptions, failedRequests: result.failedRequests },
+          { exceptions: inspected.exceptions, failedRequests: inspected.failedRequests },
           null,
           2,
         ),
       )
     }
     recordGate('BH-1', '加载', true, 'no uncaught exceptions, no failed resource requests')
-  console.log('[verify] BH-1 load — passed (no uncaught exceptions, no failed resource requests)')
+    console.log('[verify] BH-1 load — passed (no uncaught exceptions, no failed resource requests)')
 
-    if (result.canvasWidth <= 0 || result.canvasHeight <= 0) {
+    if (inspected.canvasWidth <= 0 || inspected.canvasHeight <= 0) {
       fail(
         'BH-2 render (canvas size)',
         'canvas clientWidth/clientHeight > 0',
-        `${result.canvasWidth}x${result.canvasHeight}`,
+        `${inspected.canvasWidth}x${inspected.canvasHeight}`,
       )
     }
 
-    const decoded = decodePng(result.screenshotBase64)
+    const decoded = decodePng(inspected.screenshotBase64)
     const judged = judgeScreenshotNonEmpty(decoded)
     if (!judged.nonEmpty) {
       fail(
@@ -370,16 +250,89 @@ async function main() {
       )
     }
     const bh2Detail =
-      `canvas ${result.canvasWidth}x${result.canvasHeight}, ` +
+      `canvas ${inspected.canvasWidth}x${inspected.canvasHeight}, ` +
       `${judged.uniqueColors} unique colours, variance ${judged.variance.toFixed(2)}`
     recordGate('BH-2', '渲染', true, bh2Detail)
     console.log(`[verify] BH-2 render — passed (${bh2Detail})`)
 
-    writeResultFile(true)
-    console.log(`\n[verify] All gates passed. Wrote ${RESULT_FILE}`)
+    // ---- IA (ia-assertion-runner, design D7) ----
+    // 🔴 Same CDP session (`inspected.client`/`inspected.sessionId`), no
+    // second page load. BH-1's evidence is handed straight to `loads_clean`'s
+    // judge instead of being re-collected (task 3.6).
+    console.log('[verify] IA assertions — checking for assertions.json...')
+    const loadEvidence = { exceptions: inspected.exceptions, failedRequests: inspected.failedRequests }
+    const harness = new RemoteHarness(inspected.client, inspected.sessionId)
+    const assertionsResult = await runAssertions({ harness, loadEvidence, projectRoot: PROJECT_ROOT })
+    logAssertionsResult(assertionsResult)
+
+    // 🔴 IA becomes a row in `gates[]` (design D4, revised 2026-08-11), not
+    // just a side field. The upstream web timeline already renders every
+    // `gates[]` entry and derives 「验收结论」 from `passed` — recording IA
+    // here means the verdict shows up on the web with **zero** changes on
+    // that side, and it keeps the artifact self-consistent: a `passed:false`
+    // run always has a red row explaining which gate failed.
+    //
+    // `absent` records nothing: nobody asked for IA, so an IA row in the
+    // gate list would be inventing a gate that does not apply to this
+    // project. `unavailable` DOES record a red row — someone asked and we
+    // could not judge it, which is never a pass.
+    const verdict = decideVerdict({ bhPassed: true, assertions: assertionsResult })
+    if (assertionsResult.status !== 'absent') {
+      recordGate(
+        'IA',
+        '验收断言',
+        verdict.iaVerdict === 'pass',
+        assertionsResult.status === 'unavailable'
+          ? `未判定：${assertionsResult.reason}`
+          : `${assertionsResult.passedCount}/${assertionsResult.total} 通过`,
+      )
+    }
+
+    writeResultFile(verdict.passed, assertionsResult)
+    console.log(`\n[verify] Wrote ${RESULT_FILE}`)
+
+    // `process.exitCode` (not `process.exit()`) so the `finally` block below
+    // still runs its cleanup before Node actually exits.
+    const exitCode = decideExitCode({ bhPassed: true, assertions: assertionsResult })
+    if (exitCode !== 0) {
+      if (assertionsResult.status === 'unavailable') {
+        console.error(
+          `\n[verify] IA assertions — UNAVAILABLE (${assertionsResult.reason}) — a gate that could not run is not a gate that passed`,
+        )
+      } else {
+        const failedCount = assertionsResult.total - assertionsResult.passedCount
+        console.error(
+          `\n[verify] IA assertions — FAILED (${failedCount}/${assertionsResult.total} failed) — see .verify-result.json "assertions.results"`,
+        )
+      }
+      process.exitCode = exitCode
+    }
   } finally {
+    inspected?.client?.close()
     proc.kill()
     server.close()
+  }
+}
+
+function logAssertionsResult(result) {
+  if (result.status === 'absent') {
+    console.log(`[verify] IA assertions — absent (${result.reason})`)
+    return
+  }
+  if (result.status === 'unavailable') {
+    console.log(`[verify] IA assertions — unavailable (${result.reason})`)
+    return
+  }
+  console.log(`[verify] IA assertions — judged: ${result.passedCount}/${result.total} passed`)
+  for (const r of result.results) {
+    if (r.passed) {
+      console.log(`  PASS  ${r.itemId} (${r.templateId})`)
+    } else {
+      console.log(`  FAIL  ${r.itemId} (${r.templateId})`)
+      console.log(`        expected: ${r.failure.expected}`)
+      console.log(`        actual:   ${r.failure.actual}`)
+      if (r.failure.hint) console.log(`        hint:     ${r.failure.hint}`)
+    }
   }
 }
 
