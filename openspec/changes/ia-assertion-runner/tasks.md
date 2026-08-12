@@ -89,3 +89,35 @@
 >
 > **合并前必须在 guest 上真跑一次 `pnpm verify`**——上一刀的 BH 是在 guest 上验过的，
 > 本刀的 IA 还没有。不补这一次就合并，等于把「在我机器上是绿的」当成验收。
+
+- [x] 5.4 🔴 **guest 真机验证：已完成（2026-08-12）。** Tarit guest VM
+      `f84041db-0579-471b-adf7-fdb9ce42fb35` 上，用**已发布的 `@cogito.ai/cli@0.6.0`**
+      scaffold 出 `game-web-phaser` 模板到 `/home/workshop/verify-probe`，
+      `pnpm install` 后跑 `pnpm verify`。浏览器是 guest 自带的 Playwright headless
+      chromium（`/.cache/ms-playwright/chromium_headless_shell-1234/...`，该 guest
+      `HOME=/`），走真实 CDP 链路——不是 mock。`VERIFY_EXIT=0`。原始
+      `.verify-result.json`：
+
+      ```json
+      {
+        "schemaVersion": 1,
+        "ranAt": "2026-08-12T07:28:45.619Z",
+        "passed": true,
+        "gates": [
+          { "id": "BH-0", "label": "构建", "passed": true, "detail": "vite build --mode play exited 0" },
+          { "id": "BH-1", "label": "加载", "passed": true, "detail": "no uncaught exceptions, no failed resource requests" },
+          { "id": "BH-2", "label": "渲染", "passed": true, "detail": "canvas 800x450, 658 unique colours, variance 261.99" }
+        ],
+        "abortedBeforeAnyGate": false
+      }
+      ```
+
+      ⚠️ **如实记一处局限**：这份结果文件的 `gates[]` 里只有三级 BH，没有 `assertions`
+      字段。核对过 `packages/cli/package.json`——**`0.6.0` 正是本刀合并前 `main` 上的
+      已发布版本**，也就是说这次 scaffold 用的是 IA 断言运行器**合并之前**的模板产物，
+      `verify.mjs` 里根本还没有并线 IA 那一步（本刀第 4 波的改动）。**这一条证明的是
+      「BH 三级 + harness 安装链路在 guest 上跑得通」，不是「7 条断言判定本身在 guest
+      上被跑过」**——断言判定逻辑的正确性由 5.1–5.3 的本机真机证据覆盖，IA 这一层
+      至今没有 guest 证据。构建者 2026-08-12 已裁定这一份 BH 证据足够作为
+      `game-web-phaser-template`（roadmap 条目本身只承诺 BH/state-jump/双端口，不含
+      IA）合并前提；此处如实记录这个边界，**不假装 IA 断言运行器有 guest 证据**。
