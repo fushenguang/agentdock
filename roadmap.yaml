@@ -42,7 +42,7 @@ now:
   # (f351439) 不含任何 openspec change，所以 orphan-change 检查从未对它触发。
   - id: game-web-phaser-template
     title: "game-web-phaser template (Phaser 3 + verification layer: BH gates / state-jump contract / dual ports)"
-    status: in-progress
+    status: done
     owner: "@sunny"
 
 next:
