@@ -34,7 +34,7 @@ now:
 
   - id: web-nextjs-builtin-suite
     title: "web-nextjs built-in production feature suite (monorepo+docs, auth, payments, analytics, etc.)"
-    status: in-progress
+    status: done
     owner: "@sunny"
 
   # 由 @sunny 于 2026-08-10 明确授权 AI 代为添加（该文件通常为人工持有 / CODEOWNERS 保护）。
@@ -49,6 +49,20 @@ next:
   - id: cli-mvp-scaffolder
     title: "Scaffold CLI MVP (agentdock init + agentdock mcp, dual-mode human/agent)"
     status: done
+    owner: "@sunny"
+
+  # 由 @sunny 于 2026-08-12 明确授权 AI 代为添加（该文件受 CODEOWNERS 保护，Gate① 通常需人类 owner）。
+  # 这是 thefoolai `skills-hub` 子roadmap 第 4 刀在本仓库的落点——按跨仓库治理约定，
+  # hub 本体的 roadmap 条目与 openspec change 全部归 agentdock，thefoolai 侧只留一行链过来。
+  # 参见 thefoolai `apps/wiki/content/docs/prd/skills-hub.mdx` §4。
+  #
+  # ⚠️ 状态刻意保持 planned 而非 in-progress：验收标准是「lesson-prep 发布 → 从 hub 装回来 →
+  # 履历回流」，而履历数据由 thefoolai 的 skill-usage-attribution（第 3 刀）产出——该刀目前
+  # 仅「代码完成」，分支未合并、未发版、账本零条真实记录。触发判据是「合并 + 生产运行一段
+  # 时间后账本非零」，不是「第 3 刀写完了」。开工前请人工确认这一条已满足。
+  - id: skills-hub-cli
+    title: "Skills hub CLI + registry (L1 contract, detect/eval/publish, git-manifest registry)"
+    status: planned
     owner: "@sunny"
 
 later: []

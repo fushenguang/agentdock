@@ -1,4 +1,10 @@
-## MODIFIED Requirements
+# web-nextjs-docs Specification
+
+## Purpose
+
+TBD - created by archiving change web-nextjs-docs-restructure. Update Purpose after archive.
+
+## Requirements
 
 ### Requirement: web-nextjs 文档站导航结构
 

@@ -628,9 +628,19 @@
 
 - [x] 16. `pnpm build`（`apps/docs`）成功，无 MDX 编译错误
 - [x] 16. `pnpm check-types`（`apps/docs`）通过
-- [ ] 16. 启动 `apps/docs` 开发服务器（`pnpm dev`），访问 `/zh/docs/templates/web-nextjs`，确认左侧导航显示全部新子页面（usage、deployment、supabase、drizzle、alipay、wechat-pay、stripe、troubleshooting、i18n-navigation）
-- [ ] 16. 访问 `supabase.mdx`、`alipay.mdx`、`wechat-pay.mdx` 页面，确认 Mermaid 图表正常渲染（客户端渲染，页面加载后出现 SVG 图形）
-- [ ] 16. 确认 `index.mdx` 已精简，末尾显示子页面导航链接，无「开发工作流」「故障排查」等原始章节
-- [ ] 16. 确认 `i18n-navigation.mdx` 内容未被修改
+- [x] 16. 侧边导航验证 —— 未起 dev server 人工看，改用产物核验：生产构建后
+      `.next/server/app/zh/docs/templates/web-nextjs.html`（和 en 版）静态 HTML 内已包含
+      全部 9 个子页面链接（usage/deployment/supabase/drizzle/alipay/wechat-pay/stripe/
+      troubleshooting/i18n-navigation），10 个页面（zh+en）均成功生成静态 HTML
+- [ ] 16. **需构建者**：Mermaid 图表客户端渲染确认。静态构建已确认
+      `<Mermaid chart="...">` 的 prop 字符串正确 SSR 进 `alipay.html`（`flowchart LR` 文本
+      存在），MDX 编译无错；但 Mermaid 是 `useEffect` 内动态 `import('mermaid')` 渲染 SVG，
+      真正跑起来只能在浏览器里看——本环境没有 playwright/浏览器，无法自动验证。构建者
+      `pnpm dev` 打开 `/zh/docs/templates/web-nextjs/alipay` 肉眼确认一次即可，成本很低。
+- [x] 16. `index.mdx` 已精简：grep 未命中「开发工作流/配置/非目标/迁移指南/故障排查」任一
+      原始章节标题，文件末尾为「## 接下来」子页面导航链接
+- [x] 16. `i18n-navigation.mdx` 未被修改：`git show 92cd5c8 --stat` 未触及该文件，最后一次
+      改动是更早的 `381606b`（早于本次 docs-restructure）
 - [x] 16. `openspec validate web-nextjs-docs-restructure` 通过
-- [ ] 16. PR 合并 main，删除分支
+- [x] 16. PR merge main —— 代码已在 main（`92cd5c8` 等提交在 `main` 线性历史中）；对应的
+      本地/远程分支已不存在（本仓库分支列表里找不到 docs-restructure 相关分支），无需再删

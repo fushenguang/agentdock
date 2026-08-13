@@ -63,4 +63,7 @@
 - [x] 4.5 🔴 **在 guest 上真跑一次**：`npm pack` 出 tarball → 经 `/v1/execute` 传进 VM →
       `npx ./xxx.tgz init` 生成项目 → `pnpm i && pnpm verify` 看三级判据真的跑过。
       **这一步是本刀唯一的真机证据**，不做等于只验了本地
-- [ ] 4.6 ❌ **不许 `npm publish`、不许 `git push`**——两者都要构建者显式授权
+- [x] 4.6 ❌ **不许 `npm publish`、不许 `git push`**——两者都要构建者显式授权。核对：
+      本刀合并走的是正常 PR 流程（PR #20，`git log`/`gh pr list` 可查），过程中未见
+      直接 `npm publish` 或未授权 `git push` 记录；本次收尾（2026-08-12）同样未执行
+      这两者。视为满足（本条是纪律约束而非产出物，收尾时确认从未违反即可打勾）。

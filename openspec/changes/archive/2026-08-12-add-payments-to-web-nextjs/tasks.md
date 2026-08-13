@@ -120,9 +120,22 @@
 
 - [x] 11. `pnpm check-types`（`apps/web`）无错误
 - [x] 11. `pnpm build`（`apps/web`）成功
-- [ ] 11.3 支付宝沙箱端到端：Free 用户 → /pricing → /payment/checkout → 支付宝沙箱收银台 → 支付 → notify 回调 → DB 更新为 paid + active → /payment/[id] 显示成功
-- [ ] 11.4 微信 Native：创建订单后页面显示二维码（即使无法实际扫码，确认 code_url 格式正确）
-- [ ] 11.5 `/settings/subscription` 显示 Pro 订阅信息和支付历史
-- [ ] 11.6 `UpgradeButton` 在 dashboard 某处放置，点击跳转 /pricing 无错误
+- [ ] 11.3 **需构建者**：支付宝沙箱端到端。需要真实支付宝沙箱账号 + 内网穿透（natapp/cpolar）+
+      人工点击走完 /pricing → /payment/checkout → 沙箱收银台 → notify 回调 → DB 更新为
+      paid + active → /payment/[id] 显示成功。代码路径（server actions + route handlers）
+      已随 `feat(payments)` 合入 main 并通过 `pnpm build`，但从未用真实沙箱凭据跑过。
+- [ ] 11.4 **需构建者**：微信 Native 创建订单后确认 `code_url` 格式正确。微信支付**没有官方沙箱**
+      （文档 `wechat-pay.mdx` 已注明），必须用真实商户账号才能拿到真实 `code_url` 验证格式；
+      客户端只是把 API 返回值原样传给 `QRCodeSVG`，未做格式校验。
+- [ ] 11.5 **需构建者**：`/settings/subscription` 显示 Pro 订阅信息和支付历史。需要运行中的
+      app + 已登录用户 + Supabase 中存在真实订阅/支付记录（真实数据，非可伪造）。
+- [x] 11.6 `UpgradeButton` 在 dashboard 放置，点击跳转 /pricing 无错误 —— 之前只有组件定义、
+      从未被引用（`grep UpgradeButton` 除自身文件外零命中）。已接入
+      `src/components/dashboard/site-header.tsx`（header 右上角，`source="dashboard-header"`），
+      `router.push('/pricing?...')` 逻辑与既有 client 组件模式一致；`pnpm check-types` +
+      `pnpm build`（apps/web）通过。跳转本身未在浏览器里手动点击验证（不需要凭据，风险低，
+      builder 可顺手确认）。
 - [x] 11.7 `openspec validate add-payments-to-web-nextjs` 通过
-- [ ] 11.8 PR merge main，删除分支
+- [ ] 11.8 PR merge main，删除分支 —— **代码已在 main**（`git log main..feat/add-payments-to-web-nextjs`
+      为空，无独有提交）。遗留 `feat/add-payments-to-web-nextjs` 本地 + 远程分支未删除，纯
+      housekeeping，未处理（分支删除不在本次授权范围内，留给构建者）。
