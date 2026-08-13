@@ -5,6 +5,7 @@
 - 文档目标受众：使用 web-nextjs 模板的开发者；支付和自部署 Supabase 章节假设读者是新手
 
 涉及目录：
+
 - `apps/docs/` — Fumadocs 文档站（fumadocs-core 16.9.3，fumadocs-mdx 15.0.10）
 - `apps/docs/content/docs/zh/templates/web-nextjs/` — 中文文档主目录
 - `apps/docs/content/docs/en/templates/web-nextjs/` — 英文文档（占位）
@@ -12,12 +13,14 @@
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Fumadocs 内增加 Mermaid 图表渲染支持（客户端组件方式）
 - 中文文档拆分为 8 个子页面 + 更新 meta.json
 - 英文同步占位
 - 自部署 Supabase、支付宝、微信支付文档内容详细、完整
 
 **Non-Goals:**
+
 - 不修改 `apps/docs` 的框架配置（不改 next.config.ts 等）
 - 不改已有 `i18n-navigation.mdx`
 - 不写 Stripe 和 Drizzle 的正文内容（仅占位）
@@ -36,6 +39,7 @@ Fumadocs 不内置 Mermaid 支持。`rehype-mermaid` 需要 Playwright（重型�
 4. 在 MDX 文件中使用：`<Mermaid chart={\`...\`} />`
 
 `mermaid.tsx` 实现要点：
+
 - 使用 `useRef` 获取容器 DOM
 - 使用 `useEffect` 调用 `mermaid.initialize({ theme: 'neutral', startOnLoad: false })` + `mermaid.render(id, chart)`
 - 将 SVG 注入容器（`innerHTML`）
