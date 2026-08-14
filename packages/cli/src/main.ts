@@ -1,6 +1,7 @@
 import { defineCommand } from 'citty'
 import { initCommand } from './commands/init.js'
 import { mcpCommand } from './commands/mcp.js'
+import { skillCommand } from './commands/skill/index.js'
 import { VERSION } from './version.js'
 
 export const main = defineCommand({
@@ -12,5 +13,6 @@ export const main = defineCommand({
   subCommands: {
     init: initCommand,
     mcp: mcpCommand,
+    skill: skillCommand,
   },
 })

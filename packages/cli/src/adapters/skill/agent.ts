@@ -1,0 +1,98 @@
+import { publishSkill } from '../../core/skillPublish.js'
+import { validateSkill } from '../../core/skillValidate.js'
+
+export interface SkillValidateAgentOptions {
+  dir: string
+  silent?: boolean
+  json?: boolean
+}
+
+export interface SkillPublishAgentOptions extends SkillValidateAgentOptions {
+  registry: string
+}
+
+function emit(obj: unknown, json: boolean): void {
+  if (json) {
+    process.stdout.write(JSON.stringify(obj) + '\n')
+  }
+}
+
+export async function runSkillValidateAgentAdapter(opts: SkillValidateAgentOptions): Promise<void> {
+  const { dir, silent = false, json = false } = opts
+  const output = json || silent
+
+  if (!dir) {
+    const err = { ok: false, error: 'MISSING_ARG', field: 'dir' }
+    if (output) {
+      emit(err, true)
+    } else {
+      console.error('Error: <dir> is required')
+    }
+    process.exit(1)
+  }
+
+  const result = await validateSkill(dir)
+
+  if (output) {
+    emit(result, true)
+  } else if (result.ok) {
+    console.log(`✓ ${dir} is a valid skill`)
+    for (const warning of result.warnings) {
+      console.log(`  ⚠ ${warning}`)
+    }
+  } else {
+    console.error(`✗ ${dir} failed validation`)
+    for (const error of result.errors) {
+      console.error(`  - ${error}`)
+    }
+  }
+
+  if (!result.ok) {
+    process.exit(1)
+  }
+}
+
+export async function runSkillPublishAgentAdapter(opts: SkillPublishAgentOptions): Promise<void> {
+  const { dir, registry, silent = false, json = false } = opts
+  const output = json || silent
+
+  if (!dir) {
+    const err = { ok: false, error: 'MISSING_ARG', field: 'dir' }
+    if (output) {
+      emit(err, true)
+    } else {
+      console.error('Error: <dir> is required')
+    }
+    process.exit(1)
+  }
+
+  if (!registry) {
+    const err = { ok: false, error: 'MISSING_ARG', field: 'registry' }
+    if (output) {
+      emit(err, true)
+    } else {
+      console.error('Error: --registry is required')
+    }
+    process.exit(1)
+  }
+
+  const result = await publishSkill(dir, registry)
+
+  if (output) {
+    emit(result, true)
+  } else if (result.ok) {
+    const verb = result.updated ? 'Updated' : 'Added'
+    console.log(`✓ ${verb} "${result.entry.id}" in ${result.manifestPath}`)
+  } else {
+    console.error(`✗ ${result.message}`)
+    if (result.errors) {
+      for (const error of result.errors) {
+        console.error(`  - ${error}`)
+      }
+    }
+  }
+
+  if (!result.ok) {
+    process.exit(1)
+  }
+}

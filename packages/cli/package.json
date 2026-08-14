@@ -23,10 +23,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "citty": "^0.1.6",
     "@clack/prompts": "^0.9.1",
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "giget": "^1.2.4"
+    "citty": "^0.1.6",
+    "giget": "^1.2.4",
+    "skills-ref": "^0.1.5"
   },
   "devDependencies": {
     "@cogito.ai/tsconfig": "workspace:*",
