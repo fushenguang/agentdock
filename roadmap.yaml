@@ -62,7 +62,13 @@ next:
   # 时间后账本非零」，不是「第 3 刀写完了」。开工前请人工确认这一条已满足。
   - id: skills-hub-cli
     title: "Skills hub CLI + registry (L1 contract, detect/eval/publish, git-manifest registry)"
-    status: planned
+    # 2026-08-13：上方那条「开工前请人工确认账本非零」的门，构建者已在对话中明确放行。
+    # 放行理由（留痕以免日后被误读为绕过门禁）：那条门要防的是「hub 带着空履历库上线、
+    # 退回成又一个 skill 目录」，但履历是闭环跑起来之后的产物、不是它的前置条件——
+    # 先有发布/获取/安装的通路，才谈得上积累履历。要求先有履历再建通路是把因果颠倒了。
+    # 验收标准相应从「履历回流」改为「闭环真的跑通（发布→获取→安装→使用）」。
+    # 首刀 cli-skill-publish 已立项。
+    status: in-progress
     owner: "@sunny"
 
 later: []
