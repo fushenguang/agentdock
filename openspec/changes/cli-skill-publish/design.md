@@ -38,7 +38,77 @@ manifest   →  只存索引：id / source(git URL) / version / name / descripti
 - `SKILL.md` 存在、frontmatter 可解析
 - Agent Skills spec 的必需字段齐全
 - 非 spec 顶层键的处理：上游 thefoolai 的 L2 合规约定是迁进 `metadata:` 并加前缀（如 `thefool.channel`）。**v0 只报告不强制**——强制某个宿主的私有约定，又是一次反向依赖
-- ⚠️ **不自建 SKILL.md 校验器**（上游 PRD 硬护栏）：优先包官方 `skills-ref validate`。**执行时先核实它能否作为库/子进程被调用**；若只能命令行调用且不可靠，再谈退路，**不要默认自己写一个**
+- ⚠️ **不自建 SKILL.md 校验器**（上游 PRD 硬护栏）：优先包官方 `skills-ref validate`。~~执行时先核实它能否作为库/子进程被调用~~ → **已核实，见 `recon.md` 0.1**
+
+### 3.1 ★ 阶段 0 排雷后的定案（2026-08-14，构建者裁决）
+
+**校验器可用性**：`skills-ref` v0.1.5 **可作库 import**，`validate(dir): Promise<string[]>`。
+护栏满足——规则判定权完全在官方实现，我方不复制任何规则。
+
+**但它不给错误分类**：返回纯字符串数组，产生"未知顶层键"错误的
+`validateMetadataFields()` 是模块内部函数、未导出（`validator.js:118-126`）。
+因此「只报告不强制」无法通过公开 API 直接表达。
+
+**裁决 = 方案甲（匹配消息前缀降级）**：
+
+```ts
+const errors = await validate(dir) // string[]
+const UNKNOWN_KEY = 'Unexpected fields in frontmatter:'
+
+const warnings = errors.filter((e) => e.startsWith(UNKNOWN_KEY))
+const hard = errors.filter((e) => !e.startsWith(UNKNOWN_KEY))
+
+if (hard.length) return { ok: false, error: 'SKILL_INVALID', errors: hard }
+return { ok: true, warnings }
+```
+
+**为什么是它**（被否方案见 `recon.md` 开放决策节）：
+
+1. **不触碰护栏**——我方零规则复制，只是给官方判定结果分档
+2. ★ **fail-closed**——上游若改文案，匹配失效 → 该错误**退回硬失败** → `publish`
+   拒绝 lesson-prep。失败方向是"过严"，不是"放行坏 skill"。
+   被否的方案乙（硬编码 allowed 键集）恰好相反：规范新增键时**静默放行**
+3. **配一条钉住消息文案的单测**，让上游改动**响亮地红**，而不是静默失效
+
+**附带要求**：`publish` 时把降级掉的非规范顶层键**显式写进 manifest 条目的一个字段**，
+让下游索引层看得见"这个 skill 带私有扩展"，而不是被悄悄咽掉。
+
+### 3.2 前置门实证：skills-ref 可内联进单文件 bundle（2026-08-14）
+
+新增 `skills-ref` 是本 CLI 的**第一个真正外部依赖**，直接威胁「单文件 bundle、零 node_modules
+可跑」这一属性——而该属性正是 `agentdock-cli-embed`（thefoolai #2）成立的基础。故把
+`tasks.md` 3.4 的冒烟**从阶段 3 验收提前为阶段 1 开工前置**：最可能推翻方案的条件必须最早失败。
+
+**实证**（一次性探针 import `validate` 后单独打包，验完即删）：
+
+```
+Bundled 8 modules → probe.js 106.85 KB
+目录内容：.  ..  probe.js        ← 零 node_modules
+$ node probe.js <合规 skill>      → {"errors":[]}
+$ node probe.js <lesson-prep>     → {"errors":["Unexpected fields in frontmatter: pipeline. ..."]}
+```
+
+结论：**通过**。`skills-ref` 依赖面为 `js-yaml`(+`argparse`) 纯 JS；`commander` 仅被其
+`cli.js` 使用，走库路径（`index.js`）不会被拖入。
+
+> ⚠️ **过程教训**：首次只跑 `pnpm build` 就得到绿——但当时**尚无任何源码 import
+> `skills-ref`**，bundle 里根本没有它，那个绿什么都不证明。门必须**真正 import 后再打包**才成立。
+> 与 epic-planning「绿检查在你知道它覆盖什么之前什么都不证明」是同一类错误。
+
+### 3.3 core 错误传递形态定案：**返回值**
+
+仓库内两种并存：`core/version.ts` 用 `throw`，`core/scaffold.ts` 用返回值
+（`scaffold.ts:157-165` 再把前者的 throw 转成返回值）。
+
+**本刀新增的 `core/skill*.ts` 一律用返回值形态**，理由：
+
+1. 与 `scaffold.ts` 一致——它才是同类物（命令的顶层 core 入口，产出带结构化错误的结果）
+2. `throw` 一个非 Error 对象本身别扭，且迫使每个调用点包 try/catch
+3. `validate` 的正常输出本就含 `warnings`（非错误），返回值天然容纳，throw 表达不了
+
+> **背景**：唯一指定的验收样本 `lesson-prep` 顶层带 `pipeline`（刻意保留，见 `recon.md` 0.3），
+> 实跑证实被官方校验器拒，且**有且仅有这一条错误**。方案甲使 `tasks.md` 3.1
+> 「真跑 validate + publish」重新可满足。
 
 ## 4 · ★ 不推送：v0 只写本地 checkout
 
