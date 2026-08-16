@@ -76,6 +76,32 @@ next:
     status: in-progress
     owner: "@sunny"
 
+  # 由 @sunny 于 2026-08-16 在对话中明确授权 AI 代为添加（本文件受 CODEOWNERS 保护，
+  # Gate① 通常需人类 owner）。留痕以免日后被误读为绕过门禁。
+  #
+  # 为什么单独立条目、而不是挂在上面的 skills-hub-cli 下：skills-hub-cli 覆盖
+  # detect/eval/publish 三项**能力交付**，范围宽且长期 in-progress；本条是一个
+  # **会阻塞消费侧的正确性缺陷**，挂进去容易被当成"那一大条的一部分"而失焦。
+  # 它是「skill 内容仓公开」的硬前置——不修则内容搬进公开仓后别人依然装不了。
+  - id: publish-source-url-normalization
+    title: "Normalize `source` URL in published manifests (SSH to HTTPS) so anonymous installs work"
+    # 发现于 2026-08-16 归档 cli-skill-publish 时：用真实样本跑一次 publish 并**读产出物内容**
+    # （而不是只看退出码），产出 "source": "git@github.com:fushenguang/thefoolai.git"。
+    #
+    # 根因：packages/cli/src/core/skillPublish.ts:87-99 把 `git remote get-url origin`
+    # 的输出**零规范化**直接写入 source（第 110/173 行）。
+    #
+    # ★ 准确的表述不是「它输出 SSH」，而是——**同一个仓库、两个贡献者发布同一个 skill，
+    #   会产出一个能匿名装、一个不能装的 manifest**。这是发布产物里的非确定性，
+    #   且它对发布者本人不可见（他自己的 clone 一定能用）。
+    #
+    # 违反的护栏：消费侧「别家 Agent 拿到 git 地址就能直接装」。
+    # 判据不是"URL 能被解析"，而是——**产出的 URL 能被一个没有任何凭据的人 clone**。
+    #
+    # 修法与完整证据见 changes/archive/2026-08-16-cli-skill-publish/design.md 末尾章节。
+    status: planned
+    owner: "@sunny"
+
 later: []
 
 wont: []

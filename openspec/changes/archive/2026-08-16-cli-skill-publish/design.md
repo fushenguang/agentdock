@@ -139,3 +139,54 @@ $ node probe.js <lesson-prep>     → {"errors":["Unexpected fields in frontmatt
 1. **`skill publish` 的产出是一个真实可用的 manifest 条目**——用 thefoolai 的 `lesson-prep` 真实跑一次，而不是构造的假目录
 2. **CLI 仍然零外部依赖**：改完后重跑「拷 `dist/` 到无 node_modules 空目录能跑通」的冒烟（该结论是针对某次 build 的实证，新增命令可能引入新依赖）
 3. `align:check` 全绿（尤其 orphan-change 与 Non-goals 两条硬失败）
+
+---
+
+## ★ 归档时发现（2026-08-16）：`source` 的取值是非确定性的
+
+**这一条是本 change 交付物的一个真实缺陷，不是新需求。** 记在这里是因为它只有在
+**跑一次真实 publish 并读产出物内容**时才会暴露——只看退出码不会。
+
+### 怎么发现的
+
+用真实样本 `lesson-prep` 跑 `skill publish` 到一次性本地 registry，产出：
+
+```json
+{
+  "id": "lesson-prep",
+  "source": "git@github.com:fushenguang/thefoolai.git",
+  "path": "apps/electron-app/SKILLs/lesson-prep",
+  "nonSpecFields": ["pipeline"]
+}
+```
+
+**同时验证了两件设计意图确实成立**：`nonSpecFields` 如实记录了 `pipeline`
+被降级为 warning（§3.1 方案甲端到端可用）；`description` 是去标识化版本。
+
+### 缺陷
+
+`packages/cli/src/core/skillPublish.ts:87-99` 把 `git remote get-url origin`
+的输出**零规范化**直接写进 `source`（第 110 / 173 行）。
+
+因此产出的 manifest 取决于**发布者本机的 git 配置**：
+
+| 发布者的 origin 形式        | 产出的 `source` | 别家 Agent 能否匿名安装 |
+| --------------------------- | --------------- | ----------------------- |
+| `git@github.com:...`（SSH） | 原样 SSH        | ❌ 需要授权的 SSH key   |
+| `https://github.com/...`    | 原样 HTTPS      | ✅                      |
+
+**准确的表述不是"它输出 SSH"，而是——同一个仓库、两个贡献者发布同一个 skill，
+会产出一个能装、一个不能装的 manifest。** 这是发布产物里的**非确定性**：
+manifest 的正确性不可复现，且不可复现的方式对发布者本人不可见
+（他自己的 clone 一定能用）。
+
+### 为什么这构成硬阻塞
+
+消费侧的护栏是「别家 Agent 拿到 git 地址就能直接装」。SSH 形式的 `source`
+直接违反它——**即使 skill 内容搬进公开仓，装不了这件事也不会改变**。
+
+### 建议修法（需走本仓库的四道门，Gate ① roadmap 条目由人类 owner 添加）
+
+把 SSH 形式规范化为 HTTPS 后再写入 `source`（`git@host:owner/repo.git`
+→ `https://host/owner/repo`），并对无法规范化的形式显式报错而不是静默写入。
+**判据不是"能解析"，而是"产出的 URL 能被一个没有任何凭据的人 clone"。**
