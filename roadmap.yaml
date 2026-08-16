@@ -102,6 +102,38 @@ next:
     status: planned
     owner: "@sunny"
 
+  # 由 @sunny 于 2026-08-16 在对话中明确授权 AI 代为添加（本文件受 CODEOWNERS 保护，
+  # Gate① 通常需人类 owner）。留痕以免日后被误读为绕过门禁。
+  - id: skills-registry-template
+    title: "Add a `skills-registry` project template (docs + gates, no marketing web app)"
+    # 场景：初始化一个「公开 skill 内容仓」——skill 正典放 git、根目录一份 skills.json
+    # manifest、一个 docs 站说明写法与约定。首个使用者是 thefoolai 的
+    # `fushenguang/thefool-skills`（部署 skills.app.fujia.site），但模板本身通用：
+    # 任何想建 skill hub 的人都需要同一套东西。
+    #
+    # 由 web-nextjs 派生，但三处刻意不同：
+    #   ① 去掉 apps/web（营销站），只留 apps/docs（Fumadocs）
+    #   ② 去掉 supabase —— skills-hub 的可移植性铁律明确不用它
+    #   ③ openspec 收窄适用范围：只管基建/契约变更（manifest schema、校验规则、
+    #      站点结构），**不管「加一个 skill」**。为产品代码库设计的门原样套到内容仓上，
+    #      会让贡献一个 skill 需要先写 proposal —— 直接劝退贡献，包括劝退我们自己。
+    #      加 skill 的门只有两条：`agentdock skill validate` 通过 + PR review。
+    #
+    # ★ 模板真正的价值不在脚手架，在它预置的三道门（详见 thefoolai
+    #   prd/skill-commerce-loop §4.1.2）：
+    #   1. 每个 PR 对**全部** skill 跑 `agentdock skill validate`（不是只跑改动的）
+    #   2. `skills.json` **新鲜度门** —— CI 重新生成并对账。这条来自实证教训：
+    #      2026-08-15/16 一轮里生成文件漂移咬了三次（knowledge-index 过期、
+    #      roadmap↔archive 不同步、三个版本真源无人对账）。「一个 manifest + 一堆内容」
+    #      是完全相同的漂移形态，day one 建门比事后补便宜一个数量级。
+    #   3. 公私边界检查 —— 该类仓全部公开，禁止私有仓路径 / 内部域名 / 个人可识别模式。
+    #      同样来自实证：2026-08-15 去标识化漏过一次（半脱敏但姓氏仍在）。
+    #
+    # 另：skill 目录索引不做独立浏览 UI —— 由 skills.json 生成 docs 页即可，
+    # 避免维护两套渲染。
+    status: planned
+    owner: "@sunny"
+
 later: []
 
 wont: []
