@@ -18,10 +18,14 @@ function makeWorkDir(label: string): string {
 }
 
 /** A git repo (with an `origin` remote) containing a skill directory at `skills/<name>`. */
-function makeSkillRepo(name: string, frontmatter: string): { repoRoot: string; skillDir: string } {
+function makeSkillRepo(
+  name: string,
+  frontmatter: string,
+  remote: string = FAKE_REMOTE,
+): { repoRoot: string; skillDir: string } {
   const repoRoot = makeWorkDir(`repo-${name}`)
   execSync('git init -q', { cwd: repoRoot, stdio: 'ignore' })
-  execSync(`git remote add origin ${FAKE_REMOTE}`, { cwd: repoRoot, stdio: 'ignore' })
+  execSync(`git remote add origin ${remote}`, { cwd: repoRoot, stdio: 'ignore' })
 
   const skillDir = join(repoRoot, 'skills', name)
   mkdirSync(skillDir, { recursive: true })
@@ -69,7 +73,12 @@ describe('publishSkill', () => {
     expect(result.entry.id).toBe('good-skill')
     expect(result.entry.name).toBe('good-skill')
     expect(result.entry.description).toBe('A valid publishable skill.')
-    expect(result.entry.source).toBe(FAKE_REMOTE)
+    // FAKE_REMOTE is SCP-like SSH (`git@example.com:acme/skills-repo.git`);
+    // the published `source` MUST be the normalized, credential-free HTTPS
+    // form (design.md §1 row 1), not the raw `git remote get-url` output.
+    // This assertion used to be `=== FAKE_REMOTE` — that locked in the
+    // defect this change fixes (design.md §4).
+    expect(result.entry.source).toBe('https://example.com/acme/skills-repo')
     expect(result.entry.path).toBe(join('skills', 'good-skill'))
     expect(result.entry.nonSpecFields).toBeUndefined()
     expect(typeof result.entry.publishedAt).toBe('string')
@@ -191,5 +200,70 @@ describe('publishSkill', () => {
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.error).toBe('SKILL_SOURCE_UNRESOLVED')
+  })
+
+  it('determinism: SSH and HTTPS origins for the same repo publish the same source (design.md §4)', async () => {
+    const sshRepo = makeSkillRepo(
+      'determinism-skill',
+      'name: determinism-skill\ndescription: Published from an SSH origin.',
+      'git@github.com:acme/determinism-repo.git',
+    )
+    const httpsRepo = makeSkillRepo(
+      'determinism-skill',
+      'name: determinism-skill\ndescription: Published from an HTTPS origin.',
+      'https://github.com/acme/determinism-repo.git',
+    )
+    const registryDirSsh = makeWorkDir('registry-ssh')
+    const registryDirHttps = makeWorkDir('registry-https')
+    cleanupDirs.push(sshRepo.repoRoot, httpsRepo.repoRoot, registryDirSsh, registryDirHttps)
+
+    const sshResult = await publishSkill(sshRepo.skillDir, registryDirSsh)
+    const httpsResult = await publishSkill(httpsRepo.skillDir, registryDirHttps)
+
+    expect(sshResult.ok).toBe(true)
+    expect(httpsResult.ok).toBe(true)
+    if (!sshResult.ok || !httpsResult.ok) return
+
+    expect(sshResult.entry.source).toBe(httpsResult.entry.source)
+    expect(sshResult.entry.source).toBe('https://github.com/acme/determinism-repo')
+  })
+
+  it('credentials embedded in the origin never reach the published source (design.md §4)', async () => {
+    const token = 'FAKE-TOKEN-DO-NOT-USE'
+    const { repoRoot, skillDir } = makeSkillRepo(
+      'credential-skill',
+      'name: credential-skill\ndescription: Origin has embedded credentials.',
+      `https://x-access-token:${token}@github.com/acme/credential-repo.git`,
+    )
+    const registryDir = makeWorkDir('registry')
+    cleanupDirs.push(repoRoot, registryDir)
+
+    const result = await publishSkill(skillDir, registryDir)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.entry.source).toBe('https://github.com/acme/credential-repo')
+    expect(result.entry.source).not.toContain(token)
+
+    const manifest = readManifest(registryDir)
+    expect(JSON.stringify(manifest)).not.toContain(token)
+  })
+
+  it('a local-path origin fails explicitly and leaves the registry untouched (design.md §1 row 9)', async () => {
+    const { repoRoot, skillDir } = makeSkillRepo(
+      'local-path-origin-skill',
+      'name: local-path-origin-skill\ndescription: Origin is a local filesystem path.',
+      '/tmp/some-local-repo',
+    )
+    const registryDir = makeWorkDir('registry')
+    cleanupDirs.push(repoRoot, registryDir)
+
+    const result = await publishSkill(skillDir, registryDir)
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toBe('SKILL_SOURCE_UNRESOLVED')
+    expect(result.message).toContain('/tmp/some-local-repo')
+    expect(existsSync(join(registryDir, MANIFEST_FILENAME))).toBe(false)
   })
 })

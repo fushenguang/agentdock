@@ -2,6 +2,7 @@ import { execSync } from 'child_process'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
 import { readProperties } from 'skills-ref'
+import { normalizeGitRemoteUrl } from './gitRemoteUrl.js'
 import { extractNonSpecFields, validateSkill } from './skillValidate.js'
 
 /**
@@ -99,6 +100,11 @@ function resolveGitSource(dir: string): { source: string; path?: string } | { er
     return { error: `no git remote "origin" configured for the repository containing "${absDir}"` }
   }
 
+  const normalized = normalizeGitRemoteUrl(remote)
+  if ('error' in normalized) {
+    return { error: normalized.error }
+  }
+
   const prefix = execSync('git rev-parse --show-prefix', {
     cwd: absDir,
     encoding: 'utf-8',
@@ -107,7 +113,7 @@ function resolveGitSource(dir: string): { source: string; path?: string } | { er
     .trim()
     .replace(/\/+$/, '')
 
-  return prefix ? { source: remote, path: prefix } : { source: remote }
+  return prefix ? { source: normalized.url, path: prefix } : { source: normalized.url }
 }
 
 function loadManifest(manifestPath: string): SkillManifest {
