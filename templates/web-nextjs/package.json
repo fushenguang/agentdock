@@ -21,15 +21,5 @@
   },
   "agentdock": {
     "minCliVersion": "0.1.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@fission-ai/openspec",
-      "@parcel/watcher",
-      "@swc/core",
-      "esbuild",
-      "msw",
-      "sharp"
-    ]
   }
 }
