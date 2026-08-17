@@ -36,7 +36,7 @@ concurrency:
 
 jobs:
   gates:
-    name: Scaffold and run the three gates
+    name: Scaffold and run all four gates
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -116,7 +116,7 @@ jobs:
           pnpm skills:sync
           git add -A
 
-      - name: The three gates, run exactly as a user would
+      - name: All four gates, run exactly as a user would
         run: |
           cd "$RUNNER_TEMP/scaffold/my-skills"
           pnpm run gates
