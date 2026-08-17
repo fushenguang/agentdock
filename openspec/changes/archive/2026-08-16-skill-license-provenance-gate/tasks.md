@@ -40,7 +40,7 @@
 ## 5 · 收口
 
 - [x] 5.1 补 changeset（模板集变更需发版才能被 `init` 用到）。
-- [ ] 5.2 回写 thefoolai PRD `skill-commerce-loop.mdx`：门④ 已交付，
+- [x] 5.2 回写 thefoolai PRD `skill-commerce-loop.mdx`：门④ 已交付，
       并把「三道门缺许可维度」这条从"缺口"改为"已补"。
 
 ## 6 · 复核时补的一条（★ 门自身的漏洞）
