@@ -1,0 +1,108 @@
+# skills-registry-gates.yml — 对 templates/skills-registry 真跑它自带的三道门。
+#
+# 为什么不复用 template-validation.yml：那份脚本（scripts/validate-template.sh）
+# 硬编码了 templates/web-nextjs/apps/web，是 web 模板专用的。
+#
+# 为什么要 scaffold 而不是就地在 templates/skills-registry 里跑门：
+# 门② 比对的是「manifest 与 skills/* 是否一致」，而 manifest 的 source 由**所在仓的
+# git remote** 推导。模板源目录里那份 skills.json 带的是占位 source（模板不可能预置
+# 正确值），就地跑必然红。所以这里走使用者的真实路径：init → git init + origin →
+# bootstrap → 跑门。
+#
+# ★ 本工作流刻意包含一条**反向对照**（bootstrap 之前门② 必须失败）。
+#   只验成功路径的话，门退化成 no-op 也没人会发现。
+
+name: Skills Registry Template Gates
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'templates/skills-registry/**'
+      - '.github/workflows/skills-registry-gates.yml'
+
+concurrency:
+  group: skills-registry-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: Scaffold and run the three gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # CLI 用 `bun build` 打包
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the CLI
+        run: pnpm --filter @cogito.ai/cli build
+
+      - name: Scaffold the template
+        run: |
+          mkdir -p "$RUNNER_TEMP/scaffold"
+          cd "$RUNNER_TEMP/scaffold"
+          node "$GITHUB_WORKSPACE/packages/cli/dist/index.js" init \
+            --name my-skills --template skills-registry --json
+
+      - name: Turn the scaffold into a git repo with a public origin
+        run: |
+          cd "$RUNNER_TEMP/scaffold/my-skills"
+          git init -q
+          git remote add origin https://github.com/example-org/example-skills.git
+          git add -A
+
+      # 反向对照：bootstrap 之前门② 必须失败，且必须指出该跑什么。
+      # 若它此时是绿的，说明门② 已经不再检查任何东西。
+      - name: 'Reverse control: gate 2 must FAIL before bootstrap'
+        run: |
+          cd "$RUNNER_TEMP/scaffold/my-skills"
+          export AGENTDOCK_CMD="node $GITHUB_WORKSPACE/packages/cli/dist/index.js"
+          if output=$(node scripts/gates/manifest-fresh.mjs 2>&1); then
+            echo "::error::gate 2 passed before bootstrap — it is no longer checking anything."
+            echo "$output"
+            exit 1
+          fi
+          echo "$output"
+          echo "$output" | grep -q 'pnpm skills:sync' || {
+            echo "::error::gate 2 failed but did not tell the user to run \`pnpm skills:sync\`."
+            exit 1
+          }
+
+      - name: Bootstrap (skills:sync)
+        run: |
+          cd "$RUNNER_TEMP/scaffold/my-skills"
+          export AGENTDOCK_CMD="node $GITHUB_WORKSPACE/packages/cli/dist/index.js"
+          node scripts/gates/manifest-fresh.mjs --write
+          node scripts/gen-skill-docs.mjs
+          git add -A
+
+      - name: Gate 1 — validate every skill
+        run: |
+          cd "$RUNNER_TEMP/scaffold/my-skills"
+          AGENTDOCK_CMD="node $GITHUB_WORKSPACE/packages/cli/dist/index.js" \
+            node scripts/gates/validate-all.mjs
+
+      - name: Gate 2 — manifest freshness
+        run: |
+          cd "$RUNNER_TEMP/scaffold/my-skills"
+          AGENTDOCK_CMD="node $GITHUB_WORKSPACE/packages/cli/dist/index.js" \
+            node scripts/gates/manifest-fresh.mjs
+
+      - name: Gate 3 — public/private boundary
+        run: |
+          cd "$RUNNER_TEMP/scaffold/my-skills"
+          node scripts/gates/public-boundary.mjs

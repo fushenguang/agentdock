@@ -1,0 +1,72 @@
+---
+title: 三道门
+description: 门①②③ 各查什么、怎么本地复现、失败了怎么办。
+---
+
+三道门是本模板真正的价值所在（而不是脚手架本身）——都是零构建步骤的纯 Node ESM 脚本
+（`scripts/gates/*.mjs`），本地跑和 CI 跑是同一段代码：
+
+```bash
+pnpm gates                      # 依次跑三道门
+pnpm gate:validate              # 只跑门①
+pnpm gate:manifest-fresh        # 只跑门②
+pnpm gate:public-boundary       # 只跑门③
+```
+
+## 门① · 全量 skill 校验
+
+对 `skills/` 下**每一个**目录跑 `agentdock skill validate --json`，任一失败即整体失败。
+
+**为什么是全量而不是只跑改动的**：只跑改动的会漏掉"A 的改动让 B 失效"——比如一个共享约定被改、
+或 `skills-ref` 版本升级后一个原本合法的 skill 变得不合法。skill 数量在可预见的将来是几十量级,
+全量跑的成本可以忽略。
+
+失败时会输出是哪个 skill、缺什么字段或哪条规则没过。
+
+## 门② · manifest 新鲜度
+
+把 `skills/*` 全部重新 publish 进一个临时 registry，再与仓库里已提交的 `skills.json` 对账；
+同时把 `apps/docs/content/docs/skills/*` 与"由当前 `skills.json` 生成的结果"对账——一条门检
+两个生成物。
+
+**对账时会忽略 `publishedAt`**：`publish` 每次调用都写当前时间戳,逐字比较这个字段会让门永远
+红。除 `publishedAt` 外的所有字段（`id`/`name`/`description`/`source`/`path`/`license`/
+`nonSpecFields`）逐字比较，按 `id` 匹配（顺序不是语义）。
+
+失败时会打印具体差异——哪个 id、哪个字段、期望值（重新生成的）与实际值（已提交的）。
+
+### 仓库刚初始化时，这道门会失败——这是预期的
+
+模板 ship 的 `skills.json` 里,`source` 是一个占位值（`agentdock-template-placeholder://...`），
+因为模板不可能知道你会把仓库建在哪个 git remote 下。门②检测到占位值时,会直接告诉你：
+
+```
+skills.json 还带着模板占位 source。这个仓库还没有 bootstrap。
+运行 `pnpm skills:sync` 并提交结果。
+```
+
+跑完 `pnpm skills:sync` 之后再跑门②，应该通过。
+
+## 门③ · 公私边界
+
+这类仓库全部公开。对**全部 git 跟踪文件**扫描 `boundary-rules.json` 里配置的正则模式：
+
+- **私有仓路径**——只在私有宿主仓库里才有意义的路径片段
+- **内部域名**——只在内网才能解析的主机名（含 RFC1918 内网 IP 段）
+- **个人可识别模式**——形状像真实个人数据的字符串（如中国大陆手机号、18 位身份证号）
+
+失败时会输出命中的文件、行号，以及命中的规则（类别 + 正则本身）。
+
+**规则表是数据,不是代码**：`boundary-rules.json` 按仓定制,"什么算私有"因仓而异。这条门来自
+一次真实事故——2026-08-15 一次去标识化漏过了一个半脱敏、姓氏仍在的案例。门的价值不在于穷举,
+而在于把"记得脱敏"从人的自觉变成机器的检查。
+
+**如果命中的是误报**：收窄 `boundary-rules.json` 里的正则。**不要**为了让门通过而把文件加进
+忽略名单——那会让这道门形同虚设。
+
+## 三道门之外：什么时候要走 OpenSpec
+
+三道门管的是内容层面的正确性（skill 合法、manifest 新鲜、没有私有信息泄漏）。如果你要改的是
+**这三道门本身的规则**、`skills.json` 的 schema，或文档站点的结构——那是基建/契约变更，要走
+`openspec/`。加一个 skill 不需要。详见 `AGENTS.md` 的判据表和 `openspec/config.yaml` 的
+`context`。

@@ -1,0 +1,14 @@
+{
+  "version": "1",
+  "skills": [
+    {
+      "id": "example-skill",
+      "name": "example-skill",
+      "description": "A minimal, valid example skill shipped with the skills-registry template so the three CI gates (validation, manifest freshness, public/private boundary) have something real to check from the moment a repo is created — replace or delete this once you add your own skills.",
+      "source": "agentdock-template-placeholder://run-pnpm-skills-sync",
+      "path": "skills/example-skill",
+      "license": "MIT",
+      "publishedAt": "1970-01-01T00:00:00.000Z"
+    }
+  ]
+}

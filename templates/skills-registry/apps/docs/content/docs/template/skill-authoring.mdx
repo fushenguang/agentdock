@@ -1,0 +1,68 @@
+---
+title: SKILL.md 写法与约定
+description: skills/<name>/SKILL.md 的必填字段、目录约定，以及怎么通过门①。
+---
+
+## 目录约定
+
+每个 skill 是 `skills/<name>/` 下的一个目录，正典内容是其中的 `SKILL.md`：
+
+```
+skills/
+└── my-skill/
+    └── SKILL.md
+```
+
+`<name>` 会成为该 skill 在 manifest 里的 `id`，同时也是 `skill publish` 写进 manifest 的
+`path`（`skills/<name>`）的一部分——短而稳的路径对消费者友好，所以**不要**在 `skills/` 和
+`SKILL.md` 之间插入更多层级。
+
+## Frontmatter 字段
+
+`SKILL.md` 以 YAML frontmatter 开头，遵循 [Agent Skills spec](https://www.npmjs.com/package/skills-ref)（由 `skills-ref` 校验，`agentdock skill validate` 只是它的一层薄封装，本模板不实现任何自己的校验规则）：
+
+| 字段            | 必填 | 说明                                                                                             |
+| --------------- | :--: | ------------------------------------------------------------------------------------------------ |
+| `name`          |  ✅  | 必须与目录名逐字相同（含大小写）。这是 skills-ref 的硬性要求。                                   |
+| `description`   |  ✅  | **英文**。这是 manifest 里被机器/消费者读取的字段，把它当成 skill 的电梯演讲来写，不是内部备注。 |
+| `license`       |      | 建议填，公开仓库尤其应该有明确的 license。                                                       |
+| `allowed-tools` |      | 可选，Agent Skills spec 定义的字段。                                                             |
+| `compatibility` |      | 可选，字符串，最多 500 字符。                                                                    |
+| `metadata`      |      | 可选的自由 key-value，会被下放为警告（不阻塞发布）而不是静默丢弃。                               |
+
+> 只允许上面这些顶层字段。其他字段会被 `skills-ref` 标记为 "Unexpected fields in
+> frontmatter"——`skill publish` 会把它们记录进 manifest 的 `nonSpecFields`，但不会拒绝发布。
+
+## 一个最小可用的例子
+
+```markdown
+---
+name: my-skill
+description: One sentence, in English, describing what this skill does and when to use it.
+license: MIT
+---
+
+# My Skill
+
+Body content — this is the skill's actual instructions.
+```
+
+## 本地校验（门①）
+
+```bash
+agentdock skill validate skills/my-skill
+```
+
+常见的失败原因：
+
+- 目录名和 `name` 字段不一致
+- 缺少 `name` 或 `description`
+- `name` 含大写字母、以连字符开头/结尾，或有连续连字符
+- `description` 超过 1024 字符
+
+## 发布后会发生什么
+
+`pnpm skills:sync` 对**每一个** `skills/*` 目录跑一次 `agentdock skill publish`，把结果写进
+`skills.json`，其中 `source` 字段来自**这个仓库自己的 git remote**——所以同一个 `SKILL.md`
+放在不同仓库里，产出的 `source` 也不同,这是设计如此，不是 bug。发布是幂等的：同一个 `id`
+再次发布会更新已有条目，不会产生重复项。
