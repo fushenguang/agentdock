@@ -20,7 +20,7 @@
     "gates": "pnpm run gate:validate && pnpm run gate:manifest-fresh && pnpm run gate:public-boundary"
   },
   "devDependencies": {
-    "@cogito.ai/cli": "PENDING-SEE-TASK-2.7",
+    "@cogito.ai/cli": "^0.8.1",
     "@fission-ai/openspec": "^1.3.1",
     "turbo": "latest"
   },

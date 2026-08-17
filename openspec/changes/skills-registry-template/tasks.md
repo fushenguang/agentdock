@@ -29,7 +29,8 @@
 - [x] 1.8 `skills.json`：ship 一份**带显式占位 `source`** 的版本（模板不可能预置正确值，
       理由见 design §2「★」）。同时加 `pnpm skills:sync` script，并在 `README.md` 与
       `getting-started.mdx` 把它写成 **init 之后的第一条命令**。
-- [ ] 1.9 `pnpm-lock.yaml` 重新生成。**未完成，如实报告**：`templates/skills-registry/`
+- [x] 1.9 `pnpm-lock.yaml` 重新生成。**已解除**（2026-08-16，`@cogito.ai/cli@0.8.1` 发版后）。
+      原阻塞记录保留：**曾未完成，如实报告**：`templates/skills-registry/`
       不在 agentdock 根 `pnpm-workspace.yaml` 里（`packages: [apps/*, packages/*]`，不含
       `templates/*`），所以只能在模板目录内独立 `pnpm install` 生成它自己的 lockfile；
       而 2.7 的占位版本号 `PENDING-SEE-TASK-2.7` 让 `pnpm install` 在解析依赖阶段就以
@@ -55,7 +56,7 @@
 - [x] 2.6 `.github/workflows/gates.yml`：PR 上跑三道门。这是**模板内容**
       （`templates/skills-registry/.github/workflows/gates.yml`），不是 agentdock 自己的
       CI（3.1 的范围），不受「改 `.github/` 需暂停确认」的约束。
-- [ ] 2.7 `@cogito.ai/cli` 作为 **devDependency 钉版本**，CI 用 `pnpm exec agentdock`。
+- [x] 2.7 `@cogito.ai/cli` 作为 **devDependency 钉版本**，CI 用 `pnpm exec agentdock`。
       **不得**用 `npx @cogito.ai/cli@latest`（design §4）。
       ⚠️ **阻塞点**：要钉的版本必须是**已发布**且**含 PR #31 的 source 规范化修复**的版本。
       若尚未发到 npm，**停下来报告，不得先钉旧版凑数**。
@@ -69,6 +70,15 @@
       换成真实的 `^<版本号>`，重跑 `pnpm --filter @cogito.ai/cli build` 确认
       `packages/cli/src/registry.json` 里 `skills-registry` 模板的
       `resolvedDependencies["@cogito.ai/cli"]` 变成真实 semver，再勾选本条。
+      **已解除（2026-08-16）**：PR #31 已合并到 main，changesets 的 Version Packages PR (#33)
+      已合并，`@cogito.ai/cli@0.8.1` 已发到 npm（官方 registry 实测 `latest = 0.8.1`，
+      发布时间 `2026-08-17T01:22:56Z`——本机 registry 是 npmmirror 会滞后，别拿它当判据）。
+      占位符已换成 `^0.8.1`，模板 lockfile 已生成。
+      **真实路径端到端已验**：scaffold → `pnpm install` → 故意设 **SSH** origin →
+      `pnpm skills:sync` → 产出 `source` 是 `https://github.com/example-org/example-skills`
+      （**无 `.git` 后缀**，证明 0.8.1 的规范化真的到位）→ `pnpm run gates` 三道门全绿，
+      全程走 `pnpm exec agentdock`，**没有** `AGENTDOCK_CMD` 覆盖。
+      并在 CI 加了一道守卫：钉住的版本必须在 npm 上真实存在，禁止 PENDING/占位符合进 main。
 
 ## 3 · 门必须被真跑过（不得交付没验过的门）
 
@@ -126,5 +136,5 @@
 - [x] 5.1 补 changeset（`@cogito.ai/cli` 的模板集变了 → 需要发版才能被 `init` 用到）。
       ⚠️ 第一刀漏过这条：没有 changeset，改动合进 main 也不会发到 npm。
       已新增 `.changeset/skills-registry-template.md`（`@cogito.ai/cli`: minor）。
-- [ ] 5.2 回写 thefoolai PRD `skill-commerce-loop.mdx` §4.1.2：模板已交付 + 指向本 change。
-      （跨仓，走 thefoolai 自己的门。**本轮范围外，未执行**——由发起方另外处理。）
+- [x] 5.2 回写 thefoolai PRD `skill-commerce-loop.mdx` §4.1.2：模板已交付 + 指向本 change。
+      （跨仓，走 thefoolai 自己的门。已完成：thefoolai PR #185。）

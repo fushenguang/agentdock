@@ -48,6 +48,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # 这个模板的门全靠 CLI。它的版本被钉在模板 package.json 里，而"钉了一个装不上的
+      # 版本"是一种能一路绿到合并、只在使用者 `pnpm install` 时才炸的失败——本刀开发期间
+      # 就真的在那儿挂过一个 PENDING 占位符。所以显式验一次它在 npm 上真的存在。
+      - name: 'Guard: the pinned CLI version must actually exist on npm'
+        run: |
+          pinned=$(node -p "require('./templates/skills-registry/package.json').devDependencies['@cogito.ai/cli']")
+          echo "pinned: $pinned"
+          case "$pinned" in
+            *PENDING*|*TODO*|*PLACEHOLDER*|'')
+              echo "::error::templates/skills-registry pins a placeholder CLI version ($pinned)."
+              exit 1 ;;
+          esac
+          npm view "@cogito.ai/cli@$pinned" version --registry=https://registry.npmjs.org/
+
       - name: Build the CLI
         run: pnpm --filter @cogito.ai/cli build
 
