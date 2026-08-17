@@ -59,7 +59,7 @@
 
 ## 5 · 收口
 
-- [ ] 5.1 回写 thefoolai `apps/wiki/content/docs/prd/skill-commerce-loop.mdx` §4.2 ★★：
+- [x] 5.1 回写 thefoolai `apps/wiki/content/docs/prd/skill-commerce-loop.mdx` §4.2 ★★：
       标记该缺陷已修 + 指向本 change。（跨仓，属 thefoolai 侧改动，走它自己的门）
-- [ ] 5.2 归档本 change 时**同步 base spec**（把 delta 合进 `openspec/specs/cli-skill-publish/`）——
+- [x] 5.2 归档本 change 时**同步 base spec**（把 delta 合进 `openspec/specs/cli-skill-publish/`）——
       上一次归档正是漏了这一步，见 task 0.1。
