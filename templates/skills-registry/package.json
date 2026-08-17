@@ -17,7 +17,8 @@
     "gate:validate": "node scripts/gates/validate-all.mjs",
     "gate:manifest-fresh": "node scripts/gates/manifest-fresh.mjs",
     "gate:public-boundary": "node scripts/gates/public-boundary.mjs",
-    "gates": "pnpm run gate:validate && pnpm run gate:manifest-fresh && pnpm run gate:public-boundary"
+    "gate:license-provenance": "node scripts/gates/license-provenance.mjs",
+    "gates": "pnpm run gate:validate && pnpm run gate:manifest-fresh && pnpm run gate:public-boundary && pnpm run gate:license-provenance"
   },
   "devDependencies": {
     "@cogito.ai/cli": "^0.8.1",

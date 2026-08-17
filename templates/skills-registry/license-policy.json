@@ -1,0 +1,60 @@
+{
+  "version": "1",
+  "_comment": "Gate ④ (scripts/gates/license-provenance.mjs) answers a question the other three gates don't: do I have the right to publish this skill? A third-party copyright notice is orthogonal to gate ③'s host-identity scan — none of its characters belong to the host, so gate ③ never looks at it. This table is DATA, not code, on purpose: which licenses may be forwarded, and which skills are explicitly registered as third-party forwards, is a per-repo content decision, not something the gate script should hardcode. As with boundary-rules.json, prefer regex SHAPES over literal samples here — a real filled-in copyright line is exactly the kind of secret-shaped literal secretlint (and this gate's own sibling, gate ③) flags elsewhere in this platform.",
+  "_bootstrap": "★ Fill in `repoLicense` to match whatever LICENSE your registry repo actually ships (the template default below is MIT, matching the shipped example-skill). `forwardedSkills` ships EMPTY — every skill starts under gate ④'s default conservative stance: any third-party evidence and no explicit registration here means the gate fails. Registering a skill here is a human decision (you looked at the license and decided it's OK to forward), not something the gate infers.",
+  "repoLicense": "MIT",
+  "allowedForwardLicenses": {
+    "_comment": "Only permissive, forwarding-friendly SPDX ids by default. A skill whose declared originalLicense is NOT in this list fails gate ④ even if it's registered in forwardedSkills below — this is what stops a proprietary license from being 'whitelisted' by registering it. Add an id here only after you've actually read what it permits (Non-goals: this gate does not do that reading for you).",
+    "ids": [
+      "MIT",
+      "Apache-2.0",
+      "BSD-2-Clause",
+      "BSD-3-Clause",
+      "ISC",
+      "0BSD",
+      "MPL-2.0",
+      "OFL-1.1"
+    ]
+  },
+  "forwardedSkills": {
+    "_comment": "Explicit per-skill registration of 'this skill's content is a third-party forward, not ours'. Keyed by skill id (the directory name under skills/). `originalLicense` MUST be one of allowedForwardLicenses.ids. `requiresNotice: true` additionally requires a NOTICE* file to be present in the skill directory — set it only when the upstream you're forwarding actually ships a NOTICE file to carry forward (most permissive licenses, including Apache-2.0, don't mandate one exist in the first place; this gate can't invent one that was never there, only refuse to let you drop one that was)."
+  },
+  "licenseSignatures": {
+    "_comment": "Labels the evidence found inside a skill's LICENSE*/NOTICE* files or copyright-shaped hits. ★ These labels ARE load-bearing: gate ④ cross-checks a registered forward's declared `originalLicense` against what was actually detected, and refuses any registration for a skill whose evidence says `kind: proprietary`. Without that cross-check, registering a proprietary skill under a whitelisted id would silently launder it — which is precisely what this gate exists to stop. `name` MUST therefore use the same identifiers as `allowedForwardLicenses.ids`.",
+    "patterns": [
+      {
+        "name": "Apache-2.0",
+        "kind": "permissive",
+        "pattern": "Apache License,?\\s*Version 2\\.0"
+      },
+      {
+        "name": "MIT",
+        "kind": "permissive",
+        "pattern": "Permission is hereby granted,\\s*free of charge"
+      },
+      {
+        "name": "BSD-3-Clause",
+        "kind": "permissive",
+        "pattern": "Redistribution and use in source and binary forms"
+      },
+      {
+        "name": "OFL-1.1",
+        "kind": "permissive",
+        "pattern": "SIL Open Font License"
+      },
+      {
+        "name": "proprietary (all rights reserved)",
+        "kind": "proprietary",
+        "pattern": "[Aa]ll rights reserved"
+      }
+    ]
+  },
+  "copyrightPatterns": {
+    "_comment": "Regex SHAPES (not literal samples) used to scan every non-binary file under a skill directory for a copyright-declaration-looking string — the third of the three evidence channels required by the spec (LICENSE*/NOTICE* files, frontmatter `license`, and this one). A placeholder like 'Copyright [yyyy] [name of copyright owner]' (the literal Apache-2.0 boilerplate template) deliberately does NOT match — no digits — because that placeholder is not evidence of a filled-in, real copyright claim; the file's own presence under LICENSE*/NOTICE* naming is what catches the boilerplate case.",
+    "patterns": [
+      "©\\s?\\d{4}\\b",
+      "\\bCopyright\\s*(\\(c\\)|©)?\\s*\\d{4}\\b",
+      "\\bAll rights reserved\\b"
+    ]
+  }
+}

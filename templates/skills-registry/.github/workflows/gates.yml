@@ -1,8 +1,9 @@
-# gates.yml — the three day-one CI gates for a skills-registry content repo.
+# gates.yml — the four day-one CI gates for a skills-registry content repo.
 #
 # ① full skill validation   ② skills.json + docs freshness   ③ public/private boundary
+# ④ license / provenance
 #
-# All three are plain Node ESM scripts (scripts/gates/*.mjs) — zero build step, so this
+# All four are plain Node ESM scripts (scripts/gates/*.mjs) — zero build step, so this
 # workflow needs nothing beyond Node + pnpm + the pinned @cogito.ai/cli devDependency
 # (design.md §3, §4). No `npx @cogito.ai/cli@latest` — a pinned version means this workflow's
 # pass/fail is a function of what's in this repo, not of what shipped upstream today.
@@ -19,7 +20,7 @@ on:
 
 jobs:
   gates:
-    name: Skill gates (①②③)
+    name: Skill gates (①②③④)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,3 +50,6 @@ jobs:
 
       - name: Gate ③ — public/private boundary
         run: pnpm run gate:public-boundary
+
+      - name: Gate ④ — license / provenance
+        run: pnpm run gate:license-provenance
