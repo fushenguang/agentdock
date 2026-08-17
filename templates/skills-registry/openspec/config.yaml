@@ -1,0 +1,60 @@
+schema: spec-driven
+
+# Project context (shown to AI when creating artifacts)
+context: |
+  You are working in a project generated from the AgentDock skills-registry template.
+  This is a PUBLIC AGENT SKILLS CONTENT REPOSITORY, not a product codebase.
+
+  Monorepo structure (turborepo + pnpm):
+    skills/<name>/SKILL.md   — Canonical skill content. This is what gets published; it
+                                is git-committed directly, never generated.
+    skills.json               — Generated manifest (id/name/description/source/path/license/
+                                publishedAt per skill). Regenerate with `pnpm skills:sync`.
+    apps/docs/                — Fumadocs documentation site. The skills/ directory index
+                                under apps/docs/content/docs/skills/ is GENERATED from
+                                skills.json — do not hand-edit those pages.
+    scripts/gates/             — The three CI gates (see gates.mdx in apps/docs).
+    packages/                  — Shared tooling packages (eslint-config, tsconfig).
+
+  ★ CRITICAL SCOPE NARROWING — read before creating any OpenSpec change:
+
+  This `openspec/` setup governs ONLY infrastructure/contract changes to this repo:
+    - the skills.json manifest schema
+    - the three CI gate scripts (scripts/gates/*.mjs) and their rules
+    - the docs site structure (apps/docs/)
+    - boundary-rules.json's pattern categories
+
+  It does NOT govern adding a skill. Adding a `skills/<name>/SKILL.md` is a content
+  contribution, not an infrastructure change — it MUST NOT require an OpenSpec proposal.
+  The only gates for adding a skill are: `agentdock skill validate` passing (gate ①) and a
+  PR review. If you find yourself drafting a proposal for "add skill X", stop — that is out
+  of scope for this openspec instance. See AGENTS.md for the full decision table.
+
+  Why this matters: OpenSpec was designed for product codebases where every change carries
+  architectural risk. A content repo's day-one activity IS "add a skill" — requiring a
+  proposal for that would make every contribution (including the maintainers' own) go
+  through a governance process built for a different kind of risk. The three CI gates exist
+  precisely so this narrowing is safe: schema drift and public/private boundary violations
+  are still caught by machines, just not by openspec.
+
+  Docs co-evolution convention:
+    - Changing the manifest schema or a gate's rules → update apps/docs/content/docs/gates.mdx
+    - After archiving an infrastructure change → this template has no automated
+      changelog/roadmap sync (that tooling is web-nextjs-specific); update
+      apps/docs/content/docs/changelog/index.mdx by hand if you want a record.
+
+  Governance rules:
+    - Conventional commits: type(scope): summary
+    - pnpm only — no npm/yarn
+    - Every skill directory needs `skills/<name>/SKILL.md` with valid frontmatter (name,
+      description are required by the Agent Skills spec; skills-ref enforces this)
+    - The directory name under skills/ MUST match the skill's `name` frontmatter field
+
+  Reference skill: skills/example-skill/ (minimal valid SKILL.md, used to keep the three
+  gates exercised from day one).
+
+# Workflow rules
+rules:
+  proposal:
+    - 'Proposal MUST contain a Non-goals section listing what this change will NOT implement.'
+    - "Proposal MUST NOT be created for 'add a skill' — that is out of openspec's scope in this repo (see context above)."

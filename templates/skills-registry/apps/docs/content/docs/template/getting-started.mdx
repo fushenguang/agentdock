@@ -1,0 +1,101 @@
+---
+title: 开始使用
+description: 如何初始化、bootstrap 并开发一个 skills-registry 内容仓。
+---
+
+## 环境要求
+
+- **Node.js**: >= 18
+- **pnpm**: >= 9
+- **Git**，且这个仓库要有一个公开的 `origin` remote
+
+## 通过 CLI 初始化项目
+
+```bash
+npx @cogito.ai/agentdock-cli init --template skills-registry --name my-skills
+```
+
+CLI 会克隆模板代码、安装依赖，并把根目录 `package.json` 的 `name` 改成你的项目名。
+
+## ★ 第一条命令：bootstrap
+
+`skill publish` 从**当前仓库的 git remote** 推导每条 manifest 的 `source` 字段，所以模板不可能
+预置一份正确的 `skills.json`——它不知道你会把仓库建在哪。模板 ship 的 `skills.json` 里，
+`source` 是一个显式占位值。**在做任何其他事之前，先跑这条命令**：
+
+```bash
+git remote add origin <your-repo-url>   # 如果还没设置
+pnpm install
+pnpm skills:sync
+```
+
+`skills:sync` 会把 `skills/` 下所有 skill 重新发布进 `skills.json`（使用真实的 git remote），
+并重新生成 `apps/docs/content/docs/skills/` 下的文档页。跑之前，[门②](/docs/template/gates)
+会失败，且失败信息会明确告诉你要跑这条命令。
+
+## 本地开发
+
+### 安装依赖
+
+```bash
+pnpm install
+```
+
+### 启动文档站点
+
+```bash
+pnpm dev
+```
+
+打开 [http://localhost:3001](http://localhost:3001) 查看文档站点。
+
+### 构建生产版本
+
+```bash
+pnpm build
+```
+
+### 跑三道门
+
+```bash
+pnpm gates
+```
+
+## 添加一个 skill
+
+添加 skill 是内容贡献，**不需要 OpenSpec proposal**——详见
+[《SKILL.md 写法与约定》](/docs/template/skill-authoring) 和仓库根目录 `AGENTS.md` 的判据表。
+
+```bash
+mkdir -p skills/my-skill
+# 编写 skills/my-skill/SKILL.md（frontmatter 至少含 name + description）
+
+agentdock skill validate skills/my-skill   # 本地跑一遍门①
+pnpm skills:sync                            # 重新生成 skills.json + 文档页
+git add skills/my-skill skills.json apps/docs/content/docs/skills
+git commit -m "feat(skills): add my-skill"
+```
+
+开 PR。唯一的门是 `agentdock skill validate` 通过 + review。
+
+## 项目结构
+
+```
+my-skills/
+├── skills/
+│   └── <name>/SKILL.md   # 正典内容
+├── skills.json            # 生成物，进 git
+├── apps/
+│   └── docs/              # Fumadocs 文档站点
+├── packages/               # 共享工具包
+├── scripts/
+│   ├── gates/              # 三道门
+│   └── gen-skill-docs.mjs
+├── boundary-rules.json     # 门③ 的可配置规则表
+└── openspec/                # 仅管基建/契约变更，不管"加一个 skill"
+```
+
+## 下一步
+
+- [SKILL.md 写法与约定](/docs/template/skill-authoring)
+- [三道门](/docs/template/gates)

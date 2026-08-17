@@ -1,0 +1,24 @@
+# Project Roadmap
+# Human-owned intent map. AI cannot modify this in ordinary changes.
+#
+# Buckets: Now | Next | Later | Won't
+# Entry fields: id (kebab-case, globally unique) | title | status | owner
+# Status values: planned | in-progress | done
+#
+# ★ Adding a skill does NOT need a roadmap entry. This roadmap tracks
+# infrastructure/contract direction for the registry itself (manifest schema,
+# gate rules, docs structure) — the same scope openspec/config.yaml narrows
+# proposals to. A new `skills/<name>/SKILL.md` is a content contribution, not
+# a roadmap-tracked initiative.
+
+now:
+  - id: skills-registry-bootstrap
+    title: Bootstrap this registry (run `pnpm skills:sync`, publish first real skills)
+    status: in-progress
+    owner: '@team'
+
+next: []
+
+later: []
+
+wont: []
