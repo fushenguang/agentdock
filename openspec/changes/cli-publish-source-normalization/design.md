@@ -5,19 +5,19 @@
 输入 = `git remote get-url origin` 的原始输出（已 `trim`）。
 输出 = 写入 manifest `source` 的字符串，或一个显式错误。
 
-| #   | 输入形式          | 例                                          | 输出                                  | 说明                                                                              |
-| --- | ----------------- | ------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------- |
-| 1   | SCP-like SSH      | `git@github.com:owner/repo.git`             | `https://github.com/owner/repo`       | 主路径。冒号后是 path，不是端口                                                   |
-| 2   | SCP-like 无 user  | `github.com:owner/repo`                     | `https://github.com/owner/repo`       | 同上                                                                              |
-| 3   | `ssh://`          | `ssh://git@github.com:22/owner/repo.git`    | `https://github.com/owner/repo`       | 丢弃 userinfo + 端口                                                              |
-| 4   | `git://`          | `git://github.com/owner/repo.git`           | `https://github.com/owner/repo`       | 匿名但明文，统一升到 https                                                        |
-| 5   | `git+ssh://`      | `git+ssh://git@host.com/o/r.git`            | `https://host.com/o/r`                | 同 3                                                                              |
-| 6   | `https://`        | `https://github.com/owner/repo.git`         | `https://github.com/owner/repo`       | 只去 `.git` 与尾 `/`                                                              |
-| 7   | `https://` 带凭据 | `https://x-token:SECRET@github.com/o/r.git` | `https://github.com/o/r`              | **丢弃 userinfo**——凭据绝不进产物                                                 |
-| 8   | `http://`         | `http://git.internal.example.com/o/r.git`   | `http://git.internal.example.com/o/r` | 保留 scheme。护栏是「无凭据可 clone」，http 满足；擅自升 https 会造出连不上的地址 |
-| 9   | 本地路径          | `/Users/x/repo`、`../repo`、`file:///x`     | **错误**                              | 别人 clone 不到                                                                   |
-| 10  | 无点 host         | `git@my-alias:owner/repo.git`               | **错误**                              | 约等于 `~/.ssh/config` 的 Host 别名，还原不了真 host                              |
-| 11  | 空 / 无法解析     | `` 、`::::`                                 | **错误**                              | 既有行为（无 origin）已报错，此处补齐「有 origin 但不可用」                       |
+| #   | 输入形式          | 例                                                                         | 输出                                  | 说明                                                                                                                          |
+| --- | ----------------- | -------------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 1   | SCP-like SSH      | `git@github.com:owner/repo.git`                                            | `https://github.com/owner/repo`       | 主路径。冒号后是 path，不是端口                                                                                               |
+| 2   | SCP-like 无 user  | `github.com:owner/repo`                                                    | `https://github.com/owner/repo`       | 同上                                                                                                                          |
+| 3   | `ssh://`          | `ssh://git@github.com:22/owner/repo.git`                                   | `https://github.com/owner/repo`       | 丢弃 userinfo + 端口                                                                                                          |
+| 4   | `git://`          | `git://github.com/owner/repo.git`                                          | `https://github.com/owner/repo`       | 匿名但明文，统一升到 https                                                                                                    |
+| 5   | `git+ssh://`      | `git+ssh://git@host.com/o/r.git`                                           | `https://host.com/o/r`                | 同 3                                                                                                                          |
+| 6   | `https://`        | `https://github.com/owner/repo.git`                                        | `https://github.com/owner/repo`       | 只去 `.git` 与尾 `/`                                                                                                          |
+| 7   | `https://` 带凭据 | `https://<userinfo>@github.com/o/r.git`（`<userinfo>` 形如 `用户名:令牌`） | `https://github.com/o/r`              | **丢弃 userinfo**——凭据绝不进产物。此处刻意不写成完整字面量：本仓 secretlint 门会把 `用户:口令@主机` 形式判为凭据，而它判得对 |
+| 8   | `http://`         | `http://git.internal.example.com/o/r.git`                                  | `http://git.internal.example.com/o/r` | 保留 scheme。护栏是「无凭据可 clone」，http 满足；擅自升 https 会造出连不上的地址                                             |
+| 9   | 本地路径          | `/Users/x/repo`、`../repo`、`file:///x`                                    | **错误**                              | 别人 clone 不到                                                                                                               |
+| 10  | 无点 host         | `git@my-alias:owner/repo.git`                                              | **错误**                              | 约等于 `~/.ssh/config` 的 Host 别名，还原不了真 host                                                                          |
+| 11  | 空 / 无法解析     | `` 、`::::`                                                                | **错误**                              | 既有行为（无 origin）已报错，此处补齐「有 origin 但不可用」                                                                   |
 
 ### 为什么 #10 用「host 必须含点」这个启发式
 
