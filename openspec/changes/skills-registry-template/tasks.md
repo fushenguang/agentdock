@@ -159,7 +159,9 @@
       已改成走使用者的真实路径（scaffold → `pnpm install` → `pnpm skills:sync` →
       `pnpm run gates`），反向对照保留。
       **教训：绕过安装路径的验证，等于没验安装路径。**
-- [ ] 6.4 ⚠️ **`templates/web-nextjs/.npmrc` 有完全相同的缺陷**（同一行、同一形态），
+- [x] 6.4 ⚠️ **`templates/web-nextjs/.npmrc` 有完全相同的缺陷**（同一行、同一形态），
       本刀 Non-goal 明写不动 web-nextjs，故**只登记不修**。它同样从未被真实 CI 跑过
-      （没有任何工作流会 scaffold 它并在产物里 `pnpm install`）。**待构建者裁决**：
-      是补一条 roadmap 条目单独修，还是接受它继续潜伏。
+      （没有任何工作流会 scaffold 它并在产物里 `pnpm install`）。**已解除（2026-08-17）**：构建者授权后立了 roadmap 条目 `web-nextjs-npmrc-fix`，
+      由同名 change 修掉。**并且在那一刀里实测发现本刀的修法方向是错的**——
+      PR #35 把真源留在 `package.json`，而 pnpm 10 在 workspace 根不读它，
+      等于把设置静默关掉；已在该刀一并改为 `pnpm-workspace.yaml` 唯一真源。

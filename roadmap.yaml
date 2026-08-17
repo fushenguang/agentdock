@@ -134,6 +134,46 @@ next:
     status: planned
     owner: "@sunny"
 
+  # 由 @sunny 于 2026-08-17 在对话中明确授权 AI 代为添加（本文件受 CODEOWNERS 保护）。
+  # 原话是「其它的按你的建议出来」，指的是我在上一轮结尾列出的三条待裁决项，
+  # 其中两条落成本文件的两个新条目。留痕以免日后被误读为绕过门禁。
+  - id: web-nextjs-npmrc-fix
+    title: "Fix `.npmrc` string-form `only-built-dependencies` that breaks CI in any scaffolded repo"
+    # 发现于 2026-08-17：用 skills-registry 模板真建了第一个仓，它的 CI 第一跑就挂在
+    # pnpm/action-setup，三道门全部 skipped。
+    #
+    # 根因：模板 `.npmrc` 里 `only-built-dependencies = a,b,c`。`.npmrc` 只能存字符串，
+    # pnpm 把它映射成 onlyBuiltDependencies 的**字符串**，而 action-setup 的
+    # self-installer 对它调 `.sort()` → `ERROR onlyBuiltDependencies?.sort is not a function`。
+    # 真源应保留 package.json 的 `pnpm.onlyBuiltDependencies`（数组）一份。
+    #
+    # ★ `templates/web-nextjs/.npmrc` 有**完全相同的一行**。skills-registry 那份已在
+    #   PR #35 修掉；web-nextjs 当时属该刀 Non-goal，只登记未修（其 tasks 6.4）。
+    #
+    # 为什么至今没人撞到：**没有任何工作流会 scaffold web-nextjs 并在产物里跑
+    # `pnpm install`**。它是一条从未被真实 CI 跑过的路径——"没人跑过"和"跑过且通过"
+    # 在仪表盘上是同一个绿色（详见 thefoolai wiki `engineering/false-green-gates` 失效七）。
+    status: planned
+    owner: "@sunny"
+
+  - id: skill-license-provenance-gate
+    title: "Add a license/provenance gate to the skills-registry template"
+    # 发现于 2026-08-17 建 thefool-skills 时：门③（公私边界）筛掉 6 个泄漏宿主身份的 skill
+    # 之后，剩下 8 个"干净"。但那**只是身份维度**。逐个查许可后发现其中 5 个不是自有内容：
+    #   - 2 个是供应商专有（`© <vendor>. All rights reserved.`）——任何情况下不能进公开 MIT 仓
+    #   - 3 个是 Apache-2.0——可转发但必须保留原许可与 NOTICE，**不能改 MIT**
+    # 最终只有 3 个能按 MIT 发布。
+    #
+    # ★ 这是**产品缺口不是操作失误**：三道门回答的是"合不合法（spec）/新不新鲜/
+    #   有没有泄漏我的身份"，**没有一道回答"我有没有权利发布它"**。
+    #   而内容仓的全部意义就是发布。
+    #
+    # 门要查的最小集：skill 目录内的 LICENSE/NOTICE 文件、frontmatter 的 `license` 字段、
+    # 正文里的版权声明形状；与仓库声明的许可不兼容时失败，并指出是哪个 skill、哪个证据。
+    # 判据不是"能识别 SPDX"，而是——**能拦住一次把别人的专有内容推成公开 MIT 的提交**。
+    status: planned
+    owner: "@sunny"
+
 later: []
 
 wont: []
