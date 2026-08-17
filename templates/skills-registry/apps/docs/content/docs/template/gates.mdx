@@ -1,16 +1,17 @@
 ---
-title: 三道门
-description: 门①②③ 各查什么、怎么本地复现、失败了怎么办。
+title: 四道门
+description: 门①②③④ 各查什么、怎么本地复现、失败了怎么办。
 ---
 
-三道门是本模板真正的价值所在（而不是脚手架本身）——都是零构建步骤的纯 Node ESM 脚本
+四道门是本模板真正的价值所在（而不是脚手架本身）——都是零构建步骤的纯 Node ESM 脚本
 （`scripts/gates/*.mjs`），本地跑和 CI 跑是同一段代码：
 
 ```bash
-pnpm gates                      # 依次跑三道门
+pnpm gates                      # 依次跑四道门
 pnpm gate:validate              # 只跑门①
 pnpm gate:manifest-fresh        # 只跑门②
 pnpm gate:public-boundary       # 只跑门③
+pnpm gate:license-provenance    # 只跑门④
 ```
 
 ## 门① · 全量 skill 校验
@@ -86,9 +87,59 @@ skills.json 还带着模板占位 source。这个仓库还没有 bootstrap。
 **如果命中的是误报**：收窄 `boundary-rules.json` 里的正则。**不要**为了让门通过而把文件加进
 忽略名单——那会让这道门形同虚设。
 
-## 三道门之外：什么时候要走 OpenSpec
+## 门④ · 许可 / 来源
 
-三道门管的是内容层面的正确性（skill 合法、manifest 新鲜、没有私有信息泄漏）。如果你要改的是
-**这三道门本身的规则**、`skills.json` 的 schema，或文档站点的结构——那是基建/契约变更，要走
-`openspec/`。加一个 skill 不需要。详见 `AGENTS.md` 的判据表和 `openspec/config.yaml` 的
+门①②③ 回答的都不是这个问题：**我有没有权利发布它？**
+
+- 门① 问「结构是否合法」
+- 门② 问「manifest 是否新鲜」
+- 门③ 问「有没有泄漏**宿主自己的**身份」
+
+**第三方版权与宿主身份是正交的两件事**：一份 `© <year> <holder>` 声明里没有任何一个字符属于
+宿主，门③ 永远不会看它一眼。而内容仓存在的全部意义就是发布——没有一道门检查过"这份内容本来
+是不是我的"，直到有一次三道门全绿，8 个 skill 被门③判为"干净"，逐个打开许可才发现其中
+**5 个不是自有内容**：2 个供应商专有（`© <year> <vendor>. All rights reserved.` 形状，任何情况
+下不能进公开仓）、3 个 Apache-2.0（可转发，但必须保留原许可与 NOTICE，不能悄悄改成仓库自己的
+MIT）。详见本 change 的 `proposal.md`「Why」。
+
+门④对**每一个** `skills/<name>/` 收集三类证据，并与 `license-policy.json` 声明的仓库许可 +
+转发白名单比对：
+
+1. 目录内的 `LICENSE*` / `NOTICE*` 文件（直接子文件，不递归）
+2. `SKILL.md` frontmatter 的 `license` 字段，且它与仓库自己声明的许可不一致时
+3. 目录下任意非二进制文件里，形状像版权声明的字符串（`© <year>`、`Copyright (c) <year>`、
+   `All rights reserved` 这类**形状**——不是某个具体版权行的字面量）
+
+**默认姿态是保守的**：
+
+- 发现任意一类证据，且该 skill 没有在 `license-policy.json` 的 `forwardedSkills` 里登记 →
+  **失败**
+- 已登记的转发 skill：声明的 `originalLicense` 必须在 `allowedForwardLicenses` 白名单里
+  （专有许可默认不在其中，登记也救不回来）；且原始 `LICENSE*` 文件必须**确实在场**——转发别人
+  的作品却丢了许可文件，本身就是违规；`requiresNotice: true` 时还要求 `NOTICE*` 文件在场
+- 完全没有证据 → 判为自有，按仓库自己的许可发布，并在输出里列出来
+
+失败时会指出：哪个 skill、命中了哪类证据、证据在哪个文件（版权文本命中还会带行号与原文片段）。
+
+### 为什么门③ 不覆盖这个
+
+门③ 扫的是 `boundary-rules.json` 里的**宿主私有标识**——仓名、产品名、内网域名、个人信息形状。
+它回答"这里面有没有不该公开的、属于宿主的东西"。第三方版权声明**不属于宿主**，它属于别人；
+门③ 的规则表里没有一条会匹配到它，也不应该匹配——那不是它的职责边界。两道门检查的是同一份
+内容的两个完全不相交的属性："干净"（没有宿主私有信息）不等于"是我的"（有权发布）。
+
+### `license-policy.json` 是数据，不是代码
+
+和 `boundary-rules.json` 同样的设计：改"允许转发哪些许可"或"登记哪个 skill 是转发"，只需要改
+这份 JSON，不需要改门④的脚本。默认白名单只包含宽松开源许可（`MIT`/`Apache-2.0`/`BSD-*` 等），
+不含任何专有许可。
+
+**这道门不做法律判断**——它检查的是"证据在不在、和声明对不对得上"，不是"这份许可条款允许什么"；
+也不自动改写任何 skill 的许可，不自动补 NOTICE。发现问题就失败并指出证据，由人处理。
+
+## 四道门之外：什么时候要走 OpenSpec
+
+四道门管的是内容层面的正确性（skill 合法、manifest 新鲜、没有私有信息泄漏、有权发布）。如果你
+要改的是**这四道门本身的规则**、`skills.json` 的 schema，或文档站点的结构——那是基建/契约变更，
+要走 `openspec/`。加一个 skill 不需要。详见 `AGENTS.md` 的判据表和 `openspec/config.yaml` 的
 `context`。
