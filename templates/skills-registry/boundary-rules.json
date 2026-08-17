@@ -1,14 +1,23 @@
 {
   "version": "1",
   "_comment": "Gate ③ (scripts/gates/public-boundary.mjs) scans every git-tracked file's content against the regex patterns below. Any match fails the gate. This table is DATA, not code, on purpose — what counts as 'private' is repo-specific, and you are expected to edit this file for your own registry. Prefer regex over literal samples: a literal 'user:pass@host'-shaped example is itself flagged by secretlint elsewhere in this platform, and the same logic applies here — describe the SHAPE of what's forbidden, don't paste a shaped-like-real instance of it.",
+  "_bootstrap": "★ FIRST THING AFTER `agentdock init`: fill in `hostPrivateIdentifiers` below. It ships EMPTY on purpose — a template cannot know your host project's name, and a wrong guess is worse than an honest blank. This was measured, not assumed: a dry run of this gate over 14 real skills extracted from a private monorepo caught the host's source path but MISSED three sibling references to the same host by product name (a `~/.<product>/` runtime dir, a `$<PRODUCT>_SKILLS_ROOT` env var, and a `Library/Application Support/<Product>` path). The single highest-value pattern in this whole file is your own product name, and only you can supply it.",
   "categories": {
-    "privateRepoPaths": {
-      "description": "Filesystem paths or repo names that only make sense inside a private host repo. Defaults below catch generic 'private/internal' path segments; add your own host's private repo/app names here (e.g. the name of the monorepo this registry was extracted from).",
+    "hostPrivateIdentifiers": {
+      "description": "★ EMPTY BY DESIGN — fill this in. The name(s) by which your private host project appears in text: repo name, product name, internal package scope, the source paths a skill was extracted from (e.g. `apps/<your-app>/`). These are the patterns most likely to leak and the ones no generic default can guess. Gate ③ prints a warning while this list is empty.",
+      "patterns": []
+    },
+    "hostRuntimePaths": {
+      "description": "Paths and env vars that couple a skill to one host application's runtime. A portable skill should never reference where a specific app stores its data — if one of these matches, the skill is host-coupled and needs genericizing before it is published (this category is generic on purpose; the host-SPECIFIC names go in hostPrivateIdentifiers above).",
       "patterns": [
-        "(^|[/_-])private-repo([/_-]|$)",
-        "(^|[/_-])internal-only([/_-]|$)",
-        "\\bapps/electron-app/"
+        "Library/Application Support/",
+        "\\buserData/",
+        "\\$[A-Z][A-Z0-9_]*_SKILLS_ROOT\\b"
       ]
+    },
+    "privateRepoPaths": {
+      "description": "Filesystem paths or repo names that only make sense inside a private host repo. Defaults below catch generic 'private/internal' path segments only — your host's actual app/repo paths belong in hostPrivateIdentifiers, not here (shipping one consumer's private path as a generic default is how a template ends up carrying someone else's secrets).",
+      "patterns": ["(^|[/_-])private-repo([/_-]|$)", "(^|[/_-])internal-only([/_-]|$)"]
     },
     "internalDomains": {
       "description": "Hostnames that only resolve on a private network, or internal-use subdomains. Defaults below catch RFC1918 IPv4 ranges, .internal/.local TLDs, and a generic 'internal.' subdomain prefix. Add your own org's non-public hostnames here.",

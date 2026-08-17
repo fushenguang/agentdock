@@ -43,7 +43,31 @@ function loadRules() {
       })
     }
   }
-  return compiled
+  const hostPatterns = raw.categories?.[HOST_CATEGORY]?.patterns ?? []
+  return { rules: compiled, hostCategoryEmpty: hostPatterns.length === 0 }
+}
+
+/**
+ * The one category no generic default can fill: the host project's own name(s).
+ *
+ * Measured, not assumed — a dry run of this gate over 14 real skills extracted from a private
+ * monorepo caught the host's source path but missed three sibling references to the same host
+ * by product name. An empty list here is an honest blank, not a safe one, so say so loudly
+ * rather than letting a green gate imply coverage it does not have.
+ */
+const HOST_CATEGORY = 'hostPrivateIdentifiers'
+
+function warnIfHostCategoryEmpty(isEmpty) {
+  if (!isEmpty) return
+  console.warn(
+    `\ngate ③ (public-boundary): ⚠ \`${HOST_CATEGORY}\` in boundary-rules.json is empty.`,
+  )
+  console.warn(
+    "  A pass below does NOT mean your host project's name has been checked for — nothing is",
+  )
+  console.warn(
+    '  looking for it yet. Add your private repo/product/package names there before publishing.\n',
+  )
 }
 
 function scanFile(repoRoot, relPath, rules) {
@@ -81,7 +105,8 @@ function scanFile(repoRoot, relPath, rules) {
 }
 
 function main() {
-  const rules = loadRules()
+  const { rules, hostCategoryEmpty } = loadRules()
+  warnIfHostCategoryEmpty(hostCategoryEmpty)
   // boundary-rules.json itself legitimately contains every pattern's source text — scanning
   // it for its own patterns would self-trigger, so it's exempt (it is data ABOUT the boundary,
   // not content that could cross it).

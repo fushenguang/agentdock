@@ -64,6 +64,16 @@ This republishes every skill under `skills/` into `skills.json` (using your repo
 remote) and regenerates the docs pages in `apps/docs/content/docs/skills/`. Gate ② fails until
 you run this, and its failure message tells you to.
 
+### 3b. ★ Fill in `hostPrivateIdentifiers` in `boundary-rules.json`
+
+It ships **empty on purpose** — a template cannot know your host project's name, and a wrong
+guess is worse than an honest blank. While it is empty, gate ③ prints a warning on every run:
+a pass then means _nothing is looking for your project's name_, not that it is absent.
+
+Measured, not assumed: running gate ③ over 14 real skills extracted from a private monorepo,
+the generic defaults caught **1** reference to the host — and missed three other spellings of
+the same host. After filling in the product name, hits went from 1 to **35** across 6 skills.
+
 ### 4. Start development
 
 ```bash
@@ -113,7 +123,8 @@ pnpm gates
 | ② Manifest freshness      | `skills.json` vs. a fresh republish of `skills/*`; docs pages vs. `skills.json` | Any field mismatch except `publishedAt` (which changes every publish by design)         |
 | ③ Public/private boundary | All git-tracked files vs. `boundary-rules.json` patterns                        | Private repo paths, internal domains, personally identifiable patterns                  |
 
-Full detail on each gate, including how to read a failure: `apps/docs/content/docs/gates.mdx`.
+Full detail on each gate, including how to read a failure:
+`apps/docs/content/docs/template/gates.mdx`.
 
 ## Development
 
