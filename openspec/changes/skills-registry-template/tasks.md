@@ -138,3 +138,28 @@
       已新增 `.changeset/skills-registry-template.md`（`@cogito.ai/cli`: minor）。
 - [x] 5.2 回写 thefoolai PRD `skill-commerce-loop.mdx` §4.1.2：模板已交付 + 指向本 change。
       （跨仓，走 thefoolai 自己的门。已完成：thefoolai PR #185。）
+
+## 6 · 首个真实使用者暴露的 CI 缺陷（2026-08-17，回移修复）
+
+用本模板真建了 `fushenguang/thefool-skills` 之后，**它的 CI 第一跑就挂**，
+三道门全部 `skipped`。模板交付时是绿的，所以这条必须记下来。
+
+- [x] 6.1 **根因**：模板的 `.npmrc` 里有
+      `only-built-dependencies = a,b,c`。`.npmrc` 只能存字符串，pnpm 把它映射成一个
+      **字符串**，而 `pnpm/action-setup` 的 self-installer 对它调 `.sort()` →
+      `ERROR onlyBuiltDependencies?.sort is not a function`。
+      真源保留 `package.json` 的 `pnpm.onlyBuiltDependencies`（数组）一份。
+      **排除过两个错误猜测**（都实测证伪，记下来免得重走）：`packageManager` 字段、
+      `pnpm-workspace.yaml` 里重复的 `allowBuilds`。
+- [x] 6.2 `gates.yml` 显式钉 `pnpm/action-setup` 的 `version`——它需要 `version` 或
+      `packageManager` 之一，模板两者都没有，直接失败。`packageManager` 会被本地 pnpm
+      自动写入/改写，不是稳定真源，故钉在 workflow 里。
+- [x] 6.3 ★ **为什么本仓 CI 没抓到**：`skills-registry-gates.yml` 当初用 `AGENTDOCK_CMD`
+      指向本仓构建产物跑门，**跳过了脚手架项目里的 `pnpm install`**——而失败恰好就在那一步。
+      已改成走使用者的真实路径（scaffold → `pnpm install` → `pnpm skills:sync` →
+      `pnpm run gates`），反向对照保留。
+      **教训：绕过安装路径的验证，等于没验安装路径。**
+- [ ] 6.4 ⚠️ **`templates/web-nextjs/.npmrc` 有完全相同的缺陷**（同一行、同一形态），
+      本刀 Non-goal 明写不动 web-nextjs，故**只登记不修**。它同样从未被真实 CI 跑过
+      （没有任何工作流会 scaffold 它并在产物里 `pnpm install`）。**待构建者裁决**：
+      是补一条 roadmap 条目单独修，还是接受它继续潜伏。

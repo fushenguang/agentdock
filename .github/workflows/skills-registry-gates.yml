@@ -11,6 +11,14 @@
 #
 # ★ 本工作流刻意包含一条**反向对照**（bootstrap 之前门② 必须失败）。
 #   只验成功路径的话，门退化成 no-op 也没人会发现。
+#
+# ★★ 走的是**使用者的真实路径**：在 scaffold 出来的项目里真跑 `pnpm install`，
+#   再用它自己装的 CLI 跑门（不是用本仓构建产物抄近路）。
+#   这条是血的教训：本工作流最初用 AGENTDOCK_CMD 指向本仓构建产物，
+#   **跳过了 `pnpm install`**，于是一路绿；而第一个用该模板建的真实仓，CI 第一跑就挂在
+#   `pnpm/action-setup`（.npmrc 里的 only-built-dependencies 是字符串，
+#   self-installer 对它调 .sort() 直接崩），三道门全部 skipped。
+#   **绕过安装路径的验证，等于没验安装路径。**
 
 name: Skills Registry Template Gates
 
@@ -79,13 +87,19 @@ jobs:
           git remote add origin https://github.com/example-org/example-skills.git
           git add -A
 
+      # 真实路径：在脚手架项目里装它自己钉住的依赖。这一步就是曾经被跳过、
+      # 因而让一个坏掉的 .npmrc 一路绿到使用者手里的那一步。
+      - name: Install inside the scaffold (the real user path)
+        run: |
+          cd "$RUNNER_TEMP/scaffold/my-skills"
+          pnpm install --registry=https://registry.npmjs.org/
+
       # 反向对照：bootstrap 之前门② 必须失败，且必须指出该跑什么。
       # 若它此时是绿的，说明门② 已经不再检查任何东西。
       - name: 'Reverse control: gate 2 must FAIL before bootstrap'
         run: |
           cd "$RUNNER_TEMP/scaffold/my-skills"
-          export AGENTDOCK_CMD="node $GITHUB_WORKSPACE/packages/cli/dist/index.js"
-          if output=$(node scripts/gates/manifest-fresh.mjs 2>&1); then
+          if output=$(pnpm run gate:manifest-fresh 2>&1); then
             echo "::error::gate 2 passed before bootstrap — it is no longer checking anything."
             echo "$output"
             exit 1
@@ -99,24 +113,10 @@ jobs:
       - name: Bootstrap (skills:sync)
         run: |
           cd "$RUNNER_TEMP/scaffold/my-skills"
-          export AGENTDOCK_CMD="node $GITHUB_WORKSPACE/packages/cli/dist/index.js"
-          node scripts/gates/manifest-fresh.mjs --write
-          node scripts/gen-skill-docs.mjs
+          pnpm skills:sync
           git add -A
 
-      - name: Gate 1 — validate every skill
+      - name: The three gates, run exactly as a user would
         run: |
           cd "$RUNNER_TEMP/scaffold/my-skills"
-          AGENTDOCK_CMD="node $GITHUB_WORKSPACE/packages/cli/dist/index.js" \
-            node scripts/gates/validate-all.mjs
-
-      - name: Gate 2 — manifest freshness
-        run: |
-          cd "$RUNNER_TEMP/scaffold/my-skills"
-          AGENTDOCK_CMD="node $GITHUB_WORKSPACE/packages/cli/dist/index.js" \
-            node scripts/gates/manifest-fresh.mjs
-
-      - name: Gate 3 — public/private boundary
-        run: |
-          cd "$RUNNER_TEMP/scaffold/my-skills"
-          node scripts/gates/public-boundary.mjs
+          pnpm run gates
