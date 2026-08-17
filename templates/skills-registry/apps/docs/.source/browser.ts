@@ -15,13 +15,13 @@ const browserCollections = {
     'decisions/turbo-package-manager.mdx': () =>
       import('../content/docs/decisions/turbo-package-manager.mdx?collection=docs'),
     'roadmap/index.mdx': () => import('../content/docs/roadmap/index.mdx?collection=docs'),
+    'skills/example-skill.mdx': () =>
+      import('../content/docs/skills/example-skill.mdx?collection=docs'),
     'template/gates.mdx': () => import('../content/docs/template/gates.mdx?collection=docs'),
     'template/getting-started.mdx': () =>
       import('../content/docs/template/getting-started.mdx?collection=docs'),
     'template/skill-authoring.mdx': () =>
       import('../content/docs/template/skill-authoring.mdx?collection=docs'),
-    'skills/example-skill.mdx': () =>
-      import('../content/docs/skills/example-skill.mdx?collection=docs'),
   }),
 }
 export default browserCollections

@@ -26,7 +26,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 必须显式钉版本：action-setup 需要 `version` 或 package.json 的 `packageManager`
+      # 之一，两者都没有会直接失败（而 `packageManager` 会被本地 pnpm 自动写入/改写，
+      # 不是一个稳定的真源）。
       - uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - uses: actions/setup-node@v4
         with:

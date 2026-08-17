@@ -1,8 +1,8 @@
 // @ts-nocheck
-import * as __fd_glob_13 from '../content/docs/skills/example-skill.mdx?collection=docs'
-import * as __fd_glob_12 from '../content/docs/template/skill-authoring.mdx?collection=docs'
-import * as __fd_glob_11 from '../content/docs/template/getting-started.mdx?collection=docs'
-import * as __fd_glob_10 from '../content/docs/template/gates.mdx?collection=docs'
+import * as __fd_glob_13 from '../content/docs/template/skill-authoring.mdx?collection=docs'
+import * as __fd_glob_12 from '../content/docs/template/getting-started.mdx?collection=docs'
+import * as __fd_glob_11 from '../content/docs/template/gates.mdx?collection=docs'
+import * as __fd_glob_10 from '../content/docs/skills/example-skill.mdx?collection=docs'
 import * as __fd_glob_9 from '../content/docs/roadmap/index.mdx?collection=docs'
 import * as __fd_glob_8 from '../content/docs/decisions/turbo-package-manager.mdx?collection=docs'
 import * as __fd_glob_7 from '../content/docs/changelog/index.mdx?collection=docs'
@@ -39,9 +39,9 @@ export const docs = await create.docs(
     'changelog/index.mdx': __fd_glob_7,
     'decisions/turbo-package-manager.mdx': __fd_glob_8,
     'roadmap/index.mdx': __fd_glob_9,
-    'template/gates.mdx': __fd_glob_10,
-    'template/getting-started.mdx': __fd_glob_11,
-    'template/skill-authoring.mdx': __fd_glob_12,
-    'skills/example-skill.mdx': __fd_glob_13,
+    'skills/example-skill.mdx': __fd_glob_10,
+    'template/gates.mdx': __fd_glob_11,
+    'template/getting-started.mdx': __fd_glob_12,
+    'template/skill-authoring.mdx': __fd_glob_13,
   },
 )
