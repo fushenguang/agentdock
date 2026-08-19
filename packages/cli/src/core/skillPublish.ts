@@ -2,6 +2,7 @@ import { execSync } from 'child_process'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
 import { readProperties } from 'skills-ref'
+import { type AuthEnvironment, readCredentials } from './auth.js'
 import { normalizeGitRemoteUrl } from './gitRemoteUrl.js'
 import { extractNonSpecFields, validateSkill } from './skillValidate.js'
 
@@ -17,6 +18,18 @@ import { extractNonSpecFields, validateSkill } from './skillValidate.js'
  * those are template-registry concepts (CLI compat gate, npm deps), and the
  * Agent Skills spec has no version field to borrow instead.
  */
+/**
+ * Who published this entry (cli-auth design.md §4).
+ *
+ * `id` is the stable key attribution hangs off; `name` is a redundant, possibly
+ * stale human label. Storing only the readable one would break provenance the
+ * first time somebody changes their display name.
+ */
+export interface SkillAuthor {
+  id: string
+  name?: string
+}
+
 export interface SkillManifestEntry {
   /** Skill name from frontmatter — also the idempotency key (design.md §2, tasks.md 2.4). */
   id: string
@@ -33,6 +46,12 @@ export interface SkillManifestEntry {
    * silently dropped.
    */
   nonSpecFields?: string[]
+  /**
+   * Publisher identity, present only when the CLI was logged in at publish time.
+   * Absent (not `null`) when anonymous — same "omit when empty" convention as
+   * `path` / `license` / `nonSpecFields` above.
+   */
+  author?: SkillAuthor
   /** ISO 8601 timestamp of the most recent publish of this entry. */
   publishedAt: string
 }
@@ -48,6 +67,8 @@ export interface SkillPublishResult {
   manifestPath: string
   /** true when an existing entry with the same id was replaced (idempotent update). */
   updated: boolean
+  /** true when nobody was signed in, so the entry carries no author. */
+  anonymous: boolean
 }
 
 export interface SkillPublishError {
@@ -132,9 +153,24 @@ function loadManifest(manifestPath: string): SkillManifest {
  * product of this command (design.md §1). Never commits, pushes, or opens a
  * PR (design.md §4 — hard boundary).
  */
+/**
+ * Resolve the signed-in identity into an author stamp, or `undefined` when
+ * nobody is signed in. Kept separate from `publishSkill` so tests can inject a
+ * fake home directory instead of touching the real `~/.agentdock`.
+ */
+export function currentAuthor(env: AuthEnvironment = {}): SkillAuthor | undefined {
+  const status = readCredentials(env)
+  if (!status.loggedIn) return undefined
+  return {
+    id: status.credentials.userId,
+    ...(status.credentials.displayName ? { name: status.credentials.displayName } : {}),
+  }
+}
+
 export async function publishSkill(
   dir: string,
   registryDir: string,
+  options: { author?: SkillAuthor | undefined; authEnv?: AuthEnvironment } = {},
 ): Promise<SkillPublishResult | SkillPublishError> {
   const validation = await validateSkill(dir)
   if (!validation.ok) {
@@ -171,6 +207,7 @@ export async function publishSkill(
   }
 
   const nonSpecFields = extractNonSpecFields(validation.warnings)
+  const author = 'author' in options ? options.author : currentAuthor(options.authEnv ?? {})
 
   const entry: SkillManifestEntry = {
     id: props.name,
@@ -180,6 +217,7 @@ export async function publishSkill(
     ...(gitSource.path ? { path: gitSource.path } : {}),
     ...(props.license ? { license: props.license } : {}),
     ...(nonSpecFields.length > 0 ? { nonSpecFields } : {}),
+    ...(author ? { author } : {}),
     publishedAt: new Date().toISOString(),
   }
 
@@ -197,7 +235,7 @@ export async function publishSkill(
 
     writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf-8')
 
-    return { ok: true, entry, manifestPath, updated }
+    return { ok: true, entry, manifestPath, updated, anonymous: !author }
   } catch (err) {
     return {
       ok: false,
