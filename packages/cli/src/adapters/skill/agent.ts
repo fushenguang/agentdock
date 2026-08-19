@@ -89,6 +89,13 @@ export async function runSkillPublishAgentAdapter(opts: SkillPublishAgentOptions
     if (result.versionMissing) {
       console.warn('⚠ Published without a version — add `metadata.version: <semver>` to SKILL.md.')
     }
+    if (!result.indexed) {
+      console.warn(
+        result.anonymous
+          ? '⚠ Not indexed into the registry hub — sign in first so this entry can be found there.'
+          : `⚠ Could not index into the registry hub: ${result.indexError ?? 'unknown error'}`,
+      )
+    }
   } else {
     console.error(`✗ ${result.message}`)
     if (result.errors) {

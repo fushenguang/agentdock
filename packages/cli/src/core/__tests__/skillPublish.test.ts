@@ -2,10 +2,27 @@ import { execSync } from 'child_process'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { publishSkill, isValidSemver, resolveVersion, MANIFEST_FILENAME } from '../skillPublish.js'
 import type { SkillAuthor } from '../skillPublish.js'
 import type { SkillManifest } from '../skillPublish.js'
+import type { AuthProvider } from '../auth.js'
+
+// This file never wants a test run to touch a real `~/.agentdock` — most
+// tests below call `publishSkill` without an explicit `authEnv`, and after
+// this change that path also decides whether `indexToRegistry` fires a real
+// HTTP request. On a machine where the person running `pnpm test` happens to
+// be logged in via `agentdock auth login` for real, an un-mocked `homedir()`
+// would make every one of those tests read a real access token and (absent
+// an injected `fetchImpl`) POST it at the real provider. Redirecting
+// `homedir()` to a directory that never has a `.agentdock` in it makes every
+// call site that doesn't pass its own `authEnv` deterministically anonymous
+// — tests that need a signed-in identity already pass `authEnv: { homeDir }`
+// explicitly, which overrides this.
+vi.mock('os', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('os')>()
+  return { ...actual, homedir: () => `${actual.tmpdir()}/agentdock-test-no-real-home` }
+})
 
 const FAKE_REMOTE = 'git@example.com:acme/skills-repo.git'
 
@@ -323,10 +340,22 @@ describe('publish attribution (cli-auth)', () => {
       }),
     )
 
-    const result = await publishSkill(skillDir, registry, { authEnv: { homeDir: home } })
+    // This test deliberately provides real-looking credentials to exercise
+    // `currentAuthor`'s read path — which means it is signed in as far as
+    // `indexToRegistry` is concerned too. Inject a `fetchImpl` so that stays
+    // a fake in-memory call instead of a real POST to production.
+    let indexRequestSeen = false
+    const fetchImpl = async (): Promise<Response> => {
+      indexRequestSeen = true
+      return new Response('{}', { status: 200 })
+    }
+
+    const result = await publishSkill(skillDir, registry, { authEnv: { homeDir: home }, fetchImpl })
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.entry.author).toEqual({ id: 'user-uuid-2', name: 'from@creds.example' })
+    expect(indexRequestSeen).toBe(true)
+    expect(result.indexed).toBe(true)
   })
 })
 
@@ -506,5 +535,164 @@ describe('publishSkill version handling', () => {
     const manifest = readManifest(registryDir)
     expect(manifest.skills).toHaveLength(1)
     expect(manifest.skills[0]?.version).toBe('2.0.0')
+  })
+})
+
+// cli-publish-to-registry: `publishSkill` writes the manifest, then makes one
+// best-effort attempt to index the entry into the hosted registry. Unit
+// coverage of the request itself (headers, body shape, timeout, no-retry)
+// lives in registryIndex.test.ts — this block only covers the wiring: does
+// `publishSkill` call it at the right time, with the right data, and fold
+// the result into its own return value without ever letting it affect the
+// manifest write.
+describe('publish indexing (cli-publish-to-registry)', () => {
+  let cleanupDirs: string[] = []
+
+  afterEach(() => {
+    for (const dir of cleanupDirs) {
+      try {
+        rmSync(dir, { recursive: true, force: true })
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+    cleanupDirs = []
+  })
+
+  const PROVIDER: AuthProvider = { name: 'thefoolai', webUrl: 'https://web.example' }
+
+  function makeSignedInHome(label: string, accessToken: string): string {
+    const home = makeWorkDir(label)
+    mkdirSync(join(home, '.agentdock'), { recursive: true })
+    writeFileSync(
+      join(home, '.agentdock', 'credentials.json'),
+      JSON.stringify({
+        provider: 'thefoolai',
+        userId: `user-${label}`,
+        accessToken,
+        savedAt: '2026-08-19T00:00:00.000Z',
+      }),
+    )
+    return home
+  }
+
+  it('does not call the registry endpoint when not signed in — manifest is still written', async () => {
+    const { repoRoot, skillDir } = makeSkillRepo('idx-anon', 'name: idx-anon\ndescription: Anon publish.')
+    const registryDir = makeWorkDir('registry')
+    const home = makeWorkDir('home-idx-anon') // no .agentdock/credentials.json
+    cleanupDirs.push(repoRoot, registryDir, home)
+
+    let called = false
+    const fetchImpl = async (): Promise<Response> => {
+      called = true
+      return new Response('{}', { status: 200 })
+    }
+
+    const result = await publishSkill(skillDir, registryDir, {
+      authEnv: { homeDir: home },
+      provider: PROVIDER,
+      fetchImpl,
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.anonymous).toBe(true)
+    expect(result.indexed).toBe(false)
+    expect(result.indexError).toBeUndefined()
+    expect(called).toBe(false)
+    expect(existsSync(result.manifestPath)).toBe(true)
+  })
+
+  it('indexes the entry when signed in and the endpoint accepts the request, and sends only the allowed fields', async () => {
+    const { repoRoot, skillDir } = makeSkillRepo(
+      'idx-ok',
+      'name: idx-ok\ndescription: Indexed ok.\nlicense: MIT\nmetadata:\n  version: 1.0.0',
+    )
+    const registryDir = makeWorkDir('registry')
+    const home = makeSignedInHome('home-idx-ok', 'tok-idx-ok')
+    cleanupDirs.push(repoRoot, registryDir, home)
+
+    let capturedUrl: string | undefined
+    let capturedAuth: string | undefined
+    let capturedBody: Record<string, unknown> = {}
+    const fetchImpl = async (url: string, init?: RequestInit): Promise<Response> => {
+      capturedUrl = url
+      capturedAuth = (init?.headers as Record<string, string> | undefined)?.Authorization
+      capturedBody = JSON.parse(init?.body as string)
+      return new Response('{}', { status: 200 })
+    }
+
+    const result = await publishSkill(skillDir, registryDir, {
+      authEnv: { homeDir: home },
+      provider: PROVIDER,
+      fetchImpl,
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.indexed).toBe(true)
+    expect(result.indexError).toBeUndefined()
+    expect(capturedUrl).toBe('https://web.example/api/skills/publish')
+    expect(capturedAuth).toBe('Bearer tok-idx-ok')
+    expect(capturedBody).toEqual({
+      skill_id: 'idx-ok',
+      git_url: result.entry.source,
+      name: 'idx-ok',
+      description: 'Indexed ok.',
+      version: '1.0.0',
+      license: 'MIT',
+    })
+    // Reverse control: fields the server assigns must never be client-supplied.
+    expect(capturedBody).not.toHaveProperty('access_tier')
+    expect(capturedBody).not.toHaveProperty('is_official')
+    expect(capturedBody).not.toHaveProperty('security_status')
+  })
+
+  it('still writes the manifest when the registry endpoint is unreachable, reports the failure, and never retries', async () => {
+    const { repoRoot, skillDir } = makeSkillRepo('idx-fail', 'name: idx-fail\ndescription: Endpoint down.')
+    const registryDir = makeWorkDir('registry')
+    const home = makeSignedInHome('home-idx-fail', 'tok-idx-fail')
+    cleanupDirs.push(repoRoot, registryDir, home)
+
+    let callCount = 0
+    const fetchImpl = async (): Promise<Response> => {
+      callCount += 1
+      throw new Error('ECONNREFUSED')
+    }
+
+    const result = await publishSkill(skillDir, registryDir, {
+      authEnv: { homeDir: home },
+      provider: PROVIDER,
+      fetchImpl,
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.indexed).toBe(false)
+    expect(result.indexError).toContain('ECONNREFUSED')
+    expect(existsSync(result.manifestPath)).toBe(true)
+    expect(readManifest(registryDir).skills).toHaveLength(1)
+    expect(callCount).toBe(1)
+  })
+
+  it('still writes the manifest when the registry endpoint returns a non-2xx status', async () => {
+    const { repoRoot, skillDir } = makeSkillRepo('idx-404', 'name: idx-404\ndescription: Not found.')
+    const registryDir = makeWorkDir('registry')
+    const home = makeSignedInHome('home-idx-404', 'tok-idx-404')
+    cleanupDirs.push(repoRoot, registryDir, home)
+
+    const fetchImpl = async (): Promise<Response> => new Response('not found', { status: 404 })
+
+    const result = await publishSkill(skillDir, registryDir, {
+      authEnv: { homeDir: home },
+      provider: PROVIDER,
+      fetchImpl,
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.indexed).toBe(false)
+    expect(result.indexError).toBe('HTTP 404')
+    expect(existsSync(result.manifestPath)).toBe(true)
   })
 })

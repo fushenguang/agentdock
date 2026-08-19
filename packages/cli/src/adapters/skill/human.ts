@@ -75,8 +75,20 @@ export async function runSkillPublishHumanAdapter(opts: SkillPublishHumanOptions
   if (result.anonymous) {
     p.log.warn('Published anonymously — this entry has no author.')
     p.log.info('Run `agentdock auth login` first to sign your published skills.')
-  } else if (result.entry.author) {
-    p.log.info(`Signed as ${result.entry.author.name ?? result.entry.author.id}`)
+    // Indexing requires a signed-in identity (cli-publish-to-registry
+    // proposal.md 反向对照 ①) — no request was even attempted.
+    p.log.warn('Not indexed into the registry hub — sign in first so this entry can be found there.')
+  } else {
+    if (result.entry.author) {
+      p.log.info(`Signed as ${result.entry.author.name ?? result.entry.author.id}`)
+    }
+    // Indexing is best-effort and never blocks the publish (proposal.md
+    // "manifest 永远先写") — a failure here is a warning, not an error.
+    if (result.indexed) {
+      p.log.info('Indexed into the registry hub.')
+    } else {
+      p.log.warn(`Could not index into the registry hub: ${result.indexError ?? 'unknown error'}`)
+    }
   }
 
   // No version is allowed (proposal.md 待裁决 #1, resolved (b): optional but
