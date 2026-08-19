@@ -41,6 +41,18 @@ export interface SkillManifestEntry {
   path?: string
   license?: string
   /**
+   * Semver string, read from `metadata.version` (falling back to
+   * thefoolai's `metadata['thefool.version']`) — see `resolveVersion` below.
+   * The Agent Skills spec has no top-level `version` field, so this is never
+   * read from frontmatter directly (openspec skill-semver-and-author-name
+   * proposal.md "What Changes" #2). Optional: a skill may publish without a
+   * version (proposal.md 待裁决 #1, resolved (b)) but never with a
+   * malformed one — `publishSkill` rejects that before it reaches here.
+   * Present only when non-empty — same "omit when empty" convention as
+   * `path` / `license` / `author`.
+   */
+  version?: string
+  /**
    * Non-spec top-level frontmatter keys that skills-ref downgraded to
    * warnings (design.md §3.1 附带要求). Present only when non-empty — never
    * silently dropped.
@@ -69,17 +81,68 @@ export interface SkillPublishResult {
   updated: boolean
   /** true when nobody was signed in, so the entry carries no author. */
   anonymous: boolean
+  /**
+   * true when the skill published with no version at all — publish is not
+   * blocked on this (proposal.md 待裁决 #1, resolved (b): optional but loudly
+   * warned), but adapters use this flag to surface the warning since core
+   * never writes to stdout/stderr itself.
+   */
+  versionMissing: boolean
 }
 
 export interface SkillPublishError {
   ok: false
-  error: 'SKILL_INVALID' | 'REGISTRY_NOT_FOUND' | 'SKILL_SOURCE_UNRESOLVED' | 'SKILL_PUBLISH_FAILED'
+  error:
+    | 'SKILL_INVALID'
+    | 'REGISTRY_NOT_FOUND'
+    | 'SKILL_SOURCE_UNRESOLVED'
+    | 'SKILL_VERSION_INVALID'
+    | 'SKILL_PUBLISH_FAILED'
   message: string
   errors?: string[]
 }
 
 /** Filename of the manifest written into the `--registry` checkout. */
 export const MANIFEST_FILENAME = 'skills.json'
+
+/**
+ * Strict semver (https://semver.org, the same grammar as the spec's own
+ * regex): `major.minor.patch` with optional `-prerelease` and `+build`
+ * segments, no leading `v`. Deliberately not a dependency — see tasks.md
+ * 1.2 ("不引入新依赖").
+ *
+ * ★ Why this matters more than it looks: thefoolai's `compareVersions()`
+ * parses each dot-separated segment with `parseInt(segment, 10) || 0`. Fed
+ * `v1.2.0`, that silently parses as `[0, 2, 0]` — lower than `0.9.9` — so the
+ * update path never triggers again for that skill, with no error anywhere
+ * (openspec skill-semver-and-author-name proposal.md "缺口一"). Rejecting
+ * non-semver strings here, before they ever reach a manifest, is the actual
+ * fix; thefoolai's parser is left as-is (proposal.md Non-goals).
+ */
+const SEMVER_PATTERN =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
+
+/**
+ * Reads the skill's version out of `metadata` — never off a top-level
+ * frontmatter key, since the Agent Skills spec doesn't define one and adding
+ * one there would just re-trigger the non-spec-field downgrade `lesson-prep`
+ * already hit (proposal.md "缺口一", tasks.md 1.1).
+ *
+ * `metadata` is a flat `Record<string, string>` parsed straight off the YAML
+ * `metadata:` mapping (skills-ref `parser.ts`), so thefoolai's namespaced key
+ * is the literal string `"thefool.version"`, not a nested `thefool.version`
+ * path — checked as a plain fallback key, in that order.
+ */
+export function resolveVersion(metadata: Record<string, string>): string | undefined {
+  const raw = metadata.version ?? metadata['thefool.version']
+  const trimmed = raw?.trim()
+  return trimmed ? trimmed : undefined
+}
+
+/** Whether `version` is a well-formed semver string (no `v` prefix, no ranges). */
+export function isValidSemver(version: string): boolean {
+  return SEMVER_PATTERN.test(version)
+}
 
 /**
  * Resolves the git remote URL + in-repo relative path for a skill directory.
@@ -206,6 +269,15 @@ export async function publishSkill(
     }
   }
 
+  const version = resolveVersion(props.metadata)
+  if (version !== undefined && !isValidSemver(version)) {
+    return {
+      ok: false,
+      error: 'SKILL_VERSION_INVALID',
+      message: `Invalid version "${version}" in "${dir}": expected semver (major.minor.patch, e.g. "1.2.3", optionally with a "-prerelease" and/or "+build" suffix, e.g. "1.2.3-beta.1" or "1.2.3+build.5") — got "${version}"`,
+    }
+  }
+
   const nonSpecFields = extractNonSpecFields(validation.warnings)
   const author = 'author' in options ? options.author : currentAuthor(options.authEnv ?? {})
 
@@ -216,6 +288,7 @@ export async function publishSkill(
     source: gitSource.source,
     ...(gitSource.path ? { path: gitSource.path } : {}),
     ...(props.license ? { license: props.license } : {}),
+    ...(version ? { version } : {}),
     ...(nonSpecFields.length > 0 ? { nonSpecFields } : {}),
     ...(author ? { author } : {}),
     publishedAt: new Date().toISOString(),
@@ -235,7 +308,7 @@ export async function publishSkill(
 
     writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf-8')
 
-    return { ok: true, entry, manifestPath, updated, anonymous: !author }
+    return { ok: true, entry, manifestPath, updated, anonymous: !author, versionMissing: !version }
   } catch (err) {
     return {
       ok: false,

@@ -79,6 +79,15 @@ export async function runSkillPublishHumanAdapter(opts: SkillPublishHumanOptions
     p.log.info(`Signed as ${result.entry.author.name ?? result.entry.author.id}`)
   }
 
+  // No version is allowed (proposal.md 待裁决 #1, resolved (b): optional but
+  // loudly warned) so forks that haven't added `metadata.version` yet aren't
+  // blocked — but an unversioned entry can't be diffed against future
+  // publishes, so make that loud instead of silent.
+  if (result.versionMissing) {
+    p.log.warn('Published without a version — this entry cannot be diffed against future updates.')
+    p.log.info('Add `metadata.version: <semver>` (e.g. "1.0.0") to SKILL.md to fix this.')
+  }
+
   const verb = result.updated ? 'Updated' : 'Added'
   p.outro(`${verb} "${result.entry.id}" → ${result.manifestPath}`)
 }

@@ -86,6 +86,9 @@ export async function runSkillPublishAgentAdapter(opts: SkillPublishAgentOptions
     if (result.anonymous) {
       console.warn('⚠ Published anonymously — run `agentdock auth login` to sign your skills.')
     }
+    if (result.versionMissing) {
+      console.warn('⚠ Published without a version — add `metadata.version: <semver>` to SKILL.md.')
+    }
   } else {
     console.error(`✗ ${result.message}`)
     if (result.errors) {

@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { describe, it, expect, afterEach } from 'vitest'
-import { publishSkill, MANIFEST_FILENAME } from '../skillPublish.js'
+import { publishSkill, isValidSemver, resolveVersion, MANIFEST_FILENAME } from '../skillPublish.js'
 import type { SkillAuthor } from '../skillPublish.js'
 import type { SkillManifest } from '../skillPublish.js'
 
@@ -327,5 +327,184 @@ describe('publish attribution (cli-auth)', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.entry.author).toEqual({ id: 'user-uuid-2', name: 'from@creds.example' })
+  })
+})
+
+describe('isValidSemver', () => {
+  it.each(['1.2.3', '1.2.3-beta.1', '1.2.3+build.5', '0.0.1', '10.20.30'])(
+    'accepts %s',
+    (version) => {
+      expect(isValidSemver(version)).toBe(true)
+    },
+  )
+
+  // Reverse control (proposal.md 验收 — "反向对照（不可省）"): every one of
+  // these must be rejected, especially `v1.2.0` — thefoolai's
+  // `compareVersions()` silently parses a `v` prefix down to 0 (see the
+  // SEMVER_PATTERN doc comment in skillPublish.ts), which is the entire
+  // reason this gate exists.
+  it.each(['v1.2.0', '2026-08-19', '1.x', 'latest', '1.2'])('rejects %s', (version) => {
+    expect(isValidSemver(version)).toBe(false)
+  })
+})
+
+describe('resolveVersion', () => {
+  it('reads the tool-neutral `version` key', () => {
+    expect(resolveVersion({ version: '1.2.3' })).toBe('1.2.3')
+  })
+
+  it("falls back to thefoolai's namespaced `thefool.version` key", () => {
+    expect(resolveVersion({ 'thefool.version': '1.2.3' })).toBe('1.2.3')
+  })
+
+  it('prefers the tool-neutral key when both are present', () => {
+    expect(resolveVersion({ version: '2.0.0', 'thefool.version': '1.0.0' })).toBe('2.0.0')
+  })
+
+  it('returns undefined when neither key is present', () => {
+    expect(resolveVersion({})).toBeUndefined()
+  })
+
+  it('treats a blank version as absent', () => {
+    expect(resolveVersion({ version: '   ' })).toBeUndefined()
+  })
+})
+
+describe('publishSkill version handling', () => {
+  let cleanupDirs: string[] = []
+
+  afterEach(() => {
+    for (const dir of cleanupDirs) {
+      try {
+        rmSync(dir, { recursive: true, force: true })
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+    cleanupDirs = []
+  })
+
+  it('writes a valid semver from metadata.version into the manifest entry', async () => {
+    const { repoRoot, skillDir } = makeSkillRepo(
+      'versioned-skill',
+      'name: versioned-skill\ndescription: Has a version.\nmetadata:\n  version: 1.2.3',
+    )
+    const registryDir = makeWorkDir('registry')
+    cleanupDirs.push(repoRoot, registryDir)
+
+    const result = await publishSkill(skillDir, registryDir)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.entry.version).toBe('1.2.3')
+    expect(result.versionMissing).toBe(false)
+
+    const manifest = readManifest(registryDir)
+    expect(manifest.skills[0]?.version).toBe('1.2.3')
+  })
+
+  it('accepts a semver with prerelease and build metadata', async () => {
+    const { repoRoot, skillDir } = makeSkillRepo(
+      'prerelease-skill',
+      'name: prerelease-skill\ndescription: Has a prerelease version.\nmetadata:\n  version: 1.2.3-beta.1+build.5',
+    )
+    const registryDir = makeWorkDir('registry')
+    cleanupDirs.push(repoRoot, registryDir)
+
+    const result = await publishSkill(skillDir, registryDir)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.entry.version).toBe('1.2.3-beta.1+build.5')
+  })
+
+  it("falls back to thefoolai's `thefool.version` metadata key", async () => {
+    const { repoRoot, skillDir } = makeSkillRepo(
+      'thefool-versioned-skill',
+      'name: thefool-versioned-skill\ndescription: thefoolai-style version.\nmetadata:\n  thefool.version: 3.4.5',
+    )
+    const registryDir = makeWorkDir('registry')
+    cleanupDirs.push(repoRoot, registryDir)
+
+    const result = await publishSkill(skillDir, registryDir)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.entry.version).toBe('3.4.5')
+  })
+
+  // Reverse control (proposal.md 验收): a malformed version must fail
+  // publish outright — this is the fail-closed half of decision (b). The
+  // `v1.2.0` case in particular is the exact string that silently breaks
+  // thefoolai's update path (skillPublish.ts SEMVER_PATTERN doc comment).
+  it.each(['v1.2.0', '2026-08-19', '1.x', 'latest', '1.2'])(
+    'rejects publish when metadata.version is "%s", and leaves the registry untouched',
+    async (badVersion) => {
+      const { repoRoot, skillDir } = makeSkillRepo(
+        'bad-version-skill',
+        `name: bad-version-skill\ndescription: Has a malformed version.\nmetadata:\n  version: "${badVersion}"`,
+      )
+      const registryDir = makeWorkDir('registry')
+      cleanupDirs.push(repoRoot, registryDir)
+
+      const result = await publishSkill(skillDir, registryDir)
+
+      expect(result.ok).toBe(false)
+      if (result.ok) return
+      expect(result.error).toBe('SKILL_VERSION_INVALID')
+      // Error message must show both the received value and the expected shape.
+      expect(result.message).toContain(badVersion)
+      expect(result.message).toContain('major.minor.patch')
+      expect(existsSync(join(registryDir, MANIFEST_FILENAME))).toBe(false)
+    },
+  )
+
+  it('publishes successfully with no version at all, and flags it as missing', async () => {
+    const { repoRoot, skillDir } = makeSkillRepo(
+      'unversioned-skill',
+      'name: unversioned-skill\ndescription: No version at all.',
+    )
+    const registryDir = makeWorkDir('registry')
+    cleanupDirs.push(repoRoot, registryDir)
+
+    const result = await publishSkill(skillDir, registryDir)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.entry.version).toBeUndefined()
+    expect(result.versionMissing).toBe(true)
+
+    const manifest = readManifest(registryDir)
+    expect(manifest.skills[0]).not.toHaveProperty('version')
+  })
+
+  it('idempotent: republishing with a new version overwrites the old one, and there is still only one entry', async () => {
+    const { repoRoot, skillDir } = makeSkillRepo(
+      'reversioned-skill',
+      'name: reversioned-skill\ndescription: v1.\nmetadata:\n  version: 1.0.0',
+    )
+    const registryDir = makeWorkDir('registry')
+    cleanupDirs.push(repoRoot, registryDir)
+
+    const first = await publishSkill(skillDir, registryDir)
+    expect(first.ok).toBe(true)
+    if (!first.ok) return
+    expect(first.entry.version).toBe('1.0.0')
+
+    writeFileSync(
+      join(skillDir, 'SKILL.md'),
+      '---\nname: reversioned-skill\ndescription: v2.\nmetadata:\n  version: 2.0.0\n---\n\n# reversioned-skill\n\nBody.\n',
+      'utf-8',
+    )
+
+    const second = await publishSkill(skillDir, registryDir)
+    expect(second.ok).toBe(true)
+    if (!second.ok) return
+    expect(second.updated).toBe(true)
+    expect(second.entry.version).toBe('2.0.0')
+
+    const manifest = readManifest(registryDir)
+    expect(manifest.skills).toHaveLength(1)
+    expect(manifest.skills[0]?.version).toBe('2.0.0')
   })
 })
