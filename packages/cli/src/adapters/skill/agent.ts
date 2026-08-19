@@ -83,6 +83,9 @@ export async function runSkillPublishAgentAdapter(opts: SkillPublishAgentOptions
   } else if (result.ok) {
     const verb = result.updated ? 'Updated' : 'Added'
     console.log(`✓ ${verb} "${result.entry.id}" in ${result.manifestPath}`)
+    if (result.anonymous) {
+      console.warn('⚠ Published anonymously — run `agentdock auth login` to sign your skills.')
+    }
   } else {
     console.error(`✗ ${result.message}`)
     if (result.errors) {

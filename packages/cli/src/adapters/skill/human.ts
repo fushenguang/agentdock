@@ -68,6 +68,17 @@ export async function runSkillPublishHumanAdapter(opts: SkillPublishHumanOptions
   }
 
   spinner.stop('Publish complete.')
+
+  // Anonymous publishing stays allowed on purpose (cli-auth design.md §5): the
+  // content repo is public and forks must keep working. But an unsigned entry
+  // carries no provenance, so say so loudly rather than let it pass unnoticed.
+  if (result.anonymous) {
+    p.log.warn('Published anonymously — this entry has no author.')
+    p.log.info('Run `agentdock auth login` first to sign your published skills.')
+  } else if (result.entry.author) {
+    p.log.info(`Signed as ${result.entry.author.name ?? result.entry.author.id}`)
+  }
+
   const verb = result.updated ? 'Updated' : 'Added'
   p.outro(`${verb} "${result.entry.id}" → ${result.manifestPath}`)
 }

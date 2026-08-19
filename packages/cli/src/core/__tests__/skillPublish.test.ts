@@ -4,6 +4,7 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { describe, it, expect, afterEach } from 'vitest'
 import { publishSkill, MANIFEST_FILENAME } from '../skillPublish.js'
+import type { SkillAuthor } from '../skillPublish.js'
 import type { SkillManifest } from '../skillPublish.js'
 
 const FAKE_REMOTE = 'git@example.com:acme/skills-repo.git'
@@ -265,5 +266,66 @@ describe('publishSkill', () => {
     expect(result.error).toBe('SKILL_SOURCE_UNRESOLVED')
     expect(result.message).toContain('/tmp/some-local-repo')
     expect(existsSync(join(registryDir, MANIFEST_FILENAME))).toBe(false)
+  })
+})
+
+describe('publish attribution (cli-auth)', () => {
+  const AUTHOR: SkillAuthor = { id: 'user-uuid-1', name: 'someone@example.com' }
+
+  it('stamps the author into the manifest entry when signed in', async () => {
+    const { skillDir } = makeSkillRepo('signed', 'name: signed\ndescription: A signed skill.')
+    const registry = makeWorkDir('registry-signed')
+
+    const result = await publishSkill(skillDir, registry, { author: AUTHOR })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.anonymous).toBe(false)
+    expect(result.entry.author).toEqual(AUTHOR)
+
+    const manifest = JSON.parse(
+      readFileSync(join(registry, MANIFEST_FILENAME), 'utf-8'),
+    ) as SkillManifest
+    expect(manifest.skills[0]?.author?.id).toBe(AUTHOR.id)
+  })
+
+  /**
+   * Absent, not null: same "omit when empty" convention as path/license, so a
+   * consumer can test `if (entry.author)` without special-casing null.
+   */
+  it('omits the author field entirely when publishing anonymously', async () => {
+    const { skillDir } = makeSkillRepo('anon', 'name: anon\ndescription: An unsigned skill.')
+    const registry = makeWorkDir('registry-anon')
+
+    const result = await publishSkill(skillDir, registry, { author: undefined })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    expect(result.anonymous).toBe(true)
+    const raw = readFileSync(join(registry, MANIFEST_FILENAME), 'utf-8')
+    expect(raw).not.toContain('author')
+    expect(JSON.parse(raw).skills[0]).not.toHaveProperty('author')
+  })
+
+  it('reads the signed-in identity from the injected home dir when no author is passed', async () => {
+    const { skillDir } = makeSkillRepo('fromcreds', 'name: fromcreds\ndescription: From creds.')
+    const registry = makeWorkDir('registry-creds')
+    const home = makeWorkDir('home-creds')
+    mkdirSync(join(home, '.agentdock'), { recursive: true })
+    writeFileSync(
+      join(home, '.agentdock', 'credentials.json'),
+      JSON.stringify({
+        provider: 'thefoolai',
+        userId: 'user-uuid-2',
+        displayName: 'from@creds.example',
+        accessToken: 'never-printed',
+        savedAt: '2026-08-19T00:00:00.000Z',
+      }),
+    )
+
+    const result = await publishSkill(skillDir, registry, { authEnv: { homeDir: home } })
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.entry.author).toEqual({ id: 'user-uuid-2', name: 'from@creds.example' })
   })
 })
