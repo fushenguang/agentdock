@@ -1,0 +1,131 @@
+---
+title: 认证传输层：零密钥设计与部署陷阱
+description: agentdock auth 从「直连 PostgREST + 公开 anon key」切到「provider HTTP 端点」的实现模式，以及切换前必须验证生产环境的教训。
+---
+
+# 认证传输层：零密钥设计与部署陷阱
+
+`agentdock auth login/logout/status` 的后端交互经历过一次传输层重写：从 CLI 直连
+PostgREST（`POST {supabaseUrl}/rest/v1/rpc/consume_device_auth`，带公开 anon key）
+切换为 CLI 只认一个 provider base URL（`POST {webUrl}/api/device-auth/consume`，
+零密钥）。这页记录两件事：这次重写复用的设计模式，以及重写过程中实测到的一个
+部署陷阱。
+
+---
+
+## 设计模式：客户端零密钥，靠"唯一后端触点函数"换传输层
+
+### 问题
+
+CLI 要连后端，两种做法各有代价：
+
+- **直连数据库层**（PostgREST/Supabase RPC）：CLI 需要知道 URL + key + RPC 名 +
+  schema 头——provider 抽象被撑大成四个字段；key 轮换即坏；打包进 npm 包会触发
+  `secrets` 门（即使 anon key 本身是公开设计，"新增暴露类别"仍是审查点）。
+- **走 provider 自己的 HTTP 端点**：CLI 只认一个 base URL，服务端内部去调
+  RPC。CLI 侧零密钥，provider 抽象缩成一个字段，服务端还能在不发 CLI 新版的
+  情况下演进流程。
+
+后者更好，但往往不是一步到位——`cli-auth` 这次先落地了直连版本（design.md §2.2
+本身就写了"终局在此，但本刀先不做，因为需要跨仓协作"）。**关键是当时怎么写代码**，
+决定了后续切换是重构还是一行改动。
+
+### 解法：把唯一的后端调用收在一个函数里
+
+`packages/cli/src/core/auth.ts` 从第一版起就把所有网络交互收敛进
+`consumeDeviceAuth()` 这一个函数——不是"大部分逻辑在这里"，是**唯一**一处：
+
+```ts
+/**
+ * The ONE backend touch point. Swapping the transport is what this function
+ * being a single function makes possible.
+ */
+export async function consumeDeviceAuth(
+  provider: AuthProvider,
+  deviceCode: string,
+  fetchImpl: FetchLike = globalThis.fetch,
+): Promise<ConsumeResult | { error: string }> {
+  const url = `${provider.webUrl.replace(/\/+$/, '')}/api/device-auth/consume`
+  // ...
+}
+```
+
+切换传输层时，diff 范围是：
+
+1. `AuthProvider` 接口从 `{ name, webUrl, supabaseUrl, anonKey }` 收敛成
+   `{ name, webUrl }`
+2. `consumeDeviceAuth()` 内部换了一个 URL、一个 body 形状、去掉了两个 header
+3. `resolveProvider()` 少解析两个字段
+4. 调用方（`pollForSession`、两个 adapter）**一行都没有改动**——它们只认
+   `consumeDeviceAuth()` 的返回值形状，不知道底下打的是 RPC 还是 REST 端点
+
+没有出现"要不要把 fetch 调用抽出去做成 interface"式的重构，因为它从一开始就
+只有一处。
+
+### 可迁移的原则
+
+给客户端加后端集成时，先问：**这个能力会不会有第二种传输实现**（直连 vs 网关、
+REST vs GraphQL、v1 vs v2）？如果有可能，把所有对外请求收进一个具名函数（不是一个
+模块、不是一层抽象类，就是一个函数），让它成为**唯一**touch point。判断标准很
+具体：grep 整个模块，`fetch`/`fetchImpl` 调用只出现一次。这比预先设计一层可插拔
+adapter 便宜得多——早期不知道第二种实现长什么样，过度抽象反而会抽错维度。
+
+---
+
+## 部署陷阱：端点合进 main ≠ 生产上有
+
+### 现象
+
+`cli-auth-via-endpoint` 这次切换的目标端点（`thefoolai` 仓的
+`POST /api/device-auth/consume`）在 PR #199 里已经合并进 `main`，proposal 里
+也这么写了。但 2026-08-19 第一次对生产地址发起验证请求时：
+
+```bash
+curl -X POST https://www.fujia.site/api/device-auth/consume \
+  -d '{"device_code":"11111111-2222-3333-4444-555555555555"}'
+# → 404
+```
+
+如果没有做这一步 curl，直接按 proposal 把 CLI 的 `consumeDeviceAuth()` 切过去，
+结果是把**所有用户**的登录一起指向一个生产上根本不存在的地址——而 CI、代码审查、
+甚至读 PR diff 都不会告诉你这件事，因为代码本身是对的，缺的是"这份代码有没有
+真的跑在你要打的那个地址上"。
+
+### 根因
+
+`main` 分支合并只代表代码进了主干；`thefoolai` 侧 web 应用走的是独立的
+`release-web` 发布分支，只有该分支推送才会触发生产部署。"合进 main" 和"生产
+可用"之间隔着一次没做的发布——这个模式在 thefoolai 项目里复发过不止五次
+（详见其内部 wiki「发布分支流程」），本刀是同一根因在**跨仓协作**场景下的又一次
+命中：作为下游消费方（agentdock CLI），完全没有可见性知道上游是否已经发版，
+只能靠实测确认。
+
+### 解法：切换前，用生产地址本身做判据
+
+不看：
+- PR 是否已合并
+- CI 是否绿
+- proposal 文档是否写着"已合并 main"
+
+只看：对**生产 URL** 发一次真实请求，看响应形状（如本例中的 `404` vs
+`200 + {"status":"not_found"}`）。这条判据比任何间接信号都可靠，因为它问的
+正是要问的问题："我要打的这个地址，现在能用吗"。
+
+### 验证
+
+本刀实际执行前重新验证了一次（2026-08-19，前置条件已由构建者确认修复）：
+
+```bash
+curl -X POST https://www.fujia.site/api/device-auth/consume \
+  -d '{"device_code":"11111111-2222-3333-4444-555555555555"}'
+# → 200 {"status":"not_found"}
+
+curl -X POST https://www.fujia.site/api/device-auth/consume \
+  -d '{"device_code":"not-a-uuid"}'
+# → 400 {"error":"invalid_request","message":"device_code must be a UUID"}
+```
+
+两个响应都符合预期形状，才动手改 `consumeDeviceAuth()`。**同样的原则也适用于跨仓
+依赖里"还没上生产"的字段**——这次的 `display_name` 字段（thefoolai PR #201）在
+CLI 侧代码里就必须写成容错读取（存在则用，不存在则退回旧字段），而不是假设它已经
+在生产响应里。

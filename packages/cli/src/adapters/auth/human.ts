@@ -2,6 +2,7 @@ import * as p from '@clack/prompts'
 import {
   buildDeviceAuthUrl,
   clearCredentials,
+  deprecatedEnvNotices,
   newDeviceCode,
   openBrowser,
   pollForSession,
@@ -19,12 +20,7 @@ export async function runAuthLoginHumanAdapter(opts: AuthCommandOptions = {}): P
 
   const provider = resolveProvider(opts.provider ? { providerName: opts.provider } : {})
 
-  if (!provider.anonKey) {
-    p.log.error(`Provider "${provider.name}" has no anon key configured.`)
-    p.log.info('Set AGENTDOCK_AUTH_ANON_KEY, or add auth.providers in ~/.agentdock/config.json')
-    p.cancel('Cannot start login')
-    process.exit(1)
-  }
+  for (const notice of deprecatedEnvNotices()) p.log.warn(notice)
 
   const deviceCode = newDeviceCode()
   const url = buildDeviceAuthUrl(provider, deviceCode)
