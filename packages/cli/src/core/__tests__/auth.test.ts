@@ -7,7 +7,9 @@ import {
   DEFAULT_PROVIDER,
   buildDeviceAuthUrl,
   clearCredentials,
+  consumeDeviceAuth,
   credentialsPath,
+  deprecatedEnvNotices,
   pollForSession,
   readCredentials,
   resolveProvider,
@@ -48,17 +50,20 @@ const CREDS: StoredCredentials = {
 const PROVIDER: AuthProvider = {
   name: 'test',
   webUrl: 'https://web.example',
-  supabaseUrl: 'https://db.example',
-  anonKey: 'anon',
 }
 
-/** A fetch stub that replays a fixed sequence of RPC results, one per poll. */
-function fetchSequence(results: (ConsumeResult | 'network-error')[]) {
+type FetchOutcome = ConsumeResult | 'network-error' | { httpError: number }
+
+/** A fetch stub that replays a fixed sequence of endpoint results, one per poll. */
+function fetchSequence(results: FetchOutcome[]) {
   let i = 0
   return async (): Promise<Response> => {
     const next = results[Math.min(i, results.length - 1)]
     i += 1
     if (next === 'network-error') throw new Error('ECONNRESET')
+    if (typeof next === 'object' && next !== null && 'httpError' in next) {
+      return new Response(JSON.stringify({ error: 'server_error' }), { status: next.httpError })
+    }
     return new Response(JSON.stringify(next), { status: 200 })
   }
 }
@@ -81,15 +86,13 @@ describe('resolveProvider', () => {
       JSON.stringify({
         auth: {
           defaultProvider: 'selfhosted',
-          providers: { selfhosted: { webUrl: 'https://hub.internal', anonKey: 'k' } },
+          providers: { selfhosted: { webUrl: 'https://hub.internal' } },
         },
       }),
     )
     const provider = resolveProvider({ homeDir: home, env: {} })
     expect(provider.name).toBe('selfhosted')
     expect(provider.webUrl).toBe('https://hub.internal')
-    // Unset fields fall through to the default rather than becoming empty.
-    expect(provider.supabaseUrl).toBe(DEFAULT_PROVIDER.supabaseUrl)
   })
 
   it('lets env vars win over the config file', () => {
@@ -187,6 +190,73 @@ describe('buildDeviceAuthUrl', () => {
   })
 })
 
+describe('consumeDeviceAuth', () => {
+  // tasks.md 2.1: assert the transport shape, not just that "some fetch happened" —
+  // this is the one function the whole endpoint migration lives in.
+  it('POSTs {webUrl}/api/device-auth/consume with a { device_code } body and no auth headers', async () => {
+    let capturedUrl: string | undefined
+    let capturedInit: RequestInit | undefined
+    const fetchImpl = async (url: string, init?: RequestInit): Promise<Response> => {
+      capturedUrl = url
+      capturedInit = init
+      return new Response(JSON.stringify({ status: 'pending' }), { status: 200 })
+    }
+
+    await consumeDeviceAuth(PROVIDER, 'device-code-xyz', fetchImpl)
+
+    expect(capturedUrl).toBe('https://web.example/api/device-auth/consume')
+    expect(capturedInit?.method).toBe('POST')
+    expect(JSON.parse(capturedInit?.body as string)).toEqual({ device_code: 'device-code-xyz' })
+    // Zero-config means zero secrets on the wire — no apikey/Authorization header.
+    const headers = capturedInit?.headers as Record<string, string>
+    expect(headers.apikey).toBeUndefined()
+    expect(headers.Authorization).toBeUndefined()
+  })
+
+  it('does not emit a double slash when webUrl has a trailing slash', async () => {
+    let capturedUrl: string | undefined
+    const fetchImpl = async (url: string): Promise<Response> => {
+      capturedUrl = url
+      return new Response(JSON.stringify({ status: 'pending' }), { status: 200 })
+    }
+    await consumeDeviceAuth({ ...PROVIDER, webUrl: 'https://web.example/' }, 'c', fetchImpl)
+    expect(capturedUrl).not.toContain('example//')
+  })
+
+  it('turns a network throw into an { error } result instead of propagating', async () => {
+    const fetchImpl = async (): Promise<Response> => {
+      throw new Error('ECONNRESET')
+    }
+    const result = await consumeDeviceAuth(PROVIDER, 'c', fetchImpl)
+    expect('error' in result).toBe(true)
+  })
+
+  it('turns a non-2xx HTTP status into an { error } result instead of throwing', async () => {
+    const fetchImpl = async (): Promise<Response> =>
+      new Response(JSON.stringify({ error: 'boom' }), { status: 500 })
+    const result = await consumeDeviceAuth(PROVIDER, 'c', fetchImpl)
+    expect('error' in result).toBe(true)
+  })
+})
+
+describe('deprecatedEnvNotices', () => {
+  it('is empty when neither deprecated var is set', () => {
+    expect(deprecatedEnvNotices({})).toEqual([])
+  })
+
+  it('flags AGENTDOCK_AUTH_ANON_KEY and AGENTDOCK_AUTH_SUPABASE_URL without erroring', () => {
+    const notices = deprecatedEnvNotices({
+      AGENTDOCK_AUTH_ANON_KEY: 'stale-key',
+      AGENTDOCK_AUTH_SUPABASE_URL: 'https://db.example',
+    })
+    expect(notices).toHaveLength(2)
+    expect(notices.join(' ')).toContain('AGENTDOCK_AUTH_ANON_KEY')
+    expect(notices.join(' ')).toContain('AGENTDOCK_AUTH_SUPABASE_URL')
+    // Never a secret value in the notice text.
+    expect(notices.join(' ')).not.toContain('stale-key')
+  })
+})
+
 describe('pollForSession', () => {
   const approved: ConsumeResult = {
     status: 'approved',
@@ -216,6 +286,69 @@ describe('pollForSession', () => {
       sleep: noSleep,
     })
     expect(outcome.ok).toBe(true)
+  })
+
+  it('keeps polling through 4xx/5xx endpoint errors and still succeeds once it recovers', async () => {
+    const outcome = await pollForSession({
+      provider: PROVIDER,
+      deviceCode: 'c',
+      fetchImpl: fetchSequence([{ httpError: 500 }, { httpError: 429 }, approved]),
+      sleep: noSleep,
+    })
+    expect(outcome.ok).toBe(true)
+  })
+
+  it('never throws on sustained 5xx — rides out to the timeout instead of crashing', async () => {
+    let clock = 0
+    const outcome = await pollForSession({
+      provider: PROVIDER,
+      deviceCode: 'c',
+      fetchImpl: fetchSequence([{ httpError: 503 }]),
+      sleep: async () => {
+        clock += 2000
+      },
+      now: () => clock,
+    })
+    expect(outcome.ok).toBe(false)
+    if (!outcome.ok) expect(outcome.error).toBe('TIMEOUT')
+  })
+
+  it('prefers the server-resolved display_name over the session email', async () => {
+    const outcome = await pollForSession({
+      provider: PROVIDER,
+      deviceCode: 'c',
+      fetchImpl: fetchSequence([{ ...approved, display_name: 'Ada Lovelace' }]),
+      sleep: noSleep,
+    })
+    expect(outcome.ok).toBe(true)
+    if (outcome.ok) expect(outcome.credentials.displayName).toBe('Ada Lovelace')
+  })
+
+  it('falls back to the session email when the endpoint has no display_name (pre-#201 providers)', async () => {
+    const outcome = await pollForSession({
+      provider: PROVIDER,
+      deviceCode: 'c',
+      fetchImpl: fetchSequence([approved]),
+      sleep: noSleep,
+    })
+    expect(outcome.ok).toBe(true)
+    if (outcome.ok) expect(outcome.credentials.displayName).toBe('a@b.c')
+  })
+
+  it('omits displayName entirely when neither display_name nor session email is present', async () => {
+    const bare: ConsumeResult = {
+      status: 'approved',
+      user_id: CREDS.userId,
+      session: { access_token: 'at' },
+    }
+    const outcome = await pollForSession({
+      provider: PROVIDER,
+      deviceCode: 'c',
+      fetchImpl: fetchSequence([bare]),
+      sleep: noSleep,
+    })
+    expect(outcome.ok).toBe(true)
+    if (outcome.ok) expect('displayName' in outcome.credentials).toBe(false)
   })
 
   it.each([

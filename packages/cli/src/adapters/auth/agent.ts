@@ -1,6 +1,7 @@
 import {
   buildDeviceAuthUrl,
   clearCredentials,
+  deprecatedEnvNotices,
   newDeviceCode,
   openBrowser,
   pollForSession,
@@ -26,10 +27,8 @@ export interface AuthAgentOptions {
 export async function runAuthLoginAgentAdapter(opts: AuthAgentOptions = {}): Promise<void> {
   const provider = resolveProvider(opts.provider ? { providerName: opts.provider } : {})
 
-  if (!provider.anonKey) {
-    if (!opts.silent)
-      emit({ event: 'error', error: 'PROVIDER_NOT_CONFIGURED', provider: provider.name })
-    process.exit(1)
+  if (!opts.silent) {
+    for (const notice of deprecatedEnvNotices()) emit({ event: 'notice', message: notice })
   }
 
   const deviceCode = newDeviceCode()

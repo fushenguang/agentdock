@@ -13,32 +13,31 @@ import { VERSION } from '../version.js'
  *
  *   1. generate a `device_code` (uuid)
  *   2. open the system browser at `{webUrl}/device-auth?code=…`
- *   3. poll `consume_device_auth(p_device_code)` until approved
+ *   3. poll `{webUrl}/api/device-auth/consume` until approved
  *
  * ★ The client does NOT create the pending row — the *web page* does, in its own
  * server function. So the only backend interaction this module needs is a single
- * RPC call. That is why `consumeDeviceAuth()` below is the one and only network
- * touch point: design.md §2.2 wants to move it behind a provider HTTP endpoint
- * later (zero secrets in the package), and keeping it a single function is what
- * makes that a one-function change instead of a refactor.
+ * HTTP call. That is why `consumeDeviceAuth()` below is the one and only network
+ * touch point (design.md §2.2): the CLI used to call the PostgREST RPC directly
+ * with a public anon key, and now calls a provider HTTP endpoint instead — the
+ * whole client-side migration was changing the body of that one function.
+ * Keep it that way: the next transport change should again touch only this
+ * function.
  *
- * `consume_device_auth` is a SECURITY DEFINER *one-shot* RPC: it returns the
- * session and clears `session_data` in the same statement, so a token can be read
- * at most once, by whoever calls first.
+ * The endpoint wraps a SECURITY DEFINER *one-shot* RPC on the server: it returns
+ * the session and clears `session_data` in the same statement, so a token can be
+ * read at most once, by whoever calls first.
  */
 
-/** A login target. One provider = one hub. */
+/** A login target. One provider = one hub, one base URL — nothing else. */
 export interface AuthProvider {
   name: string
-  /** Web app origin — the browser is sent to `{webUrl}/device-auth`. */
-  webUrl: string
-  /** PostgREST origin that exposes `consume_device_auth`. */
-  supabaseUrl: string
   /**
-   * Public anon key for the PostgREST call. Empty by default on purpose: see
-   * `DEFAULT_PROVIDER`. Never a secret — but also never invented here.
+   * Web app origin. The browser is sent to `{webUrl}/device-auth`, and polling
+   * posts to `{webUrl}/api/device-auth/consume`. This is the only address the
+   * CLI needs — no key, no PostgREST origin, no RPC name (design.md §2.2).
    */
-  anonKey: string
+  webUrl: string
 }
 
 export interface StoredCredentials {
@@ -59,19 +58,36 @@ export type AuthStatus =
 /**
  * Built-in default provider.
  *
- * `anonKey` is intentionally EMPTY. The key itself is public by design (it ships
- * inside every desktop app build and every web page load), but baking a specific
- * deployment's key into a published npm package is a decision for the repo owner,
- * not something this module should make silently — and a stale baked-in key would
- * break `login` on rotation with no way to fix it short of a CLI release.
+ * A single public base URL — no key. This is what makes `login` zero-config:
+ * there is nothing to set up before the first `agentdock auth login`.
  *
- * Supply it via `AGENTDOCK_AUTH_ANON_KEY` or `~/.agentdock/config.json`.
+ * Fork this CLI to point at a self-hosted hub by overriding `webUrl` via
+ * `AGENTDOCK_AUTH_WEB_URL` or `~/.agentdock/config.json` — no code change
+ * needed (design.md §2).
  */
 export const DEFAULT_PROVIDER: AuthProvider = {
   name: 'thefoolai',
   webUrl: 'https://www.fujia.site',
-  supabaseUrl: 'https://db.fujia.site',
-  anonKey: '',
+}
+
+/**
+ * Env vars from the pre-endpoint transport (PostgREST + anon key). No longer
+ * read for anything — `resolveProvider` ignores them — but still worth telling
+ * the user about instead of silently ignoring, so an old shell profile doesn't
+ * leave them wondering why the key they set has no effect.
+ */
+export const DEPRECATED_AUTH_ENV_VARS = ['AGENTDOCK_AUTH_ANON_KEY', 'AGENTDOCK_AUTH_SUPABASE_URL'] as const
+
+/**
+ * Returns a human-readable notice for each deprecated env var that is still
+ * set, or `[]` when none are. Never throws, never exits — callers just print
+ * whatever comes back (tasks.md 1.4: notice, not an error).
+ */
+export function deprecatedEnvNotices(env: NodeJS.ProcessEnv = process.env): string[] {
+  return DEPRECATED_AUTH_ENV_VARS.filter((key) => env[key]).map(
+    (key) =>
+      `${key} is no longer needed — the CLI now talks to the provider's HTTP endpoint and never sees a key.`,
+  )
 }
 
 export const CONFIG_DIR_NAME = '.agentdock'
@@ -114,8 +130,9 @@ const readJsonFile = <T>(path: string): T | null => {
  * Resolve the provider to use. Precedence (high → low), design.md §2:
  * explicit name → env vars → `~/.agentdock/config.json` → built-in default.
  *
- * Note the merge is per-field, not all-or-nothing: setting only
- * `AGENTDOCK_AUTH_ANON_KEY` keeps the default URLs, which is the common case.
+ * There is only one field to resolve now (`webUrl`) — the provider abstraction
+ * shrank from "URL + key + RPC name" to "one URL" when the transport moved
+ * behind the provider's own HTTP endpoint (design.md §2.2).
  */
 export function resolveProvider(
   options: { providerName?: string } & AuthEnvironment = {},
@@ -131,9 +148,6 @@ export function resolveProvider(
   return {
     name,
     webUrl: env.AGENTDOCK_AUTH_WEB_URL || fromConfig.webUrl || DEFAULT_PROVIDER.webUrl,
-    supabaseUrl:
-      env.AGENTDOCK_AUTH_SUPABASE_URL || fromConfig.supabaseUrl || DEFAULT_PROVIDER.supabaseUrl,
-    anonKey: env.AGENTDOCK_AUTH_ANON_KEY || fromConfig.anonKey || DEFAULT_PROVIDER.anonKey,
   }
 }
 
@@ -193,31 +207,34 @@ export interface ConsumeResult {
   status: 'pending' | 'approved' | 'denied' | 'expired' | 'consumed' | 'not_found' | string
   session?: { access_token?: string; refresh_token?: string; user?: { email?: string } } | string
   user_id?: string
+  /**
+   * Server-resolved human-readable name (nickname → username → email
+   * fallback), present only on `approved`. Introduced by thefoolai PR #201
+   * — not yet live in production as of this cut, so callers must tolerate its
+   * absence and fall back to `session.user?.email`.
+   */
+  display_name?: string
 }
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 
 /**
- * The ONE backend touch point (design.md §1). Swapping this to a provider HTTP
- * endpoint is what §2.2 means by "zero secrets in the package".
+ * The ONE backend touch point (design.md §1 / §2.2). This used to POST straight
+ * to PostgREST with a public anon key; it now posts to the provider's own HTTP
+ * endpoint, which does that RPC call server-side. The package carries zero
+ * secrets either way, but this version doesn't carry a key at all.
  */
 export async function consumeDeviceAuth(
   provider: AuthProvider,
   deviceCode: string,
   fetchImpl: FetchLike = globalThis.fetch,
 ): Promise<ConsumeResult | { error: string }> {
-  const url = `${provider.supabaseUrl.replace(/\/+$/, '')}/rest/v1/rpc/consume_device_auth`
+  const url = `${provider.webUrl.replace(/\/+$/, '')}/api/device-auth/consume`
   try {
     const response = await fetchImpl(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: provider.anonKey,
-        Authorization: `Bearer ${provider.anonKey}`,
-        'Accept-Profile': 'cogito',
-        'Content-Profile': 'cogito',
-      },
-      body: JSON.stringify({ p_device_code: deviceCode }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_code: deviceCode }),
     })
     if (!response.ok) {
       return { error: `HTTP ${response.status}` }
@@ -232,13 +249,7 @@ export type LoginOutcome =
   | { ok: true; credentials: StoredCredentials }
   | {
       ok: false
-      error:
-        | 'DENIED'
-        | 'EXPIRED'
-        | 'ALREADY_CONSUMED'
-        | 'TIMEOUT'
-        | 'CANCELLED'
-        | 'PROVIDER_NOT_CONFIGURED'
+      error: 'DENIED' | 'EXPIRED' | 'ALREADY_CONSUMED' | 'TIMEOUT' | 'CANCELLED'
       message: string
     }
 
@@ -296,13 +307,18 @@ export async function pollForSession(options: PollOptions): Promise<LoginOutcome
           message: 'Authorization returned an unusable session',
         }
       }
+      // Prefer the server-resolved display_name (thefoolai PR #201) over the
+      // session's raw email — it exists specifically because the session blob
+      // never carried a `user` object (skill-semver-and-author-name, root
+      // cause). Fall back to the email for providers that haven't shipped it.
+      const displayName = result.display_name || session.user?.email
       return {
         ok: true,
         credentials: {
           provider: provider.name,
           userId: result.user_id,
           accessToken: session.access_token,
-          ...(session.user?.email ? { displayName: session.user.email } : {}),
+          ...(displayName ? { displayName } : {}),
           ...(session.refresh_token ? { refreshToken: session.refresh_token } : {}),
           savedAt: new Date(now()).toISOString(),
         },
