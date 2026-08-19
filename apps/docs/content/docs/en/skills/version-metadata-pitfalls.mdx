@@ -1,0 +1,140 @@
+---
+title: 版本与 metadata 陷阱
+description: Pitfalls you re-hit every time you add a field (especially version) to a skill, and why the CLI enforces strict semver.
+---
+
+# 版本与 metadata 陷阱
+
+本页记录 `skill-semver-and-author-name`（openspec change）实现过程中查实的两个坑，
+帮助后续给 skill 加字段的人不再重新踩一遍。
+
+---
+
+## 陷阱一：Agent Skills 规范里没有 `version`，client 字段必须走 `metadata`
+
+### 现象
+
+给 `SKILL.md` 的顶层 frontmatter 加一个新字段（例如 `version: 1.2.0`），
+`agentdock skill validate` / `skill publish` 报错或产出带 `nonSpecFields` 警告：
+
+```
+Unexpected fields in frontmatter: version. Only name, description, license,
+compatibility, allowed-tools, metadata are allowed.
+```
+
+### 根因
+
+Agent Skills 规范定义的顶层键是固定的、封闭的集合——`skills-ref`
+（官方参考实现）里 `SkillProperties` 只认：
+
+```ts
+// node_modules/skills-ref/dist/models.d.ts
+export declare class SkillProperties {
+  readonly name: string;
+  readonly description: string;
+  readonly license?: string;
+  readonly compatibility?: string;
+  readonly allowedTools?: string;
+  readonly metadata: Record<string, string>;   // ← 逃生舱
+  // ...
+}
+```
+
+规范**没有** `version` 字段（也没有任何其它 client 想加的字段的位置）。任何 client
+想挂自己的私有字段，唯一合法的位置是 `metadata:`——一个扁平的
+`Record<string, string>`，从 YAML 的 `metadata:` 映射原样解析出来。
+
+**这不是本刀第一次撞上这个坑**：`lesson-prep` skill 曾经把 `pipeline:` 写在顶层，
+被 `skills-ref` 判成非规范键，逼出了 `nonSpecFields` 这个 fail-closed 降级方案
+（`packages/cli/src/core/skillValidate.ts` 的 `extractNonSpecFields`）。
+`version` 复现的是同一个坑，只是换了个字段名。
+
+### 解法
+
+- **不要**在 SKILL.md 顶层加任何规范之外的键。
+- 需要的字段一律写进 `metadata:`：
+
+  ```yaml
+  ---
+  name: my-skill
+  description: Does a thing.
+  metadata:
+    version: 1.2.0
+  ---
+  ```
+
+- 消费侧（`packages/cli/src/core/skillPublish.ts` 的 `resolveVersion()`）从
+  `props.metadata.version` 读取，**不读顶层**。
+- 命名空间化的历史遗留键（如 thefoolai 的 `thefool.version`）作为**字面量字符串键**存在
+  `metadata` 里（不是嵌套对象——YAML `metadata:` 是扁平映射，`thefool.version`
+  这个带点的 key 名本身就是一个字符串），`resolveVersion()` 按顺序回退兼容：
+
+  ```ts
+  const raw = metadata.version ?? metadata['thefool.version']
+  ```
+
+### 验证
+
+`packages/cli/src/core/__tests__/skillPublish.test.ts` 的
+`describe('resolveVersion', ...)` 覆盖了：工具中立键优先、命名空间键回退、
+两者都缺省时返回 `undefined`。
+
+<Callout type="warn">
+**下次给 skill 加任何新字段之前，先确认它是不是规范里已有的顶层键。**
+不是的话，直接走 `metadata`，不要抱侥幸心理去试顶层——`skills-ref` 的校验器不会放过它。
+</Callout>
+
+---
+
+## 陷阱二：`compareVersions` 对 `v` 前缀静默归零——版本自由文本的真实代价
+
+### 现象（来自 thefoolai 消费侧的实证，不是推测）
+
+thefoolai 的 `skillManager.compareVersions()` 是逐段 `parseInt(段, 10) || 0` 的点分比较：
+
+| 版本串 | 解析成 | 后果 |
+|---|---|---|
+| `1.2.0` | `[1, 2, 0]` | ✅ 正常 |
+| `v1.2.0` | `[0, 2, 0]` | **比 `0.9.9` 还"旧"** ⇒ 更新永远不触发，且**没有任何报错** |
+| `2026-08-19` | `[2026]` | 比任何真版本都"新" ⇒ 永远提示有更新 |
+
+`parseInt('v1', 10)` 返回 `NaN`，`NaN || 0` 归零——`v` 前缀不是被拒绝，而是被
+**静默吃掉**。只要有人往 manifest 里写过一次带 `v` 前缀的版本，那个 skill 就
+再也更新不了，且没有任何日志或错误提示这件事发生过。
+
+### 根因
+
+版本在 `skill publish` 侧曾经是**自由文本、无人校验**——`metadata.version` 里写什么，
+manifest 里就原样存什么。校验的缺失不在消费侧的比较函数（它假设收到的输入已经是
+规范化的三段式数字），而在**发布侧从未守住这个假设**。
+
+### 解法
+
+`skill-semver-and-author-name` 这一刀在 **发布侧（`skillPublish.ts`）** 补上了这道门，
+而不是去改 thefoolai 的 `compareVersions`（那是消费侧的事，且它在收到规范化输入后
+本身行为是对的）：
+
+```ts
+// 严格 semver：major.minor.patch + 可选 -prerelease / +build，零依赖
+const SEMVER_PATTERN =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(...))?(?:\+(...))?$/
+```
+
+- 提供了版本但形状不合 semver（含任何 `v` 前缀）→ `publish` 直接失败
+  （`SKILL_VERSION_INVALID`），错误信息同时给出收到的值与期望形状。
+- 没提供版本 → **不阻止发布**（hub 要容纳别人的 fork，强制会把人挡在门外），
+  但适配层（`src/adapters/skill/human.ts` / `agent.ts`）打醒目告警。
+- **没有默认填充**（不采用 `0.1.0` 兜底）——那会凭空造出一个不真实的版本事实。
+
+### 验证
+
+`skillPublish.test.ts` 的反向对照用例逐一验证 `v1.2.0` / `2026-08-19` / `1.x` /
+`latest` / `1.2` 全部被 `publish` 拒绝，且 registry 文件保持未写入状态；
+`v1.2.0` 是其中**唯一一个专门标注理由**的用例——它就是这条实证的复现。
+
+<Callout type="warn">
+**这条是本刀存在的 Why**：不是"版本应该规范化"这种一般性洁癖，而是已经在
+生产 manifest（`skills_registry` 手工 seed 的 `1.0.0` / `1.0.1`）上验证过的
+真实失败模式。任何想放宽这道 semver 门（比如"顺便"支持 `v` 前缀）的人，
+请先重读这一节。
+</Callout>

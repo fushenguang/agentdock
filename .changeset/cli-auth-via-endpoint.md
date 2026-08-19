@@ -21,3 +21,19 @@
 
 **未变化**：`skill publish` 未登录仍可正常发布，只是 manifest 条目不带 `author`；
 登录流程本身（浏览器授权、轮询节奏、5 分钟超时上限）不变。
+
+---
+
+`agentdock skill publish` 新增 skill 版本号（semver）门
+
+manifest 条目现在可以带一个 `version` 字段，从 `SKILL.md` frontmatter 的
+`metadata.version`（或 thefoolai 现有的 `metadata['thefool.version']`）读取——
+**不读顶层 frontmatter**，因为 Agent Skills 规范本身没有 `version` 这个顶层键。
+
+- 提供的版本必须是合法 semver（`major.minor.patch`，可选 `-prerelease` /
+  `+build` 后缀，例如 `1.2.3` 或 `1.2.3-beta.1`）；`v1.2.0`、`2026-08-19`、
+  `1.x`、`latest` 这类形状一律在 publish 时直接拒绝（`SKILL_VERSION_INVALID`），
+  错误信息会同时给出收到的值与期望形状
+- 没提供版本不会阻止发布，但会打一条醒目告警——没有版本号的条目今后无法和它自己
+  的新版本做 diff
+- 幂等：同一 skill 重复 publish，manifest 里的版本会被新值覆盖，不会产生重复条目

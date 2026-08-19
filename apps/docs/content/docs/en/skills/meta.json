@@ -1,6 +1,7 @@
 {
   "title": "Skills",
   "pages": [
-    "index"
+    "index",
+    "version-metadata-pitfalls"
   ]
 }

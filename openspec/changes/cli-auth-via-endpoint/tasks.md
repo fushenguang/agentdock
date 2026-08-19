@@ -25,7 +25,7 @@
 
 ## 3 · 发版
 
-- [x] 3.1 补 changeset（覆盖 `auth` 命令组 + 署名 + 零配置登录，面向用户的话术）——`skill-semver-and-author-name` 的 semver 部分未合入 main（仅有未合并分支 `feat/skill-semver-and-author-name` / `feat/skill-semver-impl`），本 changeset 只写 auth 相关内容
+- [x] 3.1 补 changeset（覆盖 `auth` 命令组 + 署名 + 零配置登录，面向用户的话术）——合并过程中发现 `skill-semver-and-author-name` 的 semver 部分（PR #44）已在本刀开发期间合入 main，changeset 已按此更新覆盖两部分
 - [ ] 3.2 合并后确认 Version Packages PR 出现 → 合它 → npm 真的发布——**构建者操作**
 - [ ] 3.3 **判据**：`npm view @cogito.ai/cli version` 是新版本（不看工作流颜色）——**构建者操作**
 
