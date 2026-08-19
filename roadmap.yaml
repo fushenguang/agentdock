@@ -73,6 +73,10 @@ next:
     #   必然通不过官方校验器 skills-ref——验收样本与验收标准互斥。
     #   裁决走 fail-closed 的前缀匹配降级（详见 changes/cli-skill-publish/design.md 3.1）。
     #   status 仍为 in-progress：本条目覆盖 detect/eval/publish 三者，本刀只交付 publish。
+    # 2026-08-19：下方 `cli-auth` 条目（含其后续刀 `cli-auth-via-endpoint`）已归档，
+    #   补上了本条目 publish 侧此前的身份缺口——`agentdock skill publish` 此前零网络零身份、
+    #   产出 manifest 没有 `author` 字段（见下方 cli-auth 条目起因记录）；现已实测 publish
+    #   条目带 `author`。status 仍保持 in-progress：detect/eval 两项本刀仍未交付，未整体 done。
     status: in-progress
     owner: "@sunny"
 
@@ -192,7 +196,22 @@ next:
     #   CLI 装 skill，且 skill 遵开放标准、与 CLI/Supabase 都解耦。
     #   铁律的主语是 hub/registry，保护的是「目录真源必须留在 git manifest」。
     #   登录与之正交。⇒ CLI 可以有 auth；publish 仍必须先写 manifest。
-    status: planned
+    # 2026-08-19：change `cli-auth` 与后续刀 `cli-auth-via-endpoint`（同一 roadmap-id）均已归档。
+    #   已交付并真机验证：浏览器授权登录走通；`auth status` 显示身份且不回显 token；
+    #   `auth logout` 后退出码非 0；`skill publish` 产出 manifest 条目带 `author`（真机
+    #   `cat skills.json` 确认）。`cli-auth-via-endpoint` 把唯一的后端调用从直连 Supabase
+    #   RPC（需内置 anon key）切到 thefoolai 的 `POST /api/device-auth/consume`，**零密钥**
+    #   ——已发布 npm `@cogito.ai/cli@0.11.0`；构建者在干净环境（不设任何
+    #   `AGENTDOCK_AUTH_*`）实测 `npx @cogito.ai/cli@latest auth login` 直接登录成功，
+    #   `auth status` 显示「行之」；包内零密钥（`grep -rE 'eyJ[A-Za-z0-9_-]{20,}' dist/index.js`
+    #   零命中）。
+    #   ⚠️ 归档时两条 change 的 tasks.md 仍留有未打勾项，如实登记而非替它们打勾：
+    #   `cli-auth` §5.4（验完撤测试条目防污染 thefool-skills，未确认是否已做）、
+    #   §6.1/6.2（知识沉淀，本条注释即算部分回填 §6.2，§6.1 未见对应 wiki/docs 落地）；
+    #   `cli-auth-via-endpoint` §4.3（反向用例：`AGENTDOCK_AUTH_WEB_URL` 指向不存在域名
+    #   应明确报错不无限挂——本轮未见验证证据）。这些不阻塞归档但仍是敞口，未来若需要
+    #   请补验或转入债台账。
+    status: done
     owner: "@sunny"
 
 later: []
