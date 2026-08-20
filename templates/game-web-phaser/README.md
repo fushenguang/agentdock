@@ -2,13 +2,13 @@
 
 > Generated from the [AgentDock](https://github.com/CogitoTech/agentdock) `game-web-phaser` template.
 
-A minimal, structurally-correct Phaser 3 + Vite + TypeScript starter for browser games — built for AI coding agents working autonomously in a VM as much as for humans. See `AGENTS.md` for the execution rules that apply while working in this project, and `PROJECT_CONTEXT.md` for cross-session handoff notes.
+A minimal, structurally-correct Phaser 4 + Vite + TypeScript starter for browser games — built for AI coding agents working autonomously in a VM as much as for humans. See `AGENTS.md` for the execution rules that apply while working in this project, and `PROJECT_CONTEXT.md` for cross-session handoff notes.
 
 ## Tech Stack
 
 | Layer    | Technology                                                                      |
 | -------- | ------------------------------------------------------------------------------- |
-| Engine   | [Phaser 3](https://phaser.io)                                                   |
+| Engine   | [Phaser 4](https://phaser.io)                                                   |
 | Bundler  | [Vite](https://vitejs.dev)                                                      |
 | Language | [TypeScript](https://www.typescriptlang.org) (strict mode)                      |
 | Runtime  | Node.js ≥ 22 (the zero-dep `pnpm verify` needs the built-in `WebSocket` global) |

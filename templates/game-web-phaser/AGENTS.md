@@ -2,7 +2,7 @@
 
 > For AI coding agents running autonomously in a VM, building on this project after it was scaffolded from AgentDock's `game-web-phaser` template.
 
-This is a standalone Phaser 3 + Vite + TypeScript project — not part of a monorepo. There is no `core/features/infra` layering here; it's a single package. The rules below are the ones that matter for an agent working unattended in a VM.
+This is a standalone Phaser 4 + Vite + TypeScript project — not part of a monorepo. There is no `core/features/infra` layering here; it's a single package. The rules below are the ones that matter for an agent working unattended in a VM.
 
 ## Hard rules — read before doing anything else
 
