@@ -1,6 +1,10 @@
 # AgentDock
 
+[中文](./README.zh-CN.md)
+
 **AgentDock** is an open-source scaffold platform for building AI coding agent–ready projects. It provides opinionated, well-governed project templates that are designed from day one for collaboration with AI coding agents (GitHub Copilot, and more).
+
+It also ships **`@cogito.ai/cli`** (bin name `agentdock`) — a CLI for scaffolding projects and for validating/publishing Agent Skills to a shared registry.
 
 ---
 
@@ -21,11 +25,12 @@
 ## Repository Structure
 
 ```
-templates/    # Scaffolding templates (e.g., web-nextjs)
-packages/     # Platform tooling (shared utilities)
+templates/    # Scaffolding templates (e.g., web-nextjs, skills-registry)
+packages/
+  cli/        # @cogito.ai/cli — the `agentdock` CLI (init, auth, skill, mcp)
+openspec/     # Planning SSOT — proposals, specs, design, tasks
 apps/
   docs/       # This platform's documentation site (Fumadocs / Next.js)
-openspec/     # Planning SSOT — proposals, specs, design, tasks
 ```
 
 ## Getting Started
@@ -63,6 +68,83 @@ The platform docs are at `apps/docs`. Run them locally:
 pnpm --filter docs dev
 # Open http://localhost:3000
 ```
+
+---
+
+## CLI: `@cogito.ai/cli`
+
+The CLI is published to npm as `@cogito.ai/cli`. Current version: **0.15.0**. Run it without installing via `npx`:
+
+```bash
+npx @cogito.ai/cli@latest <command>
+```
+
+### Command overview
+
+Output of `npx @cogito.ai/cli@latest --help` (v0.15.0):
+
+```
+AgentDock CLI – scaffold projects for humans and AI agents (agentdock v0.15.0)
+
+USAGE agentdock auth|init|mcp|skill
+
+COMMANDS
+
+   auth    Manage authentication
+   init    Scaffold a new AgentDock project
+    mcp    Start an MCP (Model Context Protocol) Stdio server exposing AgentDock tools
+  skill    Validate and publish Agent Skills
+
+Use agentdock <command> --help for more information about a command.
+```
+
+- **`auth login|logout|status`** — manage the credentials used by `skill publish` to index into the hosted registry.
+- **`init`** — scaffold a new project from a template (`--name`, `--template`, `--pm`, `--dir`, `--data-layer`, `--schema`, plus `--silent`/`--json` for agent mode).
+- **`mcp`** — starts an MCP Stdio server exposing AgentDock's tools. It is meant to be launched by an MCP-compatible client (it speaks JSON-RPC over stdio and produces no output when run standalone) — not something you run interactively yourself.
+- **`skill validate|publish`** — validate an Agent Skill directory against the Agent Skills spec, and publish it into a registry checkout.
+
+Every command and subcommand supports `--help` for its exact, current usage.
+
+### Authentication
+
+```bash
+npx @cogito.ai/cli@latest auth status
+```
+
+`auth login` opens a browser-based device-authorization flow and stores credentials locally; `auth status` reports the signed-in identity from those stored credentials; `auth logout` removes them. Example `auth status` output when signed in (from a real run):
+
+```json
+{"event":"status","signedIn":true,"provider":"thefoolai","userId":"<uuid>","displayName":"<name>","savedAt":"<ISO timestamp>"}
+```
+
+**Known limitation — do not skip:** credentials are valid for **24 hours**. After they expire, `auth status` **still reports `signedIn: true`** — it only reads the local credential file and does not verify the token against the server. The failure only surfaces later: `skill publish`'s registry-indexing step silently degrades to a warning instead of erroring. If publish stops indexing your skill, re-run `auth login` first, even if `auth status` looks fine. This is tracked as debt `cli-auth-token-expires-silently`.
+
+### Publishing a skill
+
+```bash
+npx @cogito.ai/cli@latest skill publish <skill-dir> --registry <registry-checkout>
+```
+
+This does two distinct things:
+
+1. **Always**: validates the skill and writes/updates its manifest entry (`skills.json`) in the local `--registry` git checkout. This step has no network dependency — publishing to your local registry checkout works even when signed out. That's a deliberate design choice for portability.
+2. **Only when signed in**: indexes the skill into the hosted registry. If you're signed out, this step is skipped entirely (no request is sent). If it's attempted but fails (e.g. an expired token, see above), the manifest write from step 1 still succeeds — indexing failure only produces a warning, and is not retried.
+
+`SKILL.md`'s `metadata.version` field **must be a valid semver string**, or `skill publish` rejects the skill outright.
+
+You can validate a skill without publishing:
+
+```bash
+npx @cogito.ai/cli@latest skill validate <skill-dir>
+# ✓ <path> is a valid skill
+```
+
+### Known limitations
+
+- **Skills at the repository root cannot currently be indexed** into the hosted registry (debt `repo-root-skill-cannot-be-indexed`). Keep skills in a subdirectory (e.g. `skills/<name>/`) if you intend to publish them.
+- **CLI versions `<= 0.14.0` cannot publish** to the hosted registry — the server responds with `HTTP 426` (Upgrade Required), and those older CLI versions only surface the bare status code without an explanation. Always run publish via `npx @cogito.ai/cli@latest` to stay current.
+
+---
 
 ## Contributing
 
