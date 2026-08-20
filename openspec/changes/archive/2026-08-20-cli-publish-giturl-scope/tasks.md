@@ -85,3 +85,31 @@ stays `undefined` — same as before this cut). In that case this CLI omits
 Flagging this for whoever implements §2 rather than silently assuming it's
 covered — this change does not attempt to resolve it since it is a §2
 (thefoolai) design decision.
+
+---
+
+## 归档说明（2026-08-20）
+
+agentdock 这半（§1）已发布并验证：
+
+- **实现**：PR #57（`feat/cli-publish-giturl-scope`，合并提交 `9cc5bca`，主提交
+  `f6f07d6`）——`core/registryIndex.ts` 的 `RegistryIndexEntry` 新增 `path?`
+  与必填 `branch`；`skillPublish.ts` 新增 `resolveCurrentBranch()`；非 2xx
+  响应改读服务端 JSON body 的 `message`；两个 adapter 共用
+  `describeIndexFailure()`；12 项新测试（合并提交里的完整清单见 §1.1–1.4）。
+- **发版**：`@cogito.ai/cli@0.15.0` 已发布到 npm（changeset PR #59，合并提交
+  `0607b1f`）。`npm view @cogito.ai/cli version` / `dist-tags` 均返回 `0.15.0`。
+
+**以下四条验证是在 thefoolai 侧完成的，不是本仓验的**（本仓没有 prod registry
+的读写权限，§2 服务端端点与 §4 electron 安装门都在 thefoolai）：
+
+1. 用 0.15.0 发布 → prod registry 该行 `git_url` 带 `/tree/main/skills/<name>`
+   子路径，`updated_at` 坐实是本次写入
+2. 用 0.14.0（旧版）发布 → `HTTP 426` 拒绝，registry 行数不变、`updated_at`
+   未被动
+3. prod 无粗粒度 `git_url`（`NOT LIKE '%/tree/%'` 计数为 0）
+4. 构建者真机确认：app 安装该 skill 后技能列表只多出它一个
+
+thefoolai 那半的镜像 change（服务端端点 + electron 安装门）已在 thefoolai 侧
+随 PR #220 归档。本刀（agentdock 半）随本次提交归档到
+`openspec/changes/archive/2026-08-20-cli-publish-giturl-scope/`。
