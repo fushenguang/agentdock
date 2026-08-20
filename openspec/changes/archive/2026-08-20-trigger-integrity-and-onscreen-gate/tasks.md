@@ -1,7 +1,11 @@
 # tasks · trigger-integrity-and-onscreen-gate
 
-> 🔴 判据先于实现定死，见 proposal「判据」一节。**判据 3（真投一次 Run）本刀不做**
-> （构建者 2026-08-19 安排），归档时如实标注。
+> 🔴 判据先于实现定死，见 proposal「判据」一节。
+> ✅ **归档时补记（2026-08-20）：判据「真投一次 Run」已还。** 新项目「打星星P4」
+> （Run `1d4bbe7d`、会话 `cOJBJ46`，Phaser 4.2.1）实测：`assertions.triggerIntegrityCheck
+> = {ran:true}`（A 参与）、BH-2 detail 含 `entities within bounds across 2 samples`（B 参与）、
+> VM 上 `ps` 查无残留 Chrome（C 成立），IA 6/6、`itemId` 集合逐条相同，**全绿无假红**。
+> 构建者已真机试玩该产物并判「逻辑是通的，可以玩」。
 
 ## 1 · A：触发器完整性
 
@@ -52,7 +56,7 @@
 ## 5 · 发布与登记
 
 - [x] 5.1 changeset（模板改动，patch 或 minor 由 changeset 判）
-- [ ] 5.2 cogito-lib 侧登记：台账 E-15 的「处置」从"记录"改为本 change 认领；
+- [x] 5.2 ✅ 已完成（cogito-lib PR #3 已合并）：台账 E-15 处置改写 + PRD 决策日志四行。原文如下：cogito-lib 侧登记：台账 E-15 的「处置」从"记录"改为本 change 认领；
       `vm-coding-agent-harness` PRD § 3 决策日志追加一行
 - [x] 5.3 ✅ **核完：本仓库不需要同步改动**。`normalizeGateResults`
       （cogito-lib `core/types/workspace.ts:1844`）里 gate 的 `id` 是自由字符串，
