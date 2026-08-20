@@ -18,6 +18,7 @@ import {
   runAssertions,
   judgeOne,
   KNOWN_TEMPLATE_IDS,
+  checkTriggerIntegrityAvailability,
 } from '../scripts/assert.mjs'
 import { MockHarness, createReferenceLikeHarness } from './helpers/mock-harness.mjs'
 
@@ -344,6 +345,37 @@ test('score_feedback: precondition-not-met when the trigger is not registered', 
 })
 
 // ───────────────────────────────────────────────────────────────────────
+// trigger-integrity-and-onscreen-gate task 1.3: fire() throwing (harness.ts's
+// "handler moved the player" check) must be judged as a trigger-integrity
+// violation, NEVER as an unmet precondition — the trigger IS registered and
+// applyState() DID succeed; it's the product that's provably breaking the
+// contract. This is what design D5/spec.md's "该断言判为 unavailable" scenario
+// looks like once the JS shapes exist: a `failResult` with a hint prefix
+// distinct from `PRECONDITION_PREFIX`.
+// ───────────────────────────────────────────────────────────────────────
+
+test('score_feedback: fire() throwing (trigger moved the player) is a trigger-integrity violation, not a precondition gap', async () => {
+  const harness = new MockHarness({
+    states: [{ id: 'Game', role: 'gameplay' }],
+    triggers: ['score'],
+    hudTexts: ['Score: 0'],
+    onFire: (trigger) => {
+      if (trigger === 'score') {
+        throw new Error(
+          'harness.fire: trigger "score"\'s handler moved the "player" entity from (200, 400) to (500, 100)',
+        )
+      }
+    },
+  })
+  const item = { itemId: 'a', templateId: 'score_feedback', params: { condition: 'score' } }
+  const result = await judgeOne(harness, {}, item)
+  assert.equal(result.passed, false)
+  assert.ok(!result.failure.hint.startsWith(PRECONDITION_PREFIX), 'must not read as an unmet precondition')
+  assert.match(result.failure.hint, /触发器违规/)
+  assert.match(result.failure.actual, /moved the "player" entity/)
+})
+
+// ───────────────────────────────────────────────────────────────────────
 // game_over_trigger
 // ───────────────────────────────────────────────────────────────────────
 
@@ -384,6 +416,29 @@ test('game_over_trigger: precondition-not-met when the trigger is not registered
   const result = await judgeOne(harness, {}, item)
   assert.equal(result.passed, false)
   assert.ok(result.failure.hint.startsWith(PRECONDITION_PREFIX))
+})
+
+test('game_over_trigger: fire() throwing (trigger moved the player) is a trigger-integrity violation, not a precondition gap', async () => {
+  const harness = new MockHarness({
+    states: [
+      { id: 'Game', role: 'gameplay' },
+      { id: 'GameOver', role: 'gameover' },
+    ],
+    triggers: ['gameover'],
+    onFire: (trigger) => {
+      if (trigger === 'gameover') {
+        throw new Error(
+          'harness.fire: trigger "gameover"\'s handler moved the "player" entity from (200, 400) to (200, 900)',
+        )
+      }
+    },
+  })
+  const item = { itemId: 'a', templateId: 'game_over_trigger', params: { condition: 'gameover' } }
+  const result = await judgeOne(harness, {}, item)
+  assert.equal(result.passed, false)
+  assert.ok(!result.failure.hint.startsWith(PRECONDITION_PREFIX), 'must not read as an unmet precondition')
+  assert.match(result.failure.hint, /触发器违规/)
+  assert.match(result.failure.actual, /moved the "player" entity/)
 })
 
 // ───────────────────────────────────────────────────────────────────────
@@ -440,6 +495,66 @@ test('restart: precondition-not-met when the restart key is not recognized by pr
   const result = await judgeOne(harness, {}, item)
   assert.equal(result.passed, false)
   assert.ok(result.failure.hint.startsWith(PRECONDITION_PREFIX))
+})
+
+// 🔴 real gap found and fixed during this change's own real-machine
+// verification (judgment 3.1): `judgeRestart()` also calls `harness.fire('score')`
+// as best-effort setup, unguarded, BEFORE `judgeScoreFeedback`/`judgeGameOverTrigger`'s
+// own guarded calls ever run — assertions.json's default order puts `restart`
+// before `score_feedback`, so an unguarded throw here reached runAssertions()'s
+// crash handler first and turned the ENTIRE run `unavailable`, hiding every
+// other item's real verdict. Must be caught and reported on the `restart`
+// item itself, exactly like the other two call sites.
+test('restart: fire(\'score\') throwing (trigger moved the player) during best-effort score setup is a trigger-integrity violation, not swallowed as "convention doesn\'t apply"', async () => {
+  const harness = new MockHarness({
+    states: [{ id: 'Game', role: 'gameplay' }],
+    triggers: ['score'],
+    onFire: (trigger) => {
+      if (trigger === 'score') {
+        throw new Error(
+          'harness.fire: trigger "score"\'s handler moved the "player" entity from (480, 460) to (680, 460)',
+        )
+      }
+    },
+  })
+  const item = { itemId: 'a', templateId: 'restart', params: { trigger: 'KeyR' } }
+  const result = await judgeOne(harness, {}, item)
+  assert.equal(result.passed, false)
+  assert.ok(!result.failure.hint.startsWith(PRECONDITION_PREFIX), 'must not read as an unmet precondition')
+  assert.match(result.failure.hint, /触发器违规/)
+})
+
+test('runAssertions: one item\'s fire() violation fails ONLY that item — it must not crash the whole run to `unavailable` and hide every other item\'s verdict', async () => {
+  const dir = tmpProjectDir()
+  try {
+    writeAssertionsJson(dir, {
+      schemaVersion: 1,
+      assertions: [
+        { itemId: 'restart', templateId: 'restart', params: { trigger: 'KeyR' } },
+        { itemId: 'hud', templateId: 'hud_text_present', params: { text: 'Score', state: 'Game' } },
+      ],
+    })
+    const harness = new MockHarness({
+      states: [{ id: 'Game', role: 'gameplay' }],
+      triggers: ['score'],
+      hudTexts: ['Score: 0'],
+      keyTable: new Set(['KeyR']),
+      onFire: (trigger) => {
+        if (trigger === 'score') {
+          throw new Error('harness.fire: trigger "score" moved the "player" entity')
+        }
+      },
+    })
+    const result = await runAssertions({ harness, loadEvidence: { exceptions: [], failedRequests: [] }, projectRoot: dir })
+    assert.equal(result.status, 'judged', 'a fire() violation on one item must stay a per-item failure, not a run-wide crash')
+    assert.equal(result.total, 2)
+    assert.equal(result.results.find((r) => r.itemId === 'restart').passed, false)
+    assert.match(result.results.find((r) => r.itemId === 'restart').failure.hint, /触发器违规/)
+    // The unrelated hud_text_present item still gets judged normally.
+    assert.equal(result.results.find((r) => r.itemId === 'hud').passed, true)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
 })
 
 // ───────────────────────────────────────────────────────────────────────
@@ -545,6 +660,78 @@ test('runAssertions: a well-formed file with a live harness judges every item an
     assert.equal(result.passedCount, 1)
     assert.equal(result.results.find((r) => r.itemId === 'ok').passed, true)
     assert.equal(result.results.find((r) => r.itemId === 'bad').passed, false)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+// ───────────────────────────────────────────────────────────────────────
+// checkTriggerIntegrityAvailability — trigger-integrity-and-onscreen-gate
+// task 1.2 / design D3: "no player entity" MUST NOT turn the run red, but
+// MUST be visible (never a silent skip). These tests exercise the probe on
+// its own, plus one showing it flows through runAssertions() into the
+// `triggerIntegrityCheck` field regardless of which templates the project's
+// assertions.json lists.
+// ───────────────────────────────────────────────────────────────────────
+
+test('checkTriggerIntegrityAvailability: ran=true when a "player" entity exists in the gameplay state', async () => {
+  const harness = new MockHarness({
+    states: [{ id: 'Game', role: 'gameplay' }],
+    entities: [{ name: 'player', x: 200, y: 400 }],
+  })
+  const result = await checkTriggerIntegrityAvailability(harness)
+  assert.deepEqual(result, { ran: true, reason: null })
+})
+
+test('checkTriggerIntegrityAvailability: ran=false (not red) when no entity is named "player" (D3\'s negative case)', async () => {
+  const harness = new MockHarness({
+    states: [{ id: 'Game', role: 'gameplay' }],
+    entities: [{ name: 'goal', x: 200, y: 400 }], // some other named entity, just not "player"
+  })
+  const result = await checkTriggerIntegrityAvailability(harness)
+  assert.equal(result.ran, false)
+  assert.match(result.reason, /no entity named "player"/)
+})
+
+test('checkTriggerIntegrityAvailability: ran=false when there is no gameplay-role state at all', async () => {
+  const harness = new MockHarness({ states: [] })
+  const result = await checkTriggerIntegrityAvailability(harness)
+  assert.equal(result.ran, false)
+  assert.match(result.reason, /no state with role "gameplay"/)
+})
+
+test('runAssertions: judged result carries triggerIntegrityCheck, visible even when nothing in assertions.json uses fire()', async () => {
+  const dir = tmpProjectDir()
+  try {
+    // Only a hud_text_present item — nothing here ever calls harness.fire() —
+    // yet the "no player" fact must still surface (D3: a project-level fact,
+    // not a per-assertion one).
+    writeAssertionsJson(dir, {
+      schemaVersion: 1,
+      assertions: [{ itemId: 'hud', templateId: 'hud_text_present', params: { text: 'Score', state: 'Game' } }],
+    })
+    const harness = new MockHarness({
+      states: [{ id: 'Game', role: 'gameplay' }],
+      hudTexts: ['Score: 0'],
+      entities: [], // no "player" entity in this project
+    })
+    const result = await runAssertions({ harness, loadEvidence: { exceptions: [], failedRequests: [] }, projectRoot: dir })
+    assert.equal(result.status, 'judged')
+    assert.equal(result.triggerIntegrityCheck.ran, false)
+    assert.match(result.triggerIntegrityCheck.reason, /no entity named "player"/)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('runAssertions: triggerIntegrityCheck.ran is true for the reference-like harness (has a "player" entity)', async () => {
+  const dir = tmpProjectDir()
+  try {
+    writeAssertionsJson(dir, { schemaVersion: 1, assertions: [{ itemId: 'loads', templateId: 'loads_clean', params: {} }] })
+    const harness = createReferenceLikeHarness()
+    const result = await runAssertions({ harness, loadEvidence: { exceptions: [], failedRequests: [] }, projectRoot: dir })
+    assert.equal(result.status, 'judged')
+    assert.deepEqual(result.triggerIntegrityCheck, { ran: true, reason: null })
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }

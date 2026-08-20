@@ -40,6 +40,31 @@ export interface EntitySnapshot {
 }
 
 /**
+ * Where a `WorldBoundsSnapshot` came from (trigger-integrity-and-onscreen-
+ * gate design D4). `verify.mjs`'s BH-2 boundary judge is REQUIRED to record
+ * this in `.verify-result.json` alongside any out-of-bounds entities — the
+ * `canvas` fallback has a real false-positive risk on a horizontally-
+ * scrolling game (the world is legitimately wider than the canvas), and
+ * that risk must stay visible, never silent.
+ */
+export type WorldBoundsSource = 'physics.world.bounds' | 'canvas'
+
+/**
+ * A read-only world-bounds rectangle (trigger-integrity-and-onscreen-gate
+ * design D4). Prefers the live Arcade Physics world's bounds; falls back to
+ * the game's canvas/design-resolution size when no physics world is active
+ * on the current scene (e.g. Boot/Preload). Read-only — this describes the
+ * world, it never changes it (see `GameHarness`'s no-setter rule below).
+ */
+export interface WorldBoundsSnapshot {
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
+  readonly source: WorldBoundsSource
+}
+
+/**
  * A read-only snapshot of the live game at one instant (design D1).
  *
  * 🔴 `score: number | null` — `null` means "this game has no scoring
@@ -54,6 +79,8 @@ export interface HarnessSnapshot {
   readonly entities: readonly EntitySnapshot[]
   readonly hudTexts: readonly string[]
   readonly values: Readonly<Record<string, number>>
+  /** trigger-integrity-and-onscreen-gate task 2.1 — read-only, no matching setter anywhere in `GameHarness`. */
+  readonly worldBounds: WorldBoundsSnapshot
 }
 
 /**
@@ -66,6 +93,18 @@ export interface HarnessSnapshot {
  * own implementation is allowed to do (spawn something and let physics
  * react — never write state directly, design D3), and `applyState()` can
  * only land on states `isValidStart()` accepts.
+ *
+ * 🔴 **`fire()` now enforces the "never write state directly" half of that
+ * itself** (trigger-integrity-and-onscreen-gate design D1/D2), not just by
+ * review: it reads the coordinates of the entity named `player` synchronously
+ * immediately before and after calling the trigger's handler and rejects the
+ * returned promise if they differ at all. A handler that teleports the
+ * player to its target instead of spawning something for the player to
+ * collide with is therefore a thrown error, not a passing check — see
+ * `./harness.ts`'s `fire()` doc. This makes `player` a naming *contract* for
+ * any project that wants this check to mean anything, not just this
+ * reference implementation's habit — see `GameScene.ts`'s `this.player.name
+ * = 'player'` and `AGENTS.md` rule 6.
  *
  * **Do not add a setter here** (`setScore`, `setState`, anything that writes
  * a value directly). See design D3's allow/forbid table — the whole reason

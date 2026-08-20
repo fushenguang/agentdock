@@ -1,5 +1,12 @@
 import Phaser from 'phaser'
-import type { EntitySnapshot, GameHarness, HarnessSnapshot, StateDescriptor, StateRole } from './harness-types'
+import type {
+  EntitySnapshot,
+  GameHarness,
+  HarnessSnapshot,
+  StateDescriptor,
+  StateRole,
+  WorldBoundsSnapshot,
+} from './harness-types'
 import { jump, isValidStart, listStates as listStateIds, type StateId, type GameState } from './state-jump'
 
 /**
@@ -68,6 +75,14 @@ const triggers = new Map<string, TriggerHandler>()
 export function registerTrigger(name: string, handler: TriggerHandler): void {
   triggers.set(name, handler)
 }
+
+/**
+ * Contract name `fire()`'s trigger-integrity check (design D1/D2) keys off
+ * of. `GameScene.ts` names its player sprite this (task 1.4 / AGENTS.md rule
+ * 6) — it is a contract now, not a convention, because the check below is
+ * meaningless without it.
+ */
+const PLAYER_ENTITY_NAME = 'player'
 
 function isKnownStateId(id: string): id is StateId {
   return (listStateIds() as readonly string[]).includes(id)
@@ -158,6 +173,51 @@ function collectEntities(scene: Phaser.Scene | undefined): EntitySnapshot[] {
   return entities
 }
 
+/**
+ * Reads the live x/y of exactly one named entity — used by `fire()`'s
+ * trigger-integrity check (design D1/D2). Deliberately not built on top of
+ * `collectEntities()` (which allocates a full array every call): `fire()`
+ * calls this synchronously twice, once before and once after the handler,
+ * with nothing allowed in between — the leaner scan keeps that pairing
+ * obviously symmetric rather than diffing two full-scene snapshots for one
+ * name.
+ */
+function findNamedEntity(scene: Phaser.Scene | undefined, name: string): EntitySnapshot | null {
+  if (!scene) return null
+  for (const child of scene.children.list) {
+    const named = child as Phaser.GameObjects.GameObject & { name: string; x?: unknown; y?: unknown }
+    if (named.name !== name) continue
+    if (typeof named.x !== 'number' || typeof named.y !== 'number') continue
+    return { name: named.name, x: named.x, y: named.y }
+  }
+  return null
+}
+
+/**
+ * Read-only world-bounds fact for `getSnapshot()` (trigger-integrity-and-
+ * onscreen-gate task 2.1 / design D4). Prefers the active scene's live
+ * Arcade Physics world bounds (`GameScene.ts` calls
+ * `this.physics.world.setBounds(...)`); falls back to the game's
+ * canvas/design-resolution size (`game.scale`, the same coordinate space
+ * gameplay code positions entities in — not the CSS-scaled DOM canvas size)
+ * when the active scene has no physics world (Boot/Preload). `source` is
+ * always reported so a consumer never has to guess which one it got —
+ * design D4 flags the fallback as having a real false-positive risk on a
+ * horizontally-scrolling game, and that risk must stay visible.
+ *
+ * 🔴 Read-only, no matching setter — same rule as every other field on
+ * `HarnessSnapshot`.
+ */
+function readWorldBounds(game: Phaser.Game, scene: Phaser.Scene | undefined): WorldBoundsSnapshot {
+  const world = (scene as (Phaser.Scene & { physics?: { world?: Phaser.Physics.Arcade.World } }) | undefined)
+    ?.physics?.world
+  if (world?.bounds) {
+    const { x, y, width, height } = world.bounds
+    return { x, y, width, height, source: 'physics.world.bounds' }
+  }
+  return { x: 0, y: 0, width: game.scale.width, height: game.scale.height, source: 'canvas' }
+}
+
 function collectHudTexts(scene: Phaser.Scene | undefined): string[] {
   if (!scene) return []
   const texts: string[] = []
@@ -208,6 +268,7 @@ function buildSnapshot(game: Phaser.Game): HarnessSnapshot {
     entities: collectEntities(scene),
     hudTexts: collectHudTexts(scene),
     values: readValues(game),
+    worldBounds: readWorldBounds(game, scene),
   }
 }
 
@@ -230,12 +291,47 @@ async function press(key: string, opts?: { durationMs?: number }): Promise<void>
   dispatchKeyboardEvent('keyup', spec)
 }
 
-async function fire(trigger: string): Promise<void> {
+/**
+ * trigger-integrity-and-onscreen-gate design D1/D2. Reads the `player`
+ * entity's coordinates synchronously immediately before and immediately
+ * after calling the trigger's `handler()` — with NO `await` between the two
+ * reads, so nothing (not even a single physics step) can run between them;
+ * `handler()` itself is synchronous. Any coordinate difference can
+ * therefore only be something `handler()` itself did, never natural motion
+ * — that is the entire basis for this being a zero-threshold, zero-false-
+ * positive check (design D1). **Do not** turn the comparison below into a
+ * tolerance/threshold check (`Math.abs(dx) > n`): immunity to this bug does
+ * not scale with how far the player got moved, so "teleported 3 pixels" is
+ * still a violation.
+ *
+ * If no entity named `player` exists, `before`/`after` are both `null` and
+ * the check is a silent no-op *here* — by design (D3), `fire()` itself only
+ * ever resolves cleanly or throws, it has no channel to report "I didn't
+ * check". Surfacing that fact visibly is `scripts/assert.mjs`'s job (see
+ * `checkTriggerIntegrityAvailability()` there), not this function's.
+ */
+async function fire(game: Phaser.Game, trigger: string): Promise<void> {
   const handler = triggers.get(trigger)
   if (!handler) {
     throw new Error(`harness.fire: unknown trigger "${trigger}" (not in listTriggers())`)
   }
+
+  const scene = activeGameplayScene(game)
+  const before = findNamedEntity(scene, PLAYER_ENTITY_NAME)
+
   handler()
+
+  const after = findNamedEntity(scene, PLAYER_ENTITY_NAME)
+
+  if (before && after && (before.x !== after.x || before.y !== after.y)) {
+    throw new Error(
+      `harness.fire: trigger "${trigger}"'s handler moved the "${PLAYER_ENTITY_NAME}" entity from ` +
+        `(${before.x}, ${before.y}) to (${after.x}, ${after.y}) — a trigger handler may only add ` +
+        `something to the world and let existing overlap/collision logic react to it; it must never ` +
+        `move the player itself (see AGENTS.md rule 6)`,
+    )
+  }
+
   await waitMs(TRIGGER_SETTLE_MS)
 }
 
@@ -286,7 +382,7 @@ export function installHarness(game: Phaser.Game): void {
     listStates,
     listTriggers,
     press,
-    fire,
+    fire: (trigger) => fire(game, trigger),
     applyState: (id, seed) => applyState(game, id, seed),
   }
 }
