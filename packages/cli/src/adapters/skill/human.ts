@@ -1,5 +1,6 @@
 import * as p from '@clack/prompts'
 import { publishSkill } from '../../core/skillPublish.js'
+import { describeIndexFailure } from '../../core/registryIndex.js'
 import { validateSkill } from '../../core/skillValidate.js'
 
 export interface SkillValidateHumanOptions {
@@ -87,7 +88,7 @@ export async function runSkillPublishHumanAdapter(opts: SkillPublishHumanOptions
     if (result.indexed) {
       p.log.info('Indexed into the registry hub.')
     } else {
-      p.log.warn(`Could not index into the registry hub: ${result.indexError ?? 'unknown error'}`)
+      p.log.warn(`Could not index into the registry hub: ${describeIndexFailure(result.indexError)}`)
     }
   }
 

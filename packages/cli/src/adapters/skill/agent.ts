@@ -1,4 +1,5 @@
 import { publishSkill } from '../../core/skillPublish.js'
+import { describeIndexFailure } from '../../core/registryIndex.js'
 import { validateSkill } from '../../core/skillValidate.js'
 
 export interface SkillValidateAgentOptions {
@@ -93,7 +94,7 @@ export async function runSkillPublishAgentAdapter(opts: SkillPublishAgentOptions
       console.warn(
         result.anonymous
           ? '⚠ Not indexed into the registry hub — sign in first so this entry can be found there.'
-          : `⚠ Could not index into the registry hub: ${result.indexError ?? 'unknown error'}`,
+          : `⚠ Could not index into the registry hub: ${describeIndexFailure(result.indexError)}`,
       )
     }
   } else {
