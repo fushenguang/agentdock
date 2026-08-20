@@ -132,6 +132,30 @@ This does two distinct things:
 
 `SKILL.md`'s `metadata.version` field **must be a valid semver string**, or `skill publish` rejects the skill outright.
 
+### Verifying a publish (`--json`)
+
+The reliable way to check whether step 2 (indexing) actually happened is to read the JSON `skill publish --json` prints — not to guess from the human-readable text. Field semantics below are confirmed against the CLI's own source (`packages/cli/src/core/skillPublish.ts`, `registryIndex.ts`), not run live (publishing wasn't executed as part of writing this doc — see the note at the end of this section). Shape of a successful call:
+
+```json
+{
+  "ok": true,
+  "entry": { "...": "the manifest entry that was written" },
+  "manifestPath": "skills.json",
+  "updated": true,
+  "anonymous": false,
+  "versionMissing": false,
+  "indexed": true
+}
+```
+
+- **`indexed`** — whether the entry was also POSTed into the hosted registry, i.e. the field that answers "is this skill actually in the shared registry, not just my local `--registry` checkout." `indexed: false` **never** means the manifest write failed — `entry`/`manifestPath` are always written first and are never rolled back because indexing failed.
+- **`indexed: false` + `anonymous: true`** — you weren't signed in, so no indexing request was even sent. This is the designed local-only path (see "Publishing a skill" above), not an error.
+- **`indexed: false` + `anonymous: false`** — you were signed in, but the indexing request itself failed; the result also carries an `indexError` string with the reason. In practice the most common cause is the 24h-credential-expiry gap documented above (debt `cli-auth-token-expires-silently`): `auth status` still reports you as signed in, but the token has actually expired server-side. Re-run `auth login`, then publish again.
+- **`updated`** — `true` when an existing manifest entry with the same skill id was replaced (a re-publish); `false` when a new entry was appended.
+- **`versionMissing`** — `true` only when `SKILL.md` has no resolvable version at all (`metadata.version`, falling back to `metadata['thefool.version']`). This does not block publish, it's a warning — an actually-invalid (non-semver) version string is a different, harder failure: `skill publish` rejects it outright before anything is written (see above).
+
+If you also want to eyeball the hosted registry's web page for the skill, open it in a browser and confirm the skill's content is genuinely rendered there. **Don't treat an HTTP 200 on that page as proof of anything** — it's a client-rendered route, and it returns 200 for a nonexistent id too. `indexed: true` from the CLI is the actual signal.
+
 You can validate a skill without publishing:
 
 ```bash

@@ -132,6 +132,30 @@ npx @cogito.ai/cli@latest skill publish <skill-dir> --registry <registry-checkou
 
 `SKILL.md` 的 `metadata.version` 字段**必须是合法的 semver 字符串**，否则 `skill publish` 会直接拒绝发布该 skill。
 
+### 验证一次发布是否成功（`--json`）
+
+要判断第 2 步（索引）到底成没成，可靠做法是读 `skill publish --json` 打印的 JSON，而不是去猜人类可读文本的意思。以下字段语义已对照 CLI 源码本身核实（`packages/cli/src/core/skillPublish.ts`、`registryIndex.ts`），并非真跑出来的（写这份文档时没有真的执行发布 —— 见本节末尾的说明）。一次成功调用的输出形状：
+
+```json
+{
+  "ok": true,
+  "entry": { "...": "写入的 manifest 条目" },
+  "manifestPath": "skills.json",
+  "updated": true,
+  "anonymous": false,
+  "versionMissing": false,
+  "indexed": true
+}
+```
+
+- **`indexed`** —— 该条目是否也被 POST 进了托管 registry，即回答"这个 skill 是不是真的进了共享 registry，而不只是我本地的 `--registry` checkout"这个问题的字段。`indexed: false` **绝不**意味着 manifest 写入失败——`entry`/`manifestPath` 总是先写入成功，且从不因为索引失败而被回滚。
+- **`indexed: false` + `anonymous: true`** —— 你没有登录，所以索引请求根本没有发出。这是设计如此的"仅本地"路径（见上文「发布 skill」），不是错误。
+- **`indexed: false` + `anonymous: false`** —— 你已登录，但索引请求本身失败了；结果里还会带一个 `indexError` 字符串说明原因。实践中最常见的原因是前面提到的 24 小时凭据过期缺口（债 `cli-auth-token-expires-silently`）：`auth status` 依然显示你已登录，但 token 其实在服务端已经过期。重新 `auth login`，再发布一次。
+- **`updated`** —— `true` 表示同一 skill id 的已有 manifest 条目被替换（一次重复发布）；`false` 表示新增了一条条目。
+- **`versionMissing`** —— 只有当 `SKILL.md` 完全解析不出版本（`metadata.version`，回退到 `metadata['thefool.version']`）时才为 `true`。这不会阻塞发布，只是一条 warning —— 真正的非法（非 semver）版本号是另一种更硬的失败：`skill publish` 会在任何写入发生之前直接拒绝（见上文）。
+
+如果你还想用肉眼确认，可以打开托管 registry 里该 skill 的网页，确认页面上真的渲染出了这个 skill 的内容。**不要把那个页面返回 HTTP 200 当作任何判据**——那是一个客户端渲染的路由，一个不存在的 id 同样会返回 200。CLI 给出的 `indexed: true` 才是真正的信号。
+
 也可以只校验、不发布：
 
 ```bash
