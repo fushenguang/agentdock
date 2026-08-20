@@ -84,6 +84,19 @@ export async function runSkillPublishAgentAdapter(opts: SkillPublishAgentOptions
   } else if (result.ok) {
     const verb = result.updated ? 'Updated' : 'Added'
     console.log(`✓ ${verb} "${result.entry.id}" in ${result.manifestPath}`)
+    // Always say where the entry points — never left implicit. It comes from
+    // the skill's OWN repo, not necessarily the `--registry` checkout it was
+    // just written into (see skillPublish.ts `publishSkill` doc comment).
+    console.log(
+      `  source: ${result.entry.source}${result.entry.path ? ` (path: ${result.entry.path})` : ''}`,
+    )
+    if (result.sourceRepoDiffersFromRegistry) {
+      console.warn(
+        `⚠⚠ This entry points at ${result.entry.source} — NOT your --registry checkout (${result.registrySource}). ` +
+          'Anyone installing this skill must be able to `git clone` that repository — make sure it is public. ' +
+          'Publishing from a private repo on purpose is fine, just know that is what happened here.',
+      )
+    }
     if (result.anonymous) {
       console.warn('⚠ Published anonymously — run `agentdock auth login` to sign your skills.')
     }

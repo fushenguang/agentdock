@@ -35,6 +35,14 @@ function makeWorkDir(label: string): string {
   return dir
 }
 
+/** A bare git repo (with an `origin` remote, no skill inside) — stands in for a `--registry` checkout. */
+function makeRegistryRepo(label: string, remote: string): string {
+  const repoRoot = makeWorkDir(`registry-repo-${label}`)
+  execSync('git init -q -b main', { cwd: repoRoot, stdio: 'ignore' })
+  execSync(`git remote add origin ${remote}`, { cwd: repoRoot, stdio: 'ignore' })
+  return repoRoot
+}
+
 /** A git repo (with an `origin` remote) containing a skill directory at `skills/<name>`. */
 function makeSkillRepo(
   name: string,
@@ -804,5 +812,69 @@ describe('publish indexing (cli-publish-to-registry)', () => {
     expect(readManifest(registryDir).skills).toHaveLength(1)
     expect(readManifest(registryDir).skills[0]?.id).toBe('idx-rejected')
     expect(callCount).toBe(1)
+  })
+
+  // The real incident this coverage guards against: a skill was published
+  // with `--registry` pointing at a public content repo while the skill
+  // directory itself lived in an unrelated *private* repo. The manifest
+  // entry silently carried that private repo's URL — nobody downstream
+  // could tell without reading `entry.source` themselves. `publishSkill`
+  // must surface that mismatch as data (`registrySource` /
+  // `sourceRepoDiffersFromRegistry`), not just as manifest bytes.
+  describe('source vs. registry checkout provenance', () => {
+    it('flags a mismatch when the skill repo and the --registry checkout have different origins', async () => {
+      const { repoRoot, skillDir } = makeSkillRepo(
+        'private-source-skill',
+        'name: private-source-skill\ndescription: Lives in a different repo than the registry.',
+        'git@github.com:acme-private/private-skills.git',
+      )
+      const registryDir = makeRegistryRepo('mismatch', 'https://github.com/acme-public/public-registry.git')
+      cleanupDirs.push(repoRoot, registryDir)
+
+      const result = await publishSkill(skillDir, registryDir)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.entry.source).toBe('https://github.com/acme-private/private-skills')
+      expect(result.registrySource).toBe('https://github.com/acme-public/public-registry')
+      expect(result.sourceRepoDiffersFromRegistry).toBe(true)
+    })
+
+    it('does not flag a mismatch when the skill repo IS the --registry checkout', async () => {
+      const registryDir = makeRegistryRepo('same-repo', 'https://github.com/acme/skills-repo.git')
+      const skillDir = join(registryDir, 'skills', 'in-registry-skill')
+      mkdirSync(skillDir, { recursive: true })
+      writeFileSync(
+        join(skillDir, 'SKILL.md'),
+        '---\nname: in-registry-skill\ndescription: Lives inside the registry checkout itself.\n---\n\nBody.\n',
+        'utf-8',
+      )
+      cleanupDirs.push(registryDir)
+
+      const result = await publishSkill(skillDir, registryDir)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.entry.source).toBe(result.registrySource)
+      expect(result.sourceRepoDiffersFromRegistry).toBe(false)
+    })
+
+    it('omits both fields when the --registry checkout is not itself a git repo (e.g. an ad hoc directory)', async () => {
+      const { repoRoot, skillDir } = makeSkillRepo(
+        'plain-dir-registry-skill',
+        'name: plain-dir-registry-skill\ndescription: Registry checkout has no git repo at all.',
+      )
+      // Deliberately NOT git-initialized — `makeWorkDir` alone, same as every
+      // other test's `registryDir` in this file.
+      const registryDir = makeWorkDir('registry-not-git')
+      cleanupDirs.push(repoRoot, registryDir)
+
+      const result = await publishSkill(skillDir, registryDir)
+
+      expect(result.ok).toBe(true)
+      if (!result.ok) return
+      expect(result.registrySource).toBeUndefined()
+      expect(result.sourceRepoDiffersFromRegistry).toBeUndefined()
+    })
   })
 })
