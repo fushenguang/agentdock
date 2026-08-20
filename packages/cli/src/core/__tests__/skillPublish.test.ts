@@ -42,7 +42,11 @@ function makeSkillRepo(
   remote: string = FAKE_REMOTE,
 ): { repoRoot: string; skillDir: string } {
   const repoRoot = makeWorkDir(`repo-${name}`)
-  execSync('git init -q', { cwd: repoRoot, stdio: 'ignore' })
+  // `-b main` pins the branch name deterministically regardless of the host's
+  // `init.defaultBranch` config (cli-publish-giturl-scope: tests below assert
+  // on the resolved branch, so it can't be left to whatever a given machine
+  // or CI runner happens to default to).
+  execSync('git init -q -b main', { cwd: repoRoot, stdio: 'ignore' })
   execSync(`git remote add origin ${remote}`, { cwd: repoRoot, stdio: 'ignore' })
 
   const skillDir = join(repoRoot, 'skills', name)
@@ -641,11 +645,80 @@ describe('publish indexing (cli-publish-to-registry)', () => {
       description: 'Indexed ok.',
       version: '1.0.0',
       license: 'MIT',
+      // makeSkillRepo() nests the skill dir under `<repoRoot>/skills/<name>`
+      // (cli-publish-giturl-scope tasks.md 1.1: this is the field that was
+      // silently lost before this cut — proposal.md "Why", step ①).
+      path: result.entry.path,
+      branch: 'main',
     })
+    expect(result.entry.path).toBe(join('skills', 'idx-ok'))
     // Reverse control: fields the server assigns must never be client-supplied.
     expect(capturedBody).not.toHaveProperty('access_tier')
     expect(capturedBody).not.toHaveProperty('is_official')
     expect(capturedBody).not.toHaveProperty('security_status')
+  })
+
+  // cli-publish-giturl-scope tasks.md 1.2: the branch sent must be whatever
+  // branch the skill's source repo is actually on, not a hardcoded default.
+  it('sends the actually-checked-out branch, not always "main"', async () => {
+    const { repoRoot, skillDir } = makeSkillRepo(
+      'idx-branch',
+      'name: idx-branch\ndescription: Published from a feature branch.',
+    )
+    execSync('git checkout -q -b feature/publish-test', { cwd: repoRoot, stdio: 'ignore' })
+    const registryDir = makeWorkDir('registry')
+    const home = makeSignedInHome('home-idx-branch', 'tok-idx-branch')
+    cleanupDirs.push(repoRoot, registryDir, home)
+
+    let capturedBody: Record<string, unknown> = {}
+    const fetchImpl = async (_url: string, init?: RequestInit): Promise<Response> => {
+      capturedBody = JSON.parse(init?.body as string)
+      return new Response('{}', { status: 200 })
+    }
+
+    const result = await publishSkill(skillDir, registryDir, {
+      authEnv: { homeDir: home },
+      provider: PROVIDER,
+      fetchImpl,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(capturedBody.branch).toBe('feature/publish-test')
+  })
+
+  // cli-publish-giturl-scope tasks.md 1.2: detached HEAD has no branch name
+  // (`git branch --show-current` prints an empty string there) — the
+  // documented, verified fallback must kick in rather than sending "".
+  it('falls back to the documented default branch when HEAD is detached', async () => {
+    const { repoRoot, skillDir } = makeSkillRepo(
+      'idx-detached',
+      'name: idx-detached\ndescription: Published from a detached HEAD.',
+    )
+    writeFileSync(join(repoRoot, 'README.md'), 'x', 'utf-8')
+    execSync('git add -A && git -c user.email=t@t.com -c user.name=t commit -q -m init', {
+      cwd: repoRoot,
+      stdio: 'ignore',
+      shell: '/bin/bash',
+    })
+    execSync('git checkout -q --detach', { cwd: repoRoot, stdio: 'ignore' })
+    const registryDir = makeWorkDir('registry')
+    const home = makeSignedInHome('home-idx-detached', 'tok-idx-detached')
+    cleanupDirs.push(repoRoot, registryDir, home)
+
+    let capturedBody: Record<string, unknown> = {}
+    const fetchImpl = async (_url: string, init?: RequestInit): Promise<Response> => {
+      capturedBody = JSON.parse(init?.body as string)
+      return new Response('{}', { status: 200 })
+    }
+
+    const result = await publishSkill(skillDir, registryDir, {
+      authEnv: { homeDir: home },
+      provider: PROVIDER,
+      fetchImpl,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(capturedBody.branch).toBe('main')
   })
 
   it('still writes the manifest when the registry endpoint is unreachable, reports the failure, and never retries', async () => {
@@ -694,5 +767,42 @@ describe('publish indexing (cli-publish-to-registry)', () => {
     expect(result.indexed).toBe(false)
     expect(result.indexError).toBe('HTTP 404')
     expect(existsSync(result.manifestPath)).toBe(true)
+  })
+
+  // cli-publish-giturl-scope tasks.md 1.4: when the server rejects the entry
+  // (e.g. design.md 方案 A — an old CLI that didn't send `path`), publish
+  // must NOT roll the manifest back, must NOT retry, and must fold the
+  // rejection into `indexError`/`indexed: false` exactly like any other
+  // indexing failure — sending `path` did not carve out a new "block publish
+  // outright" behavior anywhere in this file.
+  it('still writes the manifest, only warns, and does not retry when the server rejects the entry outright', async () => {
+    const { repoRoot, skillDir } = makeSkillRepo('idx-rejected', 'name: idx-rejected\ndescription: Server said no.')
+    const registryDir = makeWorkDir('registry')
+    const home = makeSignedInHome('home-idx-rejected', 'tok-idx-rejected')
+    cleanupDirs.push(repoRoot, registryDir, home)
+
+    let callCount = 0
+    const fetchImpl = async (): Promise<Response> => {
+      callCount += 1
+      return new Response(
+        JSON.stringify({ error: 'path_required', message: 'Upgrade agentdock: npm install -g @cogito.ai/cli@latest' }),
+        { status: 400 },
+      )
+    }
+
+    const result = await publishSkill(skillDir, registryDir, {
+      authEnv: { homeDir: home },
+      provider: PROVIDER,
+      fetchImpl,
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.indexed).toBe(false)
+    expect(result.indexError).toBe('Upgrade agentdock: npm install -g @cogito.ai/cli@latest')
+    expect(existsSync(result.manifestPath)).toBe(true)
+    expect(readManifest(registryDir).skills).toHaveLength(1)
+    expect(readManifest(registryDir).skills[0]?.id).toBe('idx-rejected')
+    expect(callCount).toBe(1)
   })
 })

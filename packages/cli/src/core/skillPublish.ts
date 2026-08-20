@@ -161,11 +161,61 @@ export function isValidSemver(version: string): boolean {
 }
 
 /**
- * Resolves the git remote URL + in-repo relative path for a skill directory.
- * `publish` needs this because a manifest entry that lacks a real, clonable
- * source is not "a real usable manifest entry" (design.md §6-1).
+ * Fallback branch name used only when the current branch of the repo
+ * containing the published skill can't be determined (detached HEAD, a repo
+ * with no commits yet, or an old `git` without `branch --show-current`).
+ *
+ * Verified (not guessed) as the real default branch of the registry this
+ * CLI actually publishes against — `fushenguang/thefool-skills` — via two
+ * independent checks on 2026-08-20:
+ *   `git ls-remote --symref https://github.com/fushenguang/thefool-skills.git HEAD`
+ *     → `ref: refs/heads/main`
+ *   `gh repo view fushenguang/thefool-skills --json defaultBranchRef`
+ *     → `{"defaultBranchRef":{"name":"main"}}`
+ *
+ * Known gap (cli-publish-giturl-scope tasks.md 1.2, flagged rather than
+ * silently assumed away): a third-party fork published from a detached-HEAD
+ * checkout with a non-`main` default branch would get a wrong-but-safe guess
+ * here — this only matters once forks with a different default branch start
+ * publishing, which is not the case today.
  */
-function resolveGitSource(dir: string): { source: string; path?: string } | { error: string } {
+const DEFAULT_BRANCH_FALLBACK = 'main'
+
+/**
+ * Best-effort current branch of the repo containing `dir` (the same repo
+ * `resolveGitSource` reads the `origin` remote from) — the server needs this
+ * to build a `/tree/<branch>/<path>` URL rather than trusting the client to
+ * assemble one itself (cli-publish-giturl-scope design.md "拼装放服务端而
+ * 不是客户端").
+ *
+ * `git branch --show-current` (git ≥2.22) prints the branch name, or an
+ * empty string in detached HEAD / no-commits-yet states. Deliberately not
+ * `git rev-parse --abbrev-ref HEAD`, which prints the literal string `HEAD`
+ * in those same states — an easy footgun to leave unhandled, since `HEAD` is
+ * not a valid branch name to hand to the server.
+ */
+function resolveCurrentBranch(absDir: string): string {
+  try {
+    const branch = execSync('git branch --show-current', {
+      cwd: absDir,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+    return branch || DEFAULT_BRANCH_FALLBACK
+  } catch {
+    return DEFAULT_BRANCH_FALLBACK
+  }
+}
+
+/**
+ * Resolves the git remote URL + in-repo relative path + current branch for a
+ * skill directory. `publish` needs this because a manifest entry that lacks
+ * a real, clonable source is not "a real usable manifest entry" (design.md
+ * §6-1). `branch` is never written into the manifest (cli-publish-giturl-scope
+ * proposal.md Non-Goals: "不改 manifest 格式") — it exists only to be
+ * forwarded to `indexToRegistry()`.
+ */
+function resolveGitSource(dir: string): { source: string; path?: string; branch: string } | { error: string } {
   const absDir = resolve(dir)
 
   // `git rev-parse --show-toplevel` is only used to confirm we're inside a
@@ -213,7 +263,9 @@ function resolveGitSource(dir: string): { source: string; path?: string } | { er
     .trim()
     .replace(/\/+$/, '')
 
-  return prefix ? { source: normalized.url, path: prefix } : { source: normalized.url }
+  const branch = resolveCurrentBranch(absDir)
+
+  return prefix ? { source: normalized.url, path: prefix, branch } : { source: normalized.url, branch }
 }
 
 function loadManifest(manifestPath: string): SkillManifest {
@@ -342,6 +394,13 @@ export async function publishSkill(
         description: entry.description,
         ...(entry.version ? { version: entry.version } : {}),
         ...(entry.license ? { license: entry.license } : {}),
+        // `path` mirrors the manifest entry's own field 1:1 (cli-publish-giturl-scope
+        // tasks.md 1.1) — never added to `entry` itself here, it is already
+        // there. `branch` is never written into the manifest (Non-Goal: "不改
+        // manifest 格式") — it only exists for this one request, computed
+        // fresh from the same repo `gitSource.source` came from.
+        ...(entry.path ? { path: entry.path } : {}),
+        branch: gitSource.branch,
       },
       {
         ...(options.provider ? { provider: options.provider } : {}),
