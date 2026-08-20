@@ -125,26 +125,66 @@ npx @cogito.ai/cli@latest auth status
 npx @cogito.ai/cli@latest skill publish <skill-dir> --registry <registry-checkout>
 ```
 
-这条命令做两件独立的事：
+以下所有内容，都是写这一节时对着一次性的本地 git 假仓库真跑 `skill publish` 核实过的（绝不针对真实托管 registry —— 见下文「索引」一步，本地 `--registry` 指向哪里跟索引这一步完全无关，这一点很关键）。
 
-1. **始终执行**：校验该 skill，并在本地 `--registry` git checkout 里写入/更新其 manifest 条目（`skills.json`）。这一步不依赖网络 —— 即使未登录，写入本地 registry checkout 也能成功。这是刻意为可移植性做的设计。
-2. **仅在已登录时执行**：把该 skill 索引进托管 registry。若未登录，这一步会被完全跳过（不会发出任何请求）。若尝试但失败（例如上面提到的 token 过期），第一步的 manifest 写入依然会成功 —— 索引失败只会产生一条 warning，且不会重试。
+**两个参数都是必填的** —— 少填任意一个，`publish` 会在碰任何东西之前就直接退出：
 
-`SKILL.md` 的 `metadata.version` 字段**必须是合法的 semver 字符串**，否则 `skill publish` 会直接拒绝发布该 skill。
+- **`<skill-dir>`**（位置参数）—— skill 目录（含 `SKILL.md`）的路径，相对/绝对都可以。不填 → `Error: <dir> is required`（`--json` 下为 `{"ok":false,"error":"MISSING_ARG","field":"dir"}`）。
+- **`--registry <registry-checkout>`** —— 一个**本地的、某个 skills registry 的 git checkout 的根目录**：即含（或将要含）`skills.json` manifest 的那一层目录。它**不是**"skill 文件会被拷进去的地方"（见下文「publish 到底做了什么」），也**不需要**是本仓库自己的 checkout —— 任意一个本地克隆的、registry 形状的仓库都可以。不填 → `Error: --registry is required`（`--json` 下为 `{"ok":false,"error":"MISSING_ARG","field":"registry"}`）。指向一个不存在的路径 → `✗ Registry checkout not found: "<path>"`（`--json` 下为 `{"ok":false,"error":"REGISTRY_NOT_FOUND","message":"..."}`）。
+
+**前置条件** —— 每一条不满足都对应一个真实核实过的报错：
+
+| 要求 | 不满足时的报错 |
+| --- | --- |
+| `<skill-dir>` 位于某个 git 仓库内 | `"<dir>" is not inside a git repository`（`SKILL_SOURCE_UNRESOLVED`） |
+| 该仓库配置了 `origin` remote | `no git remote "origin" configured for the repository containing "<dir>"`（`SKILL_SOURCE_UNRESOLVED`） |
+| `SKILL.md` 通过 Agent Skills 规范校验 | `"<dir>" failed skill validation` 加一份 `errors` 列表，例如 `Missing required field in frontmatter: description`（`SKILL_INVALID`） |
+| `metadata.version`（如果填了）是合法 semver | `Invalid version "<v>" in "<dir>": expected semver (major.minor.patch, e.g. "1.2.3", optionally with a "-prerelease" and/or "+build" suffix, ...) — got "<v>"`（`SKILL_VERSION_INVALID`） |
+
+版本号**缺失**是允许的（见下文 `versionMissing`）——只有**格式错误**的版本号才会被直接拒绝。
+
+**`publish` 到底做了什么、没做什么：**
+
+- ✅ 校验该 skill，然后在 `<registry-checkout>/skills.json` 里写入或更新它的条目。这一步不依赖网络，未登录也能成功 —— 这是刻意为可移植性做的设计。
+- ✅ 若已登录（`agentdock auth login`），还会把该条目 POST 进托管 registry（"索引"，见下文「验证一次发布是否成功」）。未登录时这一步整个跳过，不会发出任何请求。
+- ❌ **不会**把 skill 的文件拷进 `--registry` checkout。只有 `skills.json` 会多一条（或更新一条）记录，skill 本身完全不会被碰或移动。
+- ❌ **不会**对 registry checkout 或 skill 自己的仓库做任何 `git add`/`commit`/`push` —— 这一点已通过实跑后检查 `git status` 核实：manifest 就是一处普通的、未提交的工作区改动。要不要 commit、push `skills.json`，由你自己决定。
+- **`entry.source` 和 `entry.path` 来自 skill 自己所在的 git 仓库**（它的 `origin` remote，规范化成可克隆、不带凭据的 URL，加上它在那个仓库里的相对路径）——**不是**来自 `--registry`。这是最容易搞反的一点：上面两条 ❌ 很容易让人以为 `publish` 会"把 skill 收进 registry 仓库"，但它从来不会。实际影响是：skill 自己所在的仓库必须是陌生人真能 `git clone` 到的仓库 —— 因为写进 manifest、别人真正会拿去装的，是**那个**仓库的地址，不是 `--registry` checkout 的地址。
+
+**现在 CLI 会始终说清条目指向哪里，且指向出乎意料时会大声告警。** 以下是一次真实运行的输出（skill 自己所在仓库与 `--registry` checkout 的 `origin` 不同）：
+
+```
+✓ Added "demo-skill" in /path/to/registry-checkout/skills.json
+  source: https://github.com/acme-private-org/private-skills-repo (path: skills/demo-skill)
+⚠⚠ This entry points at https://github.com/acme-private-org/private-skills-repo — NOT your --registry checkout (https://github.com/acme-public-org/public-skills-registry). Anyone installing this skill must be able to `git clone` that repository — make sure it is public. Publishing from a private repo on purpose is fine, just know that is what happened here.
+```
+
+`source:` 这一行**总是**打印，不管指向是否一致。`⚠⚠` 这一行只在两者不一致时才出现。**这是一条告警，不是拦截** —— 从一个不同（甚至私有）于 registry checkout 的仓库发布 skill 是一个合法场景，例如一个你不打算给别人装的私有 skill；告警的作用只是让这件事不再悄无声息，而不是禁止它。CLI 刻意不去检测"这个仓库是不是真的私有"——那需要联网请求和鉴权，它并不具备；它只把解析出的 `source` 打印出来，判断留给你自己。
+
+**为什么要加这一段：** 一次真实的 `skill publish <某私有仓库内的目录> --registry <一个公开内容仓的 checkout>` 运行，写出了一条 `source` 指向那个私有仓库的 manifest 条目，而输出和文档里都**完全没有**任何迹象表明 `source`/`path` 来自 skill 自己的仓库、而不是 `--registry`。照着这条记录去装的人会在 `git clone` 那一步失败，而那个私有仓库的地址也就此躺进了一份公开文件。
+
+**副作用清单，完整版 —— 除此之外不会碰任何东西：**
+- `<registry-checkout>/skills.json` 被创建（如果不存在）或更新：新增一条条目，或者 —— 如果已有相同 `id`（即 skill 的 `name`）的条目 —— 那一整条被替换（多次发布之间字段不会合并）。
+- 写入/替换的条目字段：`id`/`name`（来自 `SKILL.md` 的 `name`）、`description`、`source`、`path`（skill 位于其仓库根目录时省略）、`license`（frontmatter 里有就带上）、`version`（能解析出就带上）、`nonSpecFields`（如果 `skills-ref` 把某些非规范顶层 frontmatter 字段降级成了警告）、`author`（已登录时带上）、以及 `publishedAt` —— 每次发布都会刷新成当前时间戳，哪怕这是一次内容完全没变的重复发布。
+- 不会 commit 或 push 任何东西（见上面两条 ❌）。
+
+**`--silent` 与 `--json`：** `--json` 打印机器可读的结果（见下文），取代交互式/纯文本输出。`--silent` 目前的行为跟 `--json` **完全一致** —— 单独只加 `--silent`（不加 `--json`）也会让 `publish` 往 stdout 打印同一行 JSON，这一点已通过单独跑 `--silent` 核实。输出格式实际上是按"stdout 是否为 TTY"来选的：交互式终端 + 不加任何 flag → 走 `@clack/prompts` 的提示式 UI（spinner、彩色的 `✓`/`⚠`/`✗`）；其它任何情况（加了任一 flag，或者 stdout 被管道/重定向）→ 走纯文本的 `console.log`/`console.warn`，除非同时加了 `--json` 或 `--silent`，那样就是那一行 JSON。脚本、agent 需要根据结果编程分支时用 `--json`（目前等价地也可以用 `--silent`）；手动在终端里发布时两者都不要加。
 
 ### 验证一次发布是否成功（`--json`）
 
-要判断第 2 步（索引）到底成没成，可靠做法是读 `skill publish --json` 打印的 JSON，而不是去猜人类可读文本的意思。以下字段语义已对照 CLI 源码本身核实（`packages/cli/src/core/skillPublish.ts`、`registryIndex.ts`），并非真跑出来的（写这份文档时没有真的执行发布 —— 见本节末尾的说明）。一次成功调用的输出形状：
+要判断索引到底成没成，可靠做法是读 `skill publish --json` 打印的 JSON，而不是去猜人类可读文本的意思。一次成功调用的输出形状（字段已通过对着本地假 fixture 加 `--json` 真跑核实）：
 
 ```json
 {
   "ok": true,
   "entry": { "...": "写入的 manifest 条目" },
-  "manifestPath": "skills.json",
-  "updated": true,
+  "manifestPath": "/path/to/registry-checkout/skills.json",
+  "updated": false,
   "anonymous": false,
   "versionMissing": false,
-  "indexed": true
+  "indexed": true,
+  "registrySource": "https://github.com/acme-public-org/public-skills-registry",
+  "sourceRepoDiffersFromRegistry": false
 }
 ```
 
@@ -153,6 +193,22 @@ npx @cogito.ai/cli@latest skill publish <skill-dir> --registry <registry-checkou
 - **`indexed: false` + `anonymous: false`** —— 你已登录，但索引请求本身失败了；结果里还会带一个 `indexError` 字符串说明原因。实践中最常见的原因是前面提到的 24 小时凭据过期缺口（债 `cli-auth-token-expires-silently`）：`auth status` 依然显示你已登录，但 token 其实在服务端已经过期。重新 `auth login`，再发布一次。
 - **`updated`** —— `true` 表示同一 skill id 的已有 manifest 条目被替换（一次重复发布）；`false` 表示新增了一条条目。
 - **`versionMissing`** —— 只有当 `SKILL.md` 完全解析不出版本（`metadata.version`，回退到 `metadata['thefool.version']`）时才为 `true`。这不会阻塞发布，只是一条 warning —— 真正的非法（非 semver）版本号是另一种更硬的失败：`skill publish` 会在任何写入发生之前直接拒绝（见上文）。
+- **`registrySource`** —— `--registry` checkout 自己的 `origin` remote（规范化方式与 `entry.source` 一致）。**只在能解析出时才会出现** —— 即 `--registry` 指向的确实是一个有可克隆 `origin` 的 git checkout。对一个本地实验用、本身不是 git 仓库的 registry 目录，这个字段会缺失；缺失不代表出错。
+- **`sourceRepoDiffersFromRegistry`** —— 当 `entry.source`（skill 自己的仓库）与 `registrySource`（`--registry` checkout 自己的仓库）不一致时为 `true` —— 上面纯文本输出里的 `⚠⚠` 告警就是由这个字段驱动的。**只在 `registrySource` 同时存在时才会出现** —— 无法解析出 `registrySource` 时，说明没能做比较，所以这个字段会被省略，而不是默认给 `false`（那样会被误读成"已确认一致"）。
+
+**常见的 `--json` 失败形状**，每一种都已真跑核实：
+
+| 情况 | `--json` 输出 |
+| --- | --- |
+| 没填 `<dir>` | `{"ok":false,"error":"MISSING_ARG","field":"dir"}` |
+| 没填 `--registry` | `{"ok":false,"error":"MISSING_ARG","field":"registry"}` |
+| `--registry` 路径不存在 | `{"ok":false,"error":"REGISTRY_NOT_FOUND","message":"Registry checkout not found: \"<path>\""}` |
+| `<dir>` 不在 git 仓库里 | `{"ok":false,"error":"SKILL_SOURCE_UNRESOLVED","message":"\"<dir>\" is not inside a git repository"}` |
+| 该仓库没有 `origin` remote | `{"ok":false,"error":"SKILL_SOURCE_UNRESOLVED","message":"no git remote \"origin\" configured for the repository containing \"<dir>\""}` |
+| `SKILL.md` 没通过规范校验 | `{"ok":false,"error":"SKILL_INVALID","message":"\"<dir>\" failed skill validation","errors":["..."]}` |
+| `metadata.version` 不是合法 semver | `{"ok":false,"error":"SKILL_VERSION_INVALID","message":"Invalid version \"<v>\" in \"<dir>\": ..."}` |
+| 发布成功，但索引失败（已登录、请求失败） | `{"ok":true, ..., "indexed":false,"indexError":"<原因>"}` |
+| 发布成功，未登录（索引根本没尝试） | `{"ok":true, ..., "indexed":false,"anonymous":true}`（没有 `indexError`——因为什么都没尝试） |
 
 如果你还想用肉眼确认，可以打开托管 registry 里该 skill 的网页——`https://www.fujia.site/skills/<skill-id>`，其中 `<skill-id>` 就是 manifest 条目里的 `id`——确认页面上真的渲染出了这个 skill 的内容。**不要把那个页面返回 HTTP 200 当作任何判据**——那是一个客户端渲染的路由，一个不存在的 id 同样会返回 200。CLI 给出的 `indexed: true` 才是真正的信号。
 

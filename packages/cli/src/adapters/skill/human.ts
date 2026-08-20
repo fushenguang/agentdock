@@ -70,6 +70,22 @@ export async function runSkillPublishHumanAdapter(opts: SkillPublishHumanOptions
 
   spinner.stop('Publish complete.')
 
+  // Always say where the entry points — never left implicit. It comes from
+  // the skill's OWN repo, not necessarily the `--registry` checkout it was
+  // just written into (see skillPublish.ts `publishSkill` doc comment).
+  p.log.info(
+    `Entry source: ${result.entry.source}${result.entry.path ? ` (path: ${result.entry.path})` : ''}`,
+  )
+  if (result.sourceRepoDiffersFromRegistry) {
+    p.log.warn(
+      `⚠ This entry points at a DIFFERENT repository than your --registry checkout (${result.registrySource}).`,
+    )
+    p.log.warn(
+      'Anyone installing this skill must be able to `git clone` that repository — make sure it is public. ' +
+        'Publishing from a private repo on purpose is fine, just know that is what happened here.',
+    )
+  }
+
   // Anonymous publishing stays allowed on purpose (cli-auth design.md §5): the
   // content repo is public and forks must keep working. But an unsigned entry
   // carries no provenance, so say so loudly rather than let it pass unnoticed.

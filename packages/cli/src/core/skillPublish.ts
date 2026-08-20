@@ -104,6 +104,29 @@ export interface SkillPublishResult {
    * no error to show). Adapters use this to print a status/error summary.
    */
   indexError?: string
+  /**
+   * The `--registry` checkout's own `origin` remote (normalized the same
+   * way `entry.source` is), present only when it could be resolved — i.e.
+   * `registryDir` is itself inside a git repo with a clonable `origin`.
+   * Absent whenever that can't be determined (registryDir has no git repo,
+   * no `origin`, or an unresolvable remote), which is common in ad hoc or
+   * test registry checkouts and is not an error.
+   */
+  registrySource?: string
+  /**
+   * `true` when `entry.source` (the skill's OWN repo) does not match
+   * `registrySource` (the `--registry` checkout's own repo) — i.e. `publish`
+   * wrote a manifest entry that points somewhere other than the registry
+   * checkout it was written into. This is a legitimate, intentional shape
+   * (publish never copies skill files into the registry repo — see this
+   * function's doc comment) but easy to hit by accident, most dangerously
+   * when the skill's own repo is private: nobody but the publisher can then
+   * `git clone` what the entry points at. Present only alongside
+   * `registrySource` — when that can't be resolved, no comparison was made,
+   * so this field is omitted rather than defaulting to `false` (which would
+   * read as "confirmed same" when nothing was actually confirmed).
+   */
+  sourceRepoDiffersFromRegistry?: boolean
 }
 
 export interface SkillPublishError {
@@ -268,6 +291,48 @@ function resolveGitSource(dir: string): { source: string; path?: string; branch:
   return prefix ? { source: normalized.url, path: prefix, branch } : { source: normalized.url, branch }
 }
 
+/**
+ * Best-effort normalized `origin` remote URL of `registryDir` itself — used
+ * only to detect when a published entry's `source` (the skill's OWN repo,
+ * from `resolveGitSource` above) points somewhere other than the
+ * `--registry` checkout the entry was just written into.
+ *
+ * That mismatch is not an error — publishing a skill that lives in a
+ * different repo than the registry checkout is a legitimate, intentional
+ * shape (design.md never required them to be the same repo) — but it is
+ * easy to publish by accident while believing `publish` "collects the skill
+ * into the registry repo" (it never does, see `publishSkill` doc comment).
+ * A real incident: a skill was published with `--registry` pointing at a
+ * public content repo while the skill directory itself lived in an
+ * unrelated *private* repo — the manifest entry silently carried that
+ * private repo's URL, which nobody can `git clone`.
+ *
+ * Deliberately silent (never returns an `error`, unlike `resolveGitSource`):
+ * a `--registry` checkout that isn't a git repo, has no `origin`, or has an
+ * unresolvable remote (e.g. a local path) is not a `publish` failure — it
+ * just means this comparison can't be made, so the caller treats "can't
+ * tell" as "say nothing" rather than a false positive or false negative.
+ */
+function resolveRegistryOriginUrl(registryDir: string): string | undefined {
+  const absDir = resolve(registryDir)
+
+  let remote: string
+  try {
+    remote = execSync('git remote get-url origin', {
+      cwd: absDir,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+  } catch {
+    return undefined
+  }
+
+  if (!remote) return undefined
+
+  const normalized = normalizeGitRemoteUrl(remote)
+  return 'error' in normalized ? undefined : normalized.url
+}
+
 function loadManifest(manifestPath: string): SkillManifest {
   if (!existsSync(manifestPath)) {
     return { version: '1', skills: [] }
@@ -354,6 +419,9 @@ export async function publishSkill(
 
   const nonSpecFields = extractNonSpecFields(validation.warnings)
   const author = 'author' in options ? options.author : currentAuthor(options.authEnv ?? {})
+  // Computed against the same `--registry` checkout `manifestPath` below is
+  // about to write into — see `resolveRegistryOriginUrl` doc comment.
+  const registrySource = resolveRegistryOriginUrl(registryDir)
 
   const entry: SkillManifestEntry = {
     id: props.name,
@@ -419,6 +487,9 @@ export async function publishSkill(
       indexed: indexResult.indexed,
       ...(indexResult.indexed === false && indexResult.reason === 'REQUEST_FAILED'
         ? { indexError: indexResult.message }
+        : {}),
+      ...(registrySource
+        ? { registrySource, sourceRepoDiffersFromRegistry: entry.source !== registrySource }
         : {}),
     }
   } catch (err) {
