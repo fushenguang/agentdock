@@ -11,6 +11,7 @@
     "minCliVersion": "0.1.0"
   },
   "scripts": {
+    "postinstall": "node scripts/install-phaser-skills.mjs",
     "dev": "vite --host --port 8080 --strictPort",
     "build": "vite build",
     "build:play": "vite build --mode play",
