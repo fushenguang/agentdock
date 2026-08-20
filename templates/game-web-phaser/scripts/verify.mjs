@@ -16,8 +16,10 @@
 // over Node's own built-in `WebSocket` (stable since Node 22).
 //
 // 🔴 Every gate below either passes, or prints what it expected/looked for
-// and calls process.exit(1). None of them may print "skipping" and exit 0
-// — a check that can be silently skipped is not a check.
+// and fails the run (`fail()` below — throws so cleanup still runs, see
+// task 4.1/4.2's doc on `fail()` and `main()`'s `finally`). None of them may
+// print "skipping" and exit 0 — a check that can be silently skipped is not
+// a check.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, writeFileSync } from 'node:fs'
@@ -29,6 +31,7 @@ import { startStaticServer } from './lib/static-server.mjs'
 import { launchBrowser } from './lib/browser-launch.mjs'
 import { inspectPage } from './lib/inspect-page.mjs'
 import { decodePng, judgeScreenshotNonEmpty } from './lib/png.mjs'
+import { judgeEntitiesWithinBounds, ENTITY_BOUNDS_MARGIN_PX, BOUNDS_OBSERVATION_MS } from './lib/entity-bounds.mjs'
 import { runAssertions, RemoteHarness } from './assert.mjs'
 import { decideExitCode, decideVerdict } from './lib/exit-decision.mjs'
 
@@ -138,6 +141,26 @@ function writeResultFile(passed, assertions = ASSERTIONS_NOT_RUN) {
   }
 }
 
+/**
+ * 🔴 task 4.1/4.2 (2026-08-19, "C: failure-path process cleanup", approved
+ * and folded into this change by the builder): thrown here, not
+ * `process.exit()`ed. `process.exit()` terminates the process immediately
+ * and skips every `finally` still on the stack — which is exactly how a
+ * failing `pnpm verify` run (the COMMON case inside a VM, not the
+ * exception) used to leak the headless Chromium process `main()`'s own
+ * `finally` exists to `proc.kill()`. A real orphan (GPU helper included)
+ * was observed alive 11 minutes after a single failed run; 2026-08-12 has a
+ * documented incident where six orphaned Chromium processes pushed a
+ * 4-vCPU guest's load average to 19 and made the platform falsely report
+ * "environment prep failed" while the environment itself was fine.
+ * Throwing instead lets every `try/finally` between this call site and
+ * `main()`'s own `finally` run normally as the stack unwinds — see that
+ * `finally` and the `catch` on `main()`'s promise at the bottom of this
+ * file, which recognizes this exact error type and does nothing further
+ * (fail() already did all the reporting).
+ */
+class VerifyFailure extends Error {}
+
 function fail(stage, expected, actual, extra) {
   console.error(`\n[verify] ${stage} — FAILED`)
   console.error(`  expected: ${expected}`)
@@ -145,7 +168,8 @@ function fail(stage, expected, actual, extra) {
   if (extra) console.error(`  detail:   ${extra}`)
   recordGate(stage, stage, false, `expected: ${expected} | actual: ${actual}`)
   writeResultFile(false)
-  process.exit(1)
+  process.exitCode = 1
+  throw new VerifyFailure(`${stage} failed — see the [verify] output above and ${RESULT_FILE}`)
 }
 
 /**
@@ -196,24 +220,34 @@ async function main() {
   const browser = resolveBrowser()
   console.log(`[verify] Using browser: ${browser.path} (found via: ${browser.source})`)
 
-  const { server, url: staticUrl } = await startStaticServer(DIST_DIR)
-  console.log(`[verify] Serving ${DIST_DIR} at ${staticUrl}`)
-
-  let launched
-  try {
-    launched = await launchBrowser(browser)
-  } catch (err) {
-    fail('Browser launch', 'Chromium starts and prints its DevTools listening address', err.message)
-    return // unreachable — fail() exits — but keeps TypeScript-less linters happy
-  }
-  const { proc, wsUrl } = launched
-  console.log(`[verify] Chromium DevTools endpoint: ${wsUrl}`)
-
-  // Declared outside the try so `finally` can close the CDP client too —
-  // design D7 needs this exact session kept open through IA, right up until
-  // the whole run is done, not closed the moment BH-2's evidence is read.
+  // 🔴 task 4.1/4.2: every resource acquired from here on (`server`, `proc`,
+  // the CDP client inside `inspected`) is released by the ONE `finally`
+  // below on every exit path — a thrown `VerifyFailure` from `fail()`, any
+  // other unexpected exception, or a clean return. Declared as `let` here
+  // (not `const` inside the try) so that `finally` can reach whichever of
+  // them actually got allocated before something failed; each starts
+  // `undefined` and the `finally` uses `?.` so partial allocation (e.g.
+  // `server` created but `launchBrowser()` never succeeded) cleans up
+  // exactly what exists, nothing more.
+  let server
+  let proc
   let inspected
   try {
+    const staticServer = await startStaticServer(DIST_DIR)
+    server = staticServer.server
+    const staticUrl = staticServer.url
+    console.log(`[verify] Serving ${DIST_DIR} at ${staticUrl}`)
+
+    let launched
+    try {
+      launched = await launchBrowser(browser)
+    } catch (err) {
+      fail('Browser launch', 'Chromium starts and prints its DevTools listening address', err.message)
+    }
+    proc = launched.proc
+    const wsUrl = launched.wsUrl
+    console.log(`[verify] Chromium DevTools endpoint: ${wsUrl}`)
+
     inspected = await inspectPage(wsUrl, staticUrl)
 
     if (inspected.exceptions.length > 0 || inspected.failedRequests.length > 0) {
@@ -249,9 +283,93 @@ async function main() {
         judged.reason,
       )
     }
-    const bh2Detail =
+
+    // 🔴 trigger-integrity-and-onscreen-gate task 2.2 (design D4), REVISED by
+    // design D8 (2026-08-19, supersedes D7 — see design.md D8, and
+    // lib/entity-bounds.mjs's own header, for the full history of why the
+    // first two fix attempts here were both wrong). Short version: the
+    // second entity-bounds sample must establish its OWN observation
+    // window — `applyState()` onto the gameplay-role state (same discipline
+    // every IA judge already follows, design D6's "每条断言前强制
+    // applyState"), wait `BOUNDS_OBSERVATION_MS`, then sample — instead of
+    // reusing anything left over by IA. Both samples now run BEFORE IA, so
+    // BH-2 is fully decided before IA ever starts (IA still does its own
+    // per-item `applyState()` afterward, unaffected by this).
+    const harness = new RemoteHarness(inspected.client, inspected.sessionId)
+
+    async function sampleEntityBounds(which) {
+      let snapshot
+      try {
+        snapshot = await harness.getSnapshot()
+      } catch (err) {
+        fail(
+          `BH-2 render (entity bounds, ${which} sample)`,
+          'window.__gameHarness.getSnapshot() succeeds',
+          `threw: ${err.message}`,
+        )
+      }
+      const check = judgeEntitiesWithinBounds(snapshot.entities, snapshot.worldBounds)
+      if (!check.ok) {
+        // 🔴 Every fact judgment 3.2a's re-check asked to be visible (which
+        // sample, bounds source, out-of-bounds coordinates) goes into
+        // `actual` — not `extra` — because `fail()`'s `extra` param is
+        // console-only; only `expected`/`actual` are persisted into
+        // `.verify-result.json` via `recordGate()`.
+        const detail = JSON.stringify({ sample: which, worldBounds: snapshot.worldBounds, outOfBounds: check.outOfBounds })
+        fail(
+          `BH-2 render (entity bounds, ${which} sample)`,
+          `every named entity stays within the world bounds (source: ${snapshot.worldBounds.source}, margin ${ENTITY_BOUNDS_MARGIN_PX}px)`,
+          `${which} sample: ${check.outOfBounds.length} named entit${check.outOfBounds.length === 1 ? 'y' : 'ies'} out of bounds — ${detail}`,
+        )
+      }
+      return snapshot
+    }
+
+    // Sample one — right after the page-load settle (this gate's original
+    // timing; near-zero cost). Fails fast here if already out of bounds —
+    // no need to spend the second sample's observation window proving what
+    // this one already proved.
+    const firstBoundsSnapshot = await sampleEntityBounds('first')
+
+    const bh2CanvasDetail =
       `canvas ${inspected.canvasWidth}x${inspected.canvasHeight}, ` +
       `${judged.uniqueColors} unique colours, variance ${judged.variance.toFixed(2)}`
+
+    // Sample two — design D8's own observation window. `applyState()` onto
+    // whichever state has role `'gameplay'`, then wait `BOUNDS_OBSERVATION_MS`
+    // before sampling, so a real-gravity drift has an actual window to
+    // become visible in, independent of anything IA does later.
+    //
+    // 🔴 D3-shaped rule, same one `checkTriggerIntegrityAvailability()`
+    // (scripts/assert.mjs) already follows for A: a project with no
+    // gameplay-role state, or whose `applyState()` rejects it, does NOT
+    // fail this gate — but that MUST be visible in `.verify-result.json`,
+    // never a silent single-sample gate quietly pretending to be a
+    // two-sample one. `recordGate()`'s `detail` argument IS persisted
+    // (unlike `fail()`'s `extra`), so the note below reaches the file, not
+    // just the console.
+    const statesForBounds = await harness.listStates()
+    const gameplayForBounds = statesForBounds.find((s) => s.role === 'gameplay')
+    let secondBoundsSnapshot = null
+    let secondSampleNote = null
+    if (!gameplayForBounds) {
+      secondSampleNote = 'no state with role "gameplay" — second entity-bounds observation window (design D8) did not run'
+    } else {
+      const appliedForBounds = await harness.applyState(gameplayForBounds.id)
+      if (!appliedForBounds) {
+        secondSampleNote = `applyState("${gameplayForBounds.id}") returned false — second entity-bounds observation window (design D8) did not run`
+      } else {
+        await harness.wait(BOUNDS_OBSERVATION_MS)
+        secondBoundsSnapshot = await sampleEntityBounds('second')
+      }
+    }
+
+    const bh2Detail = secondBoundsSnapshot
+      ? `${bh2CanvasDetail}, entities within bounds across 2 samples ` +
+        `(first source: ${firstBoundsSnapshot.worldBounds.source}, second source: ${secondBoundsSnapshot.worldBounds.source}, ` +
+        `second sample after applyState("${gameplayForBounds.id}") + ${BOUNDS_OBSERVATION_MS}ms observation window)`
+      : `${bh2CanvasDetail}, entities within bounds — first sample only (source: ${firstBoundsSnapshot.worldBounds.source}); ` +
+        `second sample (design D8 gameplay observation window) DID NOT RUN: ${secondSampleNote}`
     recordGate('BH-2', '渲染', true, bh2Detail)
     console.log(`[verify] BH-2 render — passed (${bh2Detail})`)
 
@@ -261,7 +379,6 @@ async function main() {
     // judge instead of being re-collected (task 3.6).
     console.log('[verify] IA assertions — checking for assertions.json...')
     const loadEvidence = { exceptions: inspected.exceptions, failedRequests: inspected.failedRequests }
-    const harness = new RemoteHarness(inspected.client, inspected.sessionId)
     const assertionsResult = await runAssertions({ harness, loadEvidence, projectRoot: PROJECT_ROOT })
     logAssertionsResult(assertionsResult)
 
@@ -308,9 +425,14 @@ async function main() {
       process.exitCode = exitCode
     }
   } finally {
+    // 🔴 task 4.1/4.2: the ONE place that releases every resource this run
+    // acquired, reached on every exit path now that `fail()` throws instead
+    // of exiting directly — a clean finish, a `VerifyFailure`, or any other
+    // unexpected exception all unwind through here. `?.`/optional-call
+    // guards handle partial allocation (e.g. the browser never launched).
     inspected?.client?.close()
-    proc.kill()
-    server.close()
+    proc?.kill()
+    server?.close()
   }
 }
 
@@ -324,6 +446,11 @@ function logAssertionsResult(result) {
     return
   }
   console.log(`[verify] IA assertions — judged: ${result.passedCount}/${result.total} passed`)
+  // trigger-integrity-and-onscreen-gate task 1.2 / design D3: "not checked"
+  // must be visible, never silent — see assert.mjs's checkTriggerIntegrityAvailability().
+  if (result.triggerIntegrityCheck && !result.triggerIntegrityCheck.ran) {
+    console.log(`  NOTE  trigger-integrity check (A) did not run: ${result.triggerIntegrityCheck.reason}`)
+  }
   for (const r of result.results) {
     if (r.passed) {
       console.log(`  PASS  ${r.itemId} (${r.templateId})`)
@@ -337,6 +464,17 @@ function logAssertionsResult(result) {
 }
 
 main().catch((err) => {
+  if (err instanceof VerifyFailure) {
+    // fail() already printed the failure, recorded the gate, wrote the
+    // result file, and set process.exitCode = 1 — by the time we're here,
+    // main()'s own `finally` (task 4.1/4.2) has ALSO already run, because
+    // `finally` always completes before an async function's rejection
+    // propagates out of it. The throw's only job was to force that unwind
+    // instead of skipping it via `process.exit()`. Nothing left to do here
+    // — printing a second "[verify] Unexpected error" would misrepresent an
+    // already-reported gate failure as a crash.
+    return
+  }
   console.error('[verify] Unexpected error:', err)
-  process.exit(1)
+  process.exitCode = 1
 })

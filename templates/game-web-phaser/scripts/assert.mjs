@@ -269,6 +269,29 @@ function preconditionResult(item, expected, actual, detail) {
   return failResult(item, expected, actual, `前提不满足（不是产物缺陷）：${detail}`)
 }
 
+/**
+ * 🔴 trigger-integrity-and-onscreen-gate task 1.3 / design D5: `fire()`
+ * (`src/debug/harness.ts`) throws when a trigger's handler moves the named
+ * `player` entity — see that function's doc. This is a DIFFERENT kind of
+ * "can't prove anything" than `preconditionResult()`'s (a missing
+ * trigger/state/value): here the assertion's own precondition WAS met
+ * (`applyState()` succeeded, the trigger IS registered) and the *product*
+ * is provably violating the trigger-integrity contract. Routed through the
+ * same `failResult()` shape — reusing the existing red path is cheaper than
+ * inventing a fourth status (design D5) — but with a hint prefix that says
+ * so explicitly. It must never read "前提不满足": that phrase would
+ * misdescribe a real trigger-integrity violation as a benign precondition
+ * gap, exactly the kind of collapse this file's own header comment forbids.
+ */
+function triggerViolationResult(item, expected, errorMessage, condition) {
+  return failResult(
+    item,
+    expected,
+    errorMessage,
+    `触发器违规（不是前提不满足）：触发「${condition}」时 fire() 抛出异常——handler 在同步执行期间移动了名为 "player" 的实体，违反了 AGENTS.md 规则 6 的触发器完整性契约`,
+  )
+}
+
 function resolveStateDescriptor(states, raw) {
   if (typeof raw !== 'string' || raw.length === 0) return null
   // Try an exact engine state id first, then a StateRole — see harness-types.ts's
@@ -502,7 +525,11 @@ async function judgeScoreFeedback(harness, item) {
   }
 
   const before = await harness.getSnapshot()
-  await harness.fire(condition)
+  try {
+    await harness.fire(condition)
+  } catch (err) {
+    return triggerViolationResult(item, expected, err.message, condition)
+  }
   const after = await harness.getSnapshot()
 
   // 🔴 design D5's hard rule: judge hudTexts, never `score`. An internal
@@ -550,7 +577,11 @@ async function judgeGameOverTrigger(harness, item) {
     )
   }
 
-  await harness.fire(condition)
+  try {
+    await harness.fire(condition)
+  } catch (err) {
+    return triggerViolationResult(item, expected, err.message, condition)
+  }
   await harness.wait(TRANSITION_SETTLE_MS)
 
   const snap = await harness.getSnapshot()
@@ -607,7 +638,20 @@ async function judgeRestart(harness, item) {
   // a less interesting (but not wrong) 0 -> 0 reset.
   const triggers = await harness.listTriggers()
   if (triggers.includes('score')) {
-    await harness.fire('score')
+    // 🔴 Unlike the Space-press fallback below, a `fire()` throw here is
+    // NEVER a benign "this convention doesn't apply" — it means `fire()`
+    // (harness.ts) caught this trigger's handler moving the "player" entity
+    // (trigger-integrity-and-onscreen-gate design D1/D2). That is real
+    // evidence of a genuine defect and MUST surface as this item's result,
+    // not be swallowed as best-effort setup, and MUST NOT be left to
+    // propagate uncaught up into runAssertions()'s crash handler either —
+    // that would turn ONE trigger violation into the entire run going
+    // `unavailable`, hiding every other item's real verdict.
+    try {
+      await harness.fire('score')
+    } catch (err) {
+      return triggerViolationResult(item, expected, err.message, 'score')
+    }
   } else {
     try {
       await harness.press('Space', { durationMs: 100 })
@@ -672,6 +716,60 @@ export async function judgeOne(harness, loadEvidence, item) {
   }
 }
 
+/**
+ * trigger-integrity-and-onscreen-gate task 1.2 / design D3. A project with
+ * no entity named `player` makes `fire()`'s trigger-integrity check a
+ * silent no-op (see `src/debug/harness.ts`'s `fire()` doc — it only ever
+ * throws or resolves cleanly, it has no channel of its own to say "I didn't
+ * check"). Design D3 forbids that from being invisible ("能被静默跳过的闸不
+ * 是闸") — the same rule that already governs the top-level `unavailable`
+ * status. This probe runs once per `runAssertions()` call, not once per
+ * item, because "did A even have something to check" is a fact about the
+ * *project*, not about any one assertion — its result is carried on the
+ * returned object as `triggerIntegrityCheck` and flows straight into
+ * `.verify-result.json` regardless of which specific templates this
+ * project's assertions.json happens to list.
+ *
+ * 🔴 This function must never make the run red by itself. An inconclusive
+ * probe (no gameplay state, applyState() rejects it, the probe itself
+ * throws) is reported exactly like a confirmed-absent `player` entity:
+ * `ran: false` plus a human-readable reason, never a failure. Only `fire()`
+ * throwing during an actual assertion — a real violation — produces a
+ * failure, and that happens in the per-item judges above, not here.
+ */
+export async function checkTriggerIntegrityAvailability(harness) {
+  try {
+    const states = await harness.listStates()
+    const gameplay = findGameplayState(states)
+    if (!gameplay) {
+      return {
+        ran: false,
+        reason: 'no state with role "gameplay" — trigger-integrity check (A) had nowhere to look for a "player" entity',
+      }
+    }
+    const applied = await harness.applyState(gameplay.id)
+    if (!applied) {
+      return {
+        ran: false,
+        reason: `applyState("${gameplay.id}") returned false — trigger-integrity check (A) could not establish its starting point`,
+      }
+    }
+    const snap = await harness.getSnapshot()
+    const hasPlayer = snap.entities.some((e) => e.name === 'player')
+    if (!hasPlayer) {
+      return {
+        ran: false,
+        reason:
+          `no entity named "player" in getSnapshot().entities (found: ${JSON.stringify(snap.entities.map((e) => e.name))}) — ` +
+          `trigger-integrity check (A) did not run for this project; see AGENTS.md rule 6 for the "player" naming contract`,
+      }
+    }
+    return { ran: true, reason: null }
+  } catch (err) {
+    return { ran: false, reason: `trigger-integrity availability probe failed: ${err.message}` }
+  }
+}
+
 // ───────────────────────────────────────────────────────────────────────
 // Orchestrator — the thing verify.mjs and the CLI entry both call
 // ───────────────────────────────────────────────────────────────────────
@@ -688,6 +786,7 @@ export async function judgeOne(harness, loadEvidence, item) {
  *   passedCount: number,
  *   total: number,
  *   results: readonly { itemId: string, templateId: string, passed: boolean, failure: unknown }[],
+ *   triggerIntegrityCheck?: { ran: boolean, reason: string | null },
  * }>}
  */
 export async function runAssertions({ harness, loadEvidence, projectRoot = PROJECT_ROOT }) {
@@ -727,6 +826,13 @@ export async function runAssertions({ harness, loadEvidence, projectRoot = PROJE
     }
   }
 
+  // 🔴 trigger-integrity-and-onscreen-gate task 1.2 / design D3: run once,
+  // ahead of the per-item loop below, regardless of which templates this
+  // project's assertions.json actually lists — see checkTriggerIntegrityAvailability()'s
+  // own doc for why "did A's check even run" is a project-level fact, not a
+  // per-assertion one.
+  const triggerIntegrityCheck = await checkTriggerIntegrityAvailability(harness)
+
   // 🔴 design D6: every item is judged independently against a freshly
   // established precondition (each judge*() function calls applyState()
   // itself before doing anything else that reads state). Nothing here
@@ -755,7 +861,7 @@ export async function runAssertions({ harness, loadEvidence, projectRoot = PROJE
   }
 
   const passedCount = results.filter((r) => r.passed).length
-  return { status: 'judged', reason: null, passedCount, total: results.length, results }
+  return { status: 'judged', reason: null, passedCount, total: results.length, results, triggerIntegrityCheck }
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -772,6 +878,9 @@ function logAssertionsResult(result) {
     return
   }
   console.log(`[assert] judged — ${result.passedCount}/${result.total} passed`)
+  if (result.triggerIntegrityCheck && !result.triggerIntegrityCheck.ran) {
+    console.log(`  NOTE  trigger-integrity check (A) did not run: ${result.triggerIntegrityCheck.reason}`)
+  }
   for (const r of result.results) {
     if (r.passed) {
       console.log(`  PASS  ${r.itemId} (${r.templateId})`)
