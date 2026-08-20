@@ -2,8 +2,9 @@ import { execSync } from 'child_process'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join, resolve } from 'path'
 import { readProperties } from 'skills-ref'
-import { type AuthEnvironment, readCredentials } from './auth.js'
+import { type AuthEnvironment, type AuthProvider, type FetchLike, readCredentials } from './auth.js'
 import { normalizeGitRemoteUrl } from './gitRemoteUrl.js'
+import { indexToRegistry } from './registryIndex.js'
 import { extractNonSpecFields, validateSkill } from './skillValidate.js'
 
 /**
@@ -88,6 +89,21 @@ export interface SkillPublishResult {
    * never writes to stdout/stderr itself.
    */
   versionMissing: boolean
+  /**
+   * true when the entry was also indexed into the hosted registry
+   * (`cli-publish-to-registry` proposal.md — the step after the manifest
+   * write). This is always an addendum: false here NEVER means the manifest
+   * write failed, and it never rolls the manifest write back — see
+   * `manifestPath` above, which is populated either way.
+   */
+  indexed: boolean
+  /**
+   * Present only when `indexed` is false because the request itself failed
+   * (network error, timeout, non-2xx) — NOT when it's false because nobody
+   * was signed in (that case is already covered by `anonymous`, and carries
+   * no error to show). Adapters use this to print a status/error summary.
+   */
+  indexError?: string
 }
 
 export interface SkillPublishError {
@@ -233,7 +249,13 @@ export function currentAuthor(env: AuthEnvironment = {}): SkillAuthor | undefine
 export async function publishSkill(
   dir: string,
   registryDir: string,
-  options: { author?: SkillAuthor | undefined; authEnv?: AuthEnvironment } = {},
+  options: {
+    author?: SkillAuthor | undefined
+    authEnv?: AuthEnvironment
+    /** Test/fork seam for `indexToRegistry` — production callers rely on the default. */
+    provider?: AuthProvider
+    fetchImpl?: FetchLike
+  } = {},
 ): Promise<SkillPublishResult | SkillPublishError> {
   const validation = await validateSkill(dir)
   if (!validation.ok) {
@@ -308,7 +330,38 @@ export async function publishSkill(
 
     writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf-8')
 
-    return { ok: true, entry, manifestPath, updated, anonymous: !author, versionMissing: !version }
+    // Indexing is a strict addendum to the manifest write above (proposal.md
+    // "manifest 永远先写，且永远不因索引失败而回滚") — it runs only after
+    // that write has already succeeded, and its outcome is folded into the
+    // result without ever changing `ok`.
+    const indexResult = await indexToRegistry(
+      {
+        skillId: entry.id,
+        gitUrl: entry.source,
+        name: entry.name,
+        description: entry.description,
+        ...(entry.version ? { version: entry.version } : {}),
+        ...(entry.license ? { license: entry.license } : {}),
+      },
+      {
+        ...(options.provider ? { provider: options.provider } : {}),
+        ...(options.authEnv ? { authEnv: options.authEnv } : {}),
+        ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
+      },
+    )
+
+    return {
+      ok: true,
+      entry,
+      manifestPath,
+      updated,
+      anonymous: !author,
+      versionMissing: !version,
+      indexed: indexResult.indexed,
+      ...(indexResult.indexed === false && indexResult.reason === 'REQUEST_FAILED'
+        ? { indexError: indexResult.message }
+        : {}),
+    }
   } catch (err) {
     return {
       ok: false,
