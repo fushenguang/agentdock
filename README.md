@@ -154,7 +154,7 @@ The reliable way to check whether step 2 (indexing) actually happened is to read
 - **`updated`** — `true` when an existing manifest entry with the same skill id was replaced (a re-publish); `false` when a new entry was appended.
 - **`versionMissing`** — `true` only when `SKILL.md` has no resolvable version at all (`metadata.version`, falling back to `metadata['thefool.version']`). This does not block publish, it's a warning — an actually-invalid (non-semver) version string is a different, harder failure: `skill publish` rejects it outright before anything is written (see above).
 
-If you also want to eyeball the hosted registry's web page for the skill, open it in a browser and confirm the skill's content is genuinely rendered there. **Don't treat an HTTP 200 on that page as proof of anything** — it's a client-rendered route, and it returns 200 for a nonexistent id too. `indexed: true` from the CLI is the actual signal.
+If you also want to eyeball the hosted registry's web page for the skill — `https://www.fujia.site/skills/<skill-id>`, where `<skill-id>` is the same `id` as in the manifest entry — open it in a browser and confirm the skill's content is genuinely rendered there. **Don't treat an HTTP 200 on that page as proof of anything** — it's a client-rendered route, and it returns 200 for a nonexistent id too. `indexed: true` from the CLI is the actual signal.
 
 You can validate a skill without publishing:
 

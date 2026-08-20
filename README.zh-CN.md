@@ -154,7 +154,7 @@ npx @cogito.ai/cli@latest skill publish <skill-dir> --registry <registry-checkou
 - **`updated`** —— `true` 表示同一 skill id 的已有 manifest 条目被替换（一次重复发布）；`false` 表示新增了一条条目。
 - **`versionMissing`** —— 只有当 `SKILL.md` 完全解析不出版本（`metadata.version`，回退到 `metadata['thefool.version']`）时才为 `true`。这不会阻塞发布，只是一条 warning —— 真正的非法（非 semver）版本号是另一种更硬的失败：`skill publish` 会在任何写入发生之前直接拒绝（见上文）。
 
-如果你还想用肉眼确认，可以打开托管 registry 里该 skill 的网页，确认页面上真的渲染出了这个 skill 的内容。**不要把那个页面返回 HTTP 200 当作任何判据**——那是一个客户端渲染的路由，一个不存在的 id 同样会返回 200。CLI 给出的 `indexed: true` 才是真正的信号。
+如果你还想用肉眼确认，可以打开托管 registry 里该 skill 的网页——`https://www.fujia.site/skills/<skill-id>`，其中 `<skill-id>` 就是 manifest 条目里的 `id`——确认页面上真的渲染出了这个 skill 的内容。**不要把那个页面返回 HTTP 200 当作任何判据**——那是一个客户端渲染的路由，一个不存在的 id 同样会返回 200。CLI 给出的 `indexed: true` 才是真正的信号。
 
 也可以只校验、不发布：
 
