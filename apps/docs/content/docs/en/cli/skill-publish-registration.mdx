@@ -1,0 +1,139 @@
+---
+title: Skill 发布与注册
+description: skill publish 到底做了什么——地址如何生成、两个真实踩过的坑、以及唯一可信的成功信号。
+---
+
+# Skill 发布与注册
+
+## 核心认知：`publish` 不搬运任何文件，它只记录"这个 skill 住在哪"
+
+`skill publish` **不会**把 skill 的文件拷贝进 `--registry` 指向的仓库，也**不会**
+帮你 `git add` / `commit` / `push` 任何东西。它做的唯一一件事，是往
+`<registry-checkout>/skills.json` 里写（或更新）一条 manifest 记录。
+
+这条记录里最关键的两个字段——`source` 和 `path`——**来自 skill 自己所在的那个 git
+仓库**（它的 `origin` remote、skill 在仓库里的相对路径、以及发布那一刻所在的
+分支），**不是**来自 `--registry` 参数指向的仓库。这两个仓库可以是完全不同的
+两个仓库。
+
+**换句话说：skill 物理上放在哪，注册表记录就指向哪。** `--registry` 只是"往哪个
+manifest 里写一条记录"的落笔位置，不是"skill 内容搬到哪里"。
+
+---
+
+## 推荐流程
+
+```bash
+cd <your registry content repo>          # 例如 thefool-skills
+git switch main && git pull               # 分支很重要——见下面的"两个坑"
+
+# 1. 新增 skill
+mkdir -p skills/my-skill && vim skills/my-skill/SKILL.md
+#    frontmatter 必须包含 metadata.version，且必须是合法 semver
+
+# 2. 先 push——这一步让地址变得真实可达
+git add skills/my-skill && git commit -m "feat(skills): add my-skill" && git push
+
+# 3. 登录（过期了就重新登录）
+npx @cogito.ai/cli@latest auth status
+
+# 4. 校验
+npx @cogito.ai/cli@latest skill validate skills/my-skill
+
+# 5. 发布——在仓库根目录执行；--registry 指向这里
+npx @cogito.ai/cli@latest skill publish skills/my-skill --registry .
+
+# 6. manifest 变更也要提交（skills.json 是 git 侧的事实源）
+git add skills.json && git commit -m "chore(registry): index my-skill" && git push
+```
+
+逐步说明：
+
+- **第 1 步**：skill 目录必须有合法的 `SKILL.md`，且 `metadata.version`（缺失可以，
+  但格式错误会在第 5 步被直接拒绝——见下方"字段速查"里的 `versionMissing`）。
+- **第 2 步**：这一步决定了 `entry.source` 指向的地址是否真实可达。顺序错了会
+  产生下面"坑一"描述的后果。
+- **第 3 步**：`auth status` 只读本地凭证文件，不会向服务端验证 token 是否已过期
+  ——凭证有效期 24 小时，过期后 `auth status` 依然显示已登录，但索引会静默降级失败。
+  不确定就直接重新 `auth login`。
+- **第 4 步**：`skill validate` 不发布，只做 Agent Skills 规范校验，可以放心多跑。
+- **第 5 步**：必须在仓库根目录执行，因为 `entry.source`/`entry.path` 是从 skill
+  自己所在仓库推导出来的（见上面的核心认知）；`--registry .` 指向当前这个
+  registry checkout。
+- **第 6 步**：`publish` 从不 `git add`/`commit`/`push`——`skills.json` 的变更
+  永远是一次未提交的工作区改动，提交它是你自己的责任。
+
+---
+
+## 两个容易踩的坑（CLI 作者本人真实踩过）
+
+### 坑一：顺序很重要——先 push skill，再 publish
+
+`publish` 记录的地址形如 `.../tree/<branch>/skills/my-skill`——它**不会**校验
+这个地址当下是否可达。如果在 push 之前就 publish，记录会指向一个远端还不存在的
+东西；`indexed: true` 依然会返回（因为 indexing 只检查你本机有没有登录凭证，
+不检查内容是否真实可 clone），但除你之外没有人能真正安装它。
+
+### 坑二：在你想永久记录的那条分支上发布
+
+真实事故：在 `cogito-lib` 仓库的 `feat/sliced-dispatch` 分支上执行了 publish，
+导致注册表记录变成了 `.../tree/feat/sliced-dispatch/.claude/skills/...`——把一条
+短命分支引用（merge 后就被删除）烤进了一条永久记录里。**请在 `main` 分支上
+发布。**
+
+---
+
+## 从另一个仓库发布（skill 仓库 ≠ registry 仓库）
+
+允许，但需要同时满足两个条件：
+
+1. skill 所在的源仓库必须**公开可达**（陌生人能真的 `git clone` 它）；
+2. 你发布时所在的**必须是长期存在的分支**（不是随时会被删除的短命分支——见坑二）。
+
+从 `0.16.0` 开始，CLI 会在输出中明确打印 `source`/`path`，并且当"skill 自己的
+仓库"和"`--registry` checkout 的仓库"不一致时，会大声告警。这个告警**不会阻断
+发布**——用它做个人/自托管场景（比如你不打算让别人安装的私有 skill）是合法用法，
+告警的目的只是让这件事保持可见，而不是禁止它。
+
+---
+
+## 唯一可信的成功信号：`indexed: true`
+
+只信任 `--json` 输出里的 `indexed: true`。**网页返回 200 不能作为证据**——
+那个路由是客户端渲染的，即使是一个根本不存在的 skill id，页面照样会返回 200。
+
+---
+
+## 字段速查
+
+以下定义与 CLI 仓库根目录 `README.md`（"Verifying a publish"一节）保持一致：
+
+- **`indexed`** —— 这条记录是否也被 POST 进了托管注册表，即回答"这个 skill 是
+  否真的进了共享注册表，而不只是我本地的 `--registry` checkout"。`indexed: false`
+  **从不**意味着 manifest 写入失败——`entry`/`manifestPath` 永远先被写入，且
+  不会因为 indexing 失败而回滚。
+- **`anonymous`** —— `indexed: false` + `anonymous: true` 表示你当时未登录，
+  indexing 请求根本没有发出——这是设计内的"仅本地"路径，不是错误。
+- **`versionMissing`** —— 仅当 `SKILL.md` 完全没有可解析的版本号
+  （`metadata.version`，回退到 `metadata['thefool.version']`）时为 `true`。
+  这不会阻断发布，只是一条警告——真正非法（非 semver）的版本号是另一种更严重的
+  失败：`skill publish` 会在写入任何东西之前直接拒绝。
+- **`registrySource`** —— `--registry` checkout 自己的 `origin` remote（归一化
+  方式与 `entry.source` 相同）。**只有能被解析出来时才会出现**——即 `--registry`
+  本身指向一个有可 clone 的 `origin` 的 git 仓库；对于一个不是 git 仓库的临时
+  registry 目录（本地实验时常见），这个字段缺席并不代表出错。
+- **`sourceRepoDiffersFromRegistry`** —— 当 `entry.source`（skill 自己的仓库）
+  与 `registrySource`（`--registry` checkout 自己的仓库）不一致时为 `true`——
+  人类可读输出里的 `⚠⚠` 告警正是由这个字段驱动的。**只有在 `registrySource`
+  存在时才会出现**——无法解析 `registrySource` 时不会做比较，所以这个字段会被
+  省略，而不是默认给 `false`（那样会误导性地读成"已确认一致"）。
+
+---
+
+## 每一步实际产出什么
+
+| 步骤 | 产出 |
+| --- | --- |
+| 第 2 步 push skill | 地址变得真实可达 |
+| 第 5 步 publish | (a) 本地 `skills.json` 新增一条记录 (b) 若已登录，同时被索引进托管注册表 |
+| 第 6 步 push manifest | git 侧的事实源与托管注册表对齐 |
