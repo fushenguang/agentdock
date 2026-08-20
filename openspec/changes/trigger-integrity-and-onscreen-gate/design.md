@@ -129,3 +129,51 @@ entities: [ {name:"player",…}, {name:"testFallingObject", x:480, y:205.5} ]   
 - 「只在 IA 结束后仍处于 gameplay 时才采第二次」——那是逃生阀形状，本模板明令禁止
 - 「IA 期间穿插采样」——把两次采样变成 N 次，且结论依赖清单顺序，不可复现
 - 「要求清单最后一条不许离开 gameplay」——`pnpm verify` 管不了项目自己的 `assertions.json`
+
+## D9 · 🔴 拿真实产物验 B 的结果：**没红**——判据看不见那个坏掉的对象
+
+> 2026-08-20 补。判据 3.2（原本挂起等开发机）已执行完，结论是**负的**，如实记在这里。
+
+从 VM 只读取回「用话造关 v2」的真实源码（`/home/workshop/v2-d8ec77a4`），本地叠加本刀的
+判据跑 `pnpm verify`：
+
+```
+[verify] BH-2 render — passed (... entities within bounds across 2 samples ...)
+```
+
+**不是"没越界"，是两次采样里从来没出现过 goal 或刺。** 源码级根因：
+
+| 事实 | 位置 |
+|---|---|
+| `this.player.name = 'player'` —— **唯一**被命名的实体 | `GameScene.ts:316` |
+| `this.goal = this.physics.add.sprite(...)` + `setImmovable(true)`，**从未 `.name`**、也没 `setAllowGravity(false)` | `:320-326` |
+| spike 由 `group.create(...)` 生成，**同样没有 `.name`** | `:330-336` |
+| 世界重力 `gravity.y = 1200` 非零 | `:256` |
+
+而 `collectEntities()` 明写着 `if (!named.name) continue`。
+
+🔴 **B 的可见范围建立在一条没人保证的契约上（"关键对象要命名"），而那正是散文纪律
+——本刀存在的理由就是消灭这类东西。** D3 把 `player` 升成契约时只覆盖了玩家一个，
+其余对象的命名仍然全靠自觉。
+
+🔴 **更要记的是验收方法上的错**：本刀的变异验证之所以红，是因为**我自己给测试物体写了
+`.name = 'goal'`**——用一个满足契约的样本，验了一条对不满足契约的真实产物无效的判据。
+连同 E-15、D7、D8，这是同一族病的**第四次**，而这次犯在验收方法上。
+
+## D10 · ✅ 但 A 在同一份真实产物上是有效的（真红）
+
+同一次叠加里，IA 有两条断言**新变红**：`m-score_feedback` 与 `m-game_over_trigger`
+——因为这份游戏的 `handleGoalReached` 正是**把玩家瞬移到目标处**（源码注释自己写着
+"teleport the player onto the goal's overlap area"）。
+
+**这是拿真实坏件验出来的真红**，比人工变异硬得多。**E-15 的主防线成立**，
+欠的只是 B 这条兜底。
+
+## D11 · B 的修法方向（留给下一刀，本刀不改已发布的行为）
+
+`immovable === true && allowGravity === true` 在 Arcade 里近乎必然是 bug
+（E-15 的直接根因就是"immovable 不关重力"），**且这个信号不依赖命名**。
+比"要求关键对象都命名"强：后者又是一条要靠自觉维持的契约。
+
+⚠️ 但**不许直接把 `collectEntities()` 改成收集未命名对象**——子弹、金币这类
+**合法地**飞出画面，那样会造成大量假红。判据要换的是**信号**，不是放宽范围。
