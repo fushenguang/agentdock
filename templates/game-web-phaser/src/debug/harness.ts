@@ -151,14 +151,29 @@ function dispatchKeyboardEvent(type: 'keydown' | 'keyup', spec: KeySpec): void {
   )
 }
 
+/**
+ * Scene key for `../scenes/UiScene.ts` — the HUD layer, launched in
+ * parallel with `GameScene` and stopped when it shuts down. Kept as a
+ * constant here (not imported from the scene class, which would drag more
+ * of the browser-only module graph into this already-browser-only file for
+ * no benefit) because two functions below need to agree on it:
+ * `activeGameplayScene()` must exclude it, `collectHudTexts()` must
+ * specifically include it.
+ */
+const UI_SCENE_KEY = 'UI'
+
 function activeGameplayScene(game: Phaser.Game): Phaser.Scene | undefined {
-  // Exactly one of this template's scenes is ever active at a time (Boot ->
-  // Preload -> Game -> GameOver, each stopping the last via `scene.start`).
-  // `getScenes(true)` returns active scenes in scene-list order; taking the
-  // first is correct for this template and would need revisiting only if a
-  // future project starts running scenes in parallel (e.g. a paused overlay
-  // on top of gameplay).
-  return game.scene.getScenes(true)[0]
+  // 🔴 Not "the first active scene" anymore. Since `../scenes/UiScene.ts`
+  // was introduced, more than one scene can be active at once (GameScene +
+  // UI, running in parallel) — the comment that used to justify
+  // `getScenes(true)[0]` ("exactly one scene is ever active at a time") is
+  // exactly the assumption that change broke. The actual "which scene is
+  // the current *state*" answer is: whichever active scene's key is one of
+  // `state-jump.ts`'s `listStates()` — UI is deliberately not a state (see
+  // its own doc), so this filter finds the real gameplay/gameover/etc.
+  // scene regardless of scene-list order or how many parallel overlay
+  // scenes are running.
+  return game.scene.getScenes(true).find((scene) => isKnownStateId(scene.scene.key))
 }
 
 function collectEntities(scene: Phaser.Scene | undefined): EntitySnapshot[] {
@@ -218,9 +233,8 @@ function readWorldBounds(game: Phaser.Game, scene: Phaser.Scene | undefined): Wo
   return { x: 0, y: 0, width: game.scale.width, height: game.scale.height, source: 'canvas' }
 }
 
-function collectHudTexts(scene: Phaser.Scene | undefined): string[] {
-  if (!scene) return []
-  const texts: string[] = []
+function collectTextsFrom(scene: Phaser.Scene | undefined, texts: string[]): void {
+  if (!scene) return
   for (const child of scene.children.list) {
     // 🔴 This is the only path to Phaser's on-canvas text — see the
     // proposal's fact ②: canvas-rendered text is invisible to any DOM
@@ -228,6 +242,23 @@ function collectHudTexts(scene: Phaser.Scene | undefined): string[] {
     if (child instanceof Phaser.GameObjects.Text) {
       texts.push(child.text)
     }
+  }
+}
+
+/**
+ * Reads on-screen text from the active gameplay/gameover/etc. scene AND
+ * from `../scenes/UiScene.ts` (the HUD layer) when it's running. Before
+ * that scene existed, score/instructions text lived directly inside
+ * `GameScene`, so scanning just `scene` was enough — moving it out to a
+ * parallel scene (dimensions.ts's HUD band / playfield contract) means
+ * `hud_text_present`/`score_feedback` would otherwise stop seeing it the
+ * moment it moved, even though it's still genuinely on screen.
+ */
+function collectHudTexts(game: Phaser.Game, scene: Phaser.Scene | undefined): string[] {
+  const texts: string[] = []
+  collectTextsFrom(scene, texts)
+  if (game.scene.isActive(UI_SCENE_KEY)) {
+    collectTextsFrom(game.scene.getScene(UI_SCENE_KEY), texts)
   }
   return texts
 }
@@ -266,7 +297,7 @@ function buildSnapshot(game: Phaser.Game): HarnessSnapshot {
     stateId: scene?.scene.key ?? '',
     score: readScore(game),
     entities: collectEntities(scene),
-    hudTexts: collectHudTexts(scene),
+    hudTexts: collectHudTexts(game, scene),
     values: readValues(game),
     worldBounds: readWorldBounds(game, scene),
   }

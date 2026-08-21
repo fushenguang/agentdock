@@ -13,7 +13,7 @@
 // 省掉扩展名只有打包器解析得动，Node 会 ERR_MODULE_NOT_FOUND——而那正好
 // 会让这条契约退回“只能在浏览器里跑”，也就丢掉它存在的意义。
 // tsconfig 已开 `allowImportingTsExtensions`，所以类型检查也认。
-import { GAME_WIDTH, GAME_HEIGHT } from '../dimensions.ts'
+import { GAME_WIDTH, PLAYFIELD_HEIGHT } from '../dimensions.ts'
 
 /**
  * State-jump contract (design D5) — the pure driver `harness.ts`'s
@@ -80,7 +80,10 @@ export function jump(id: StateId, seed = 0): GameState {
     seed,
     score: 0,
     playerX: GAME_WIDTH / 2,
-    playerY: GAME_HEIGHT - 80, // matches GameScene.create()'s initial spawn position
+    // matches GameScene.create()'s initial spawn position — PLAYFIELD_HEIGHT,
+    // not GAME_HEIGHT, since the bottom HUD_BAND_HEIGHT strip is UiScene's,
+    // not world space (see dimensions.ts's HUD band / playfield contract).
+    playerY: PLAYFIELD_HEIGHT - 80,
   }
 }
 
@@ -101,11 +104,13 @@ export function isValidStart(id: StateId, state: GameState): boolean {
   if (id === 'Game') {
     // A legal start of Game must place the player inside the world bounds
     // GameScene actually enforces (`this.physics.world.setBounds(0, 0,
-    // GAME_WIDTH, GAME_HEIGHT)` in src/scenes/GameScene.ts) — a player
-    // outside that box is not a legal *starting point*, even though it
-    // might be a state a real bug could produce mid-game.
+    // GAME_WIDTH, PLAYFIELD_HEIGHT)` in src/scenes/GameScene.ts — PLAYFIELD_HEIGHT,
+    // not GAME_HEIGHT, since the bottom HUD_BAND_HEIGHT strip belongs to
+    // UiScene, not this world) — a player outside that box is not a legal
+    // *starting point*, even though it might be a state a real bug could
+    // produce mid-game.
     if (state.playerX < 0 || state.playerX > GAME_WIDTH) return false
-    if (state.playerY < 0 || state.playerY > GAME_HEIGHT) return false
+    if (state.playerY < 0 || state.playerY > PLAYFIELD_HEIGHT) return false
   }
 
   // GameOver deliberately gets no extra checks beyond the base ones above —
