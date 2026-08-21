@@ -47,25 +47,47 @@ function main() {
     return
   }
 
-  const phaserSkillsDir = path.join(here, '..', 'node_modules', 'phaser', 'skills')
-  if (!fs.existsSync(phaserSkillsDir)) {
-    console.log(`[install-phaser-skills] ${phaserSkillsDir} not found — skipping`)
+  // 🔴 Two sources, not one. The second was the whole point of writing a
+  // skill of our own and is easy to forget:
+  //
+  //   1. node_modules/phaser/skills/  — Phaser's own 28 official skills
+  //   2. <template>/skills/           — the skills THIS template ships
+  //
+  // Source 2 exists because the official 28 leave real gaps (HUD
+  // architecture decision, level progression structure — there is no
+  // official `level-progression` skill at all). Writing that file is not
+  // enough: Shelley only ever reads ${HOME}/.config/shelley/<name>/SKILL.md,
+  // so a skill that never gets copied there is a dead file. Verified
+  // 2026-08-21 by string-scanning the shelley binary: it has no path
+  // constants for scanning node_modules/*/skills, only its own config dir
+  // and its 7 built-ins.
+  const sources = [
+    path.join(here, '..', 'node_modules', 'phaser', 'skills'),
+    path.join(here, '..', 'skills'),
+  ].filter((dir) => fs.existsSync(dir))
+
+  if (sources.length === 0) {
+    console.log('[install-phaser-skills] no skill source directory found — skipping')
     return
   }
 
-  const entries = fs.readdirSync(phaserSkillsDir, { withFileTypes: true })
-  const names = listSkillDirNames(entries)
+  let injected = 0
+  for (const skillsDir of sources) {
+    const entries = fs.readdirSync(skillsDir, { withFileTypes: true })
+    const names = listSkillDirNames(entries)
 
-  for (const name of names) {
-    const { src, dest } = planCopy({ phaserSkillsDir, shelleyDir, name })
-    // Idempotent: drop any previous copy of this skill before re-copying,
-    // so re-running `pnpm install` (or a Phaser version bump that changes a
-    // skill's contents) never leaves stale files behind.
-    fs.rmSync(dest, { recursive: true, force: true })
-    fs.cpSync(src, dest, { recursive: true })
+    for (const name of names) {
+      const { src, dest } = planCopy({ phaserSkillsDir: skillsDir, shelleyDir, name })
+      // Idempotent: drop any previous copy of this skill before re-copying,
+      // so re-running `pnpm install` (or a Phaser version bump that changes a
+      // skill's contents) never leaves stale files behind.
+      fs.rmSync(dest, { recursive: true, force: true })
+      fs.cpSync(src, dest, { recursive: true })
+      injected += 1
+    }
   }
 
-  console.log(`[install-phaser-skills] injected ${names.length} skill(s) into ${shelleyDir}`)
+  console.log(`[install-phaser-skills] injected ${injected} skill(s) into ${shelleyDir}`)
 }
 
 main()
