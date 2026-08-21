@@ -240,9 +240,9 @@ export class GameScene extends Phaser.Scene {
    */
   private addScoreAbsolute(value: number): void {
     this.score = value
-    // UiScene's HUD score text updates itself by polling this registry key
-    // every frame (see UiScene.ts's update()) — this scene never touches
-    // that Text object directly.
+    // UiScene's HUD score text updates itself via a `changedata-score`
+    // registry listener (see UiScene.ts's create()) — this scene never
+    // touches that Text object directly, it only ever writes the registry.
     this.registry.set('score', this.score)
 
     // `highScore` — the one value in this reference implementation that
