@@ -3,6 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT } from './dimensions.ts'
 import { BootScene } from './scenes/BootScene'
 import { PreloadScene } from './scenes/PreloadScene'
 import { GameScene } from './scenes/GameScene'
+import { UiScene } from './scenes/UiScene'
 import { GameOverScene } from './scenes/GameOverScene'
 
 /**
@@ -14,7 +15,7 @@ import { GameOverScene } from './scenes/GameOverScene'
  * same numbers but must stay importable by a bare Node process; this module
  * pulls in Phaser and every scene. See `dimensions.ts` for the full reason.
  */
-export { GAME_WIDTH, GAME_HEIGHT } from './dimensions.ts'
+export { GAME_WIDTH, GAME_HEIGHT, HUD_BAND_HEIGHT, PLAYFIELD_HEIGHT } from './dimensions.ts'
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -63,5 +64,11 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   // again (R restarts). Keep scenes single-purpose and split like this
   // instead of doing loading + gameplay in one file — it's what makes the
   // loading screen and the actual game independently testable/replaceable.
-  scene: [BootScene, PreloadScene, GameScene, GameOverScene],
+  //
+  // `UiScene` is not a step in that chain — it's not a "state" (it has no
+  // entry in `debug/state-jump.ts`'s `StateId`/`listStates()`). GameScene
+  // launches it in parallel (`this.scene.launch('UI')`) for the duration of
+  // gameplay and stops it when GameScene shuts down — see UiScene.ts and
+  // dimensions.ts's HUD band / playfield contract.
+  scene: [BootScene, PreloadScene, GameScene, UiScene, GameOverScene],
 }

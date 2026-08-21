@@ -36,6 +36,7 @@ src/
     ├── BootScene.ts    # runs first, engine-level setup only
     ├── PreloadScene.ts # loads assets / generates placeholder textures, shows a loading bar
     ├── GameScene.ts    # the playable scene — also the reference pattern for keyboard input
+    ├── UiScene.ts       # HUD layer, launched parallel to GameScene — see AGENTS.md rule 7 (HUD band / playfield)
     └── GameOverScene.ts # the failure state + restart-to-gameplay
 ```
 

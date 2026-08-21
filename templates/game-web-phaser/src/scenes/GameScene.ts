@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { GAME_HEIGHT, GAME_WIDTH } from '../config'
+import { GAME_WIDTH, PLAYFIELD_HEIGHT } from '../config'
 import { registerTrigger } from '../debug/harness'
 import type { GameState } from '../debug/state-jump'
 
@@ -33,6 +33,12 @@ const BULLET_SPEED = 420
  *      the structural fix — not a per-key `event.preventDefault()` you
  *      have to remember to write for every handler.
  *
+ * HUD content (score, instructions) does NOT live here — it's drawn by
+ * `./UiScene.ts`, launched in parallel below and stopped on shutdown. This
+ * scene's own geometry (player spawn, world bounds) stays within
+ * `PLAYFIELD_HEIGHT`, never the full `GAME_HEIGHT` — see
+ * `../dimensions.ts`'s HUD band / playfield contract for why.
+ *
  * This scene is also this template's `window.__gameHarness` reference
  * consumer (`../debug/harness.ts`), in two ways:
  *   - `registerTrigger('score'/'gameover', ...)` in `create()` below wires
@@ -56,7 +62,6 @@ export class GameScene extends Phaser.Scene {
   private obstacles!: Phaser.Physics.Arcade.Group
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private spaceKey!: Phaser.Input.Keyboard.Key
-  private scoreText!: Phaser.GameObjects.Text
   private score = 0
 
   constructor() {
@@ -86,7 +91,7 @@ export class GameScene extends Phaser.Scene {
     // no competing browser default to fight (see class doc rule 2).
     keyboard.on('keydown-R', () => this.scene.restart())
 
-    this.player = this.physics.add.sprite(GAME_WIDTH / 2, GAME_HEIGHT - 80, 'player')
+    this.player = this.physics.add.sprite(GAME_WIDTH / 2, PLAYFIELD_HEIGHT - 80, 'player')
     this.player.setCollideWorldBounds(true)
     // Named so `../debug/harness.ts`'s `getSnapshot()` can report it as an
     // `EntitySnapshot` — this is the only entity `controllable` needs to see
@@ -115,7 +120,10 @@ export class GameScene extends Phaser.Scene {
     registerTrigger('score', () => this.spawnCoinAtPlayer())
     registerTrigger('gameover', () => this.spawnObstacleAtPlayer())
 
-    this.physics.world.setBounds(0, 0, GAME_WIDTH, GAME_HEIGHT)
+    // Confined to PLAYFIELD_HEIGHT, not GAME_HEIGHT — the bottom
+    // HUD_BAND_HEIGHT strip belongs to UiScene, not this world (see class
+    // doc / dimensions.ts).
+    this.physics.world.setBounds(0, 0, GAME_WIDTH, PLAYFIELD_HEIGHT)
 
     // 🔴 Bug found by ia-assertion-runner's `restart` assertion, not by
     // inspection: `this.score` is a class field, and `scene.restart()` (the
@@ -127,15 +135,12 @@ export class GameScene extends Phaser.Scene {
     // upstream of it ever made that true. Reset explicitly, here, before
     // anything reads `this.score`.
     this.score = 0
-    this.scoreText = this.add.text(16, 16, `Score: ${this.score}`, {
-      fontFamily: 'system-ui, sans-serif',
-      fontSize: '20px',
-      color: '#e5e7eb',
-    })
     // Registry is the harness's read path for `score` (`readScore()` in
     // ../debug/harness.ts) — set it here too, not just inside
     // `addScore()`, so a fresh/restarted scene reports 0 immediately
-    // instead of whatever the previous life left behind.
+    // instead of whatever the previous life left behind. It's also how
+    // `./UiScene.ts`'s HUD score text learns the current value (design:
+    // read the shared registry, not a direct scene reference).
     this.registry.set('score', this.score)
 
     // 🔴 `highScore` deliberately does NOT get the same treatment as
@@ -148,13 +153,16 @@ export class GameScene extends Phaser.Scene {
       this.registry.set('highScore', 0)
     }
 
-    this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 24, 'Arrow keys to move · Space to shoot · R to restart', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '14px',
-        color: '#9ca3af',
-      })
-      .setOrigin(0.5)
+    // HUD (score text + instructions) lives in UiScene, launched in
+    // parallel with this scene — see the class doc and
+    // dimensions.ts's HUD band / playfield contract. `launch()` is a no-op
+    // if UI is already running (e.g. mid-life state churn), and always
+    // starts it fresh here because the SHUTDOWN listener below stops it
+    // first on every restart/scene-change.
+    this.scene.launch('UI')
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scene.stop('UI')
+    })
   }
 
   /**
@@ -232,8 +240,10 @@ export class GameScene extends Phaser.Scene {
    */
   private addScoreAbsolute(value: number): void {
     this.score = value
+    // UiScene's HUD score text updates itself by polling this registry key
+    // every frame (see UiScene.ts's update()) — this scene never touches
+    // that Text object directly.
     this.registry.set('score', this.score)
-    this.scoreText.setText(`Score: ${this.score}`)
 
     // `highScore` — the one value in this reference implementation that
     // MUST survive both a scene restart and applyState() (unlike `score`,

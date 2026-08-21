@@ -79,6 +79,10 @@ The outer platform can attach a project-root `assertions.json` (see the sample o
 - **`unavailable`** — someone *did* ask (there is an `assertions.json`) and the gate could not run: no harness in the artifact, a `schemaVersion` this runner doesn't understand, the runner threw. That is a gate being skipped, so it counts as a failure: `passed: false`, a red `IA` row in `gates[]`, and a non-zero exit — exactly like a BH gate failure. **If you see `unavailable`, implement rule 6's harness; do not read it as "nothing to do here".**
 - **`judged` with at least one failing item** — a real defect. Same treatment: non-zero exit, `passed: false`.
 
+### 7. HUD and world geometry never share space — draw them in different scenes
+
+`src/dimensions.ts` reserves a bottom strip `HUD_BAND_HEIGHT` pixels tall; `PLAYFIELD_HEIGHT = GAME_HEIGHT - HUD_BAND_HEIGHT` is everything left for gameplay. World geometry (ground, platforms, spawn points, `physics.world.setBounds(...)`) must stay within `y ∈ [0, PLAYFIELD_HEIGHT]`. HUD content (score, buttons, status text) must stay within `y ∈ [PLAYFIELD_HEIGHT, GAME_HEIGHT]` and belongs in `src/scenes/UiScene.ts` — a scene launched in parallel with `GameScene` (`this.scene.launch('UI')`), not inside `GameScene` itself. Do not add HUD elements directly to a gameplay scene; add them to `UiScene.ts` and pin them with `setScrollFactor(0)`.
+
 ## Project layout
 
 ```text
@@ -107,6 +111,7 @@ src/
     ├── BootScene.ts     # engine-level setup only, runs first
     ├── PreloadScene.ts  # load assets, generate placeholder textures, show progress
     ├── GameScene.ts     # the actual playable scene + the input-capture reference pattern
+    ├── UiScene.ts        # HUD layer, launched parallel to GameScene — see rule 7 (HUD band / playfield)
     └── GameOverScene.ts # the failure state (`role: 'gameover'`) + restart-to-gameplay
 ```
 
