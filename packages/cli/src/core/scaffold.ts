@@ -7,12 +7,70 @@ import {
   renameSync,
   writeFileSync,
 } from 'fs'
-import { join, dirname } from 'path'
+import { join, dirname, extname } from 'path'
 import { fileURLToPath } from 'url'
 import { execSync } from 'child_process'
 import type { RegistryTemplate } from './registry.js'
 import { checkVersion } from './version.js'
 import { VERSION as CLI_VERSION } from '../version.js'
+
+/** Single source of truth for the placeholder templates use for the project name. */
+export const PROJECT_NAME_PLACEHOLDER = '{{PROJECT_NAME}}'
+
+// Extensions eligible for {{PROJECT_NAME}} substitution — a whitelist, not a
+// blacklist. Templates ship binary assets (audio, images, fonts) that a
+// byte-level string replace would corrupt, and the set of binary extensions
+// a future template might add is unbounded, so only known-text extensions
+// are opted in.
+const TEXT_FILE_EXTENSIONS = new Set([
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.json',
+  '.html',
+  '.md',
+  '.mdx',
+  '.css',
+  '.yml',
+  '.yaml',
+  '.txt',
+])
+
+// Directories never walked into during placeholder substitution: VCS
+// metadata and build/dependency output. These can be large, may contain
+// third-party files that coincidentally match, and are regenerated or
+// reinstalled by the user anyway.
+const SKIP_DIR_NAMES = new Set(['node_modules', '.git', 'dist'])
+
+// `name` is written verbatim into generated HTML (<title> text content) and
+// TS/JS string literals (StartScene.ts) via a plain string replace, not a
+// template engine that understands where it lands syntactically. Rather than
+// writing per-context escaping (HTML-entity-encode here, JS-string-escape
+// there) -- which has to be re-derived for every new file/context a template
+// adds and silently breaks if one is missed -- we validate the character set
+// up front and reject names that could break out of any of those contexts.
+// This is the simpler and safer of the two options the fix must document.
+//
+// Blocks: HTML/XML-significant chars (< > &), quote/backtick chars that
+// close out of a string literal (" ' `), a literal backslash (which would
+// alter escaping in the file it lands in), and C0 control characters
+// (0x00-0x1F, e.g. a raw newline breaking a single-line JSON/TS string).
+export function validateProjectName(name: string): string | null {
+  for (let i = 0; i < name.length; i++) {
+    const code = name.charCodeAt(i)
+    const char = name[i]
+    const isControlChar = code <= 0x1f
+    const isSyntaxChar = char === '<' || char === '>' || char === '&' ||
+      char === '"' || char === "'" || char === '`' || char === '\\'
+    if (isControlChar || isSyntaxChar) {
+      return `Project name contains characters that are unsafe to embed in generated source files (< > & " ' \` \\ or control characters): "${name}"`
+    }
+  }
+  return null
+}
 
 export interface ScaffoldOptions {
   /** Target directory path (absolute or relative to cwd) */
@@ -36,7 +94,7 @@ export interface ScaffoldResult {
 
 export interface ScaffoldError {
   ok: false
-  error: 'TARGET_DIR_EXISTS' | 'CLI_VERSION_OUTDATED' | 'SCAFFOLD_FAILED'
+  error: 'TARGET_DIR_EXISTS' | 'CLI_VERSION_OUTDATED' | 'SCAFFOLD_FAILED' | 'INVALID_NAME'
   message: string
 }
 
@@ -133,6 +191,29 @@ function replaceSchemaPlaceholder(dir: string, schema: string): void {
   }
 }
 
+/**
+ * Replaces every occurrence of {@link PROJECT_NAME_PLACEHOLDER} with `name`
+ * across text files in `dir`. Walks the whole tree except SKIP_DIR_NAMES,
+ * and only opens files whose extension is in TEXT_FILE_EXTENSIONS so binary
+ * assets are never read/written.
+ */
+export function replaceProjectNamePlaceholder(dir: string, name: string): void {
+  const entries = readdirSync(dir, { withFileTypes: true })
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      if (SKIP_DIR_NAMES.has(entry.name)) continue
+      replaceProjectNamePlaceholder(fullPath, name)
+      continue
+    }
+    if (!TEXT_FILE_EXTENSIONS.has(extname(entry.name))) continue
+
+    const content = readFileSync(fullPath, 'utf-8')
+    if (!content.includes(PROJECT_NAME_PLACEHOLDER)) continue
+    writeFileSync(fullPath, content.split(PROJECT_NAME_PLACEHOLDER).join(name), 'utf-8')
+  }
+}
+
 function injectPackageManager(pkgJsonPath: string): void {
   if (!existsSync(pkgJsonPath)) return
   try {
@@ -152,6 +233,17 @@ function injectPackageManager(pkgJsonPath: string): void {
 
 export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | ScaffoldError {
   const { targetDir, name, template, packageManager: _pm, schema } = options
+
+  // Reject names that would break out of the HTML/JS/JSON contexts the name
+  // gets substituted into below, before touching the filesystem at all.
+  const nameError = validateProjectName(name)
+  if (nameError) {
+    return {
+      ok: false,
+      error: 'INVALID_NAME',
+      message: nameError,
+    }
+  }
 
   // Version compatibility check
   try {
@@ -190,6 +282,10 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
     // Inject detected pnpm version so Turborepo can validate the package manager
     // without needing dangerouslyDisablePackageManagerCheck in turbo.json.
     injectPackageManager(pkgJsonPath)
+
+    // Substitute {{PROJECT_NAME}} placeholder across generated text files
+    // (e.g. index.html <title>, StartScene.ts, README.md)
+    replaceProjectNamePlaceholder(targetDir, name)
 
     // Substitute __SCHEMA__ placeholder in .sql files
     if (schema) {
