@@ -27,6 +27,7 @@ tests/                 # unit tests for verify's judgement, the assertion judges
 src/
 ├── main.ts           # boots the Phaser.Game instance, installs window.__gameHarness
 ├── config.ts          # Phaser.Types.Core.GameConfig — Scale Manager configured here
+├── game-assets.ts      # game-assets.json manifest contract — AI-generated title/bg/char/bgm, see "Adding assets" below
 ├── debug/
 │   ├── state-jump.ts   # listStates/jump/isValidStart contract + a minimal reference implementation
 │   ├── harness-types.ts # window.__gameHarness contract types (zero imports)
@@ -34,7 +35,8 @@ src/
 │   └── panel.ts          # debug panel — only ever included in the build:learn bundle
 └── scenes/
     ├── BootScene.ts    # runs first, engine-level setup only
-    ├── PreloadScene.ts # loads assets / generates placeholder textures, shows a loading bar
+    ├── PreloadScene.ts # loads assets (incl. the game-assets.json manifest) / generates placeholder textures, shows a loading bar
+    ├── StartScene.ts    # title/start screen — the only way into Game; also where BGM playback starts (autoplay policy)
     ├── GameScene.ts    # the playable scene — also the reference pattern for keyboard input
     ├── UiScene.ts       # HUD layer, launched parallel to GameScene — see AGENTS.md rule 7 (HUD band / playfield)
     └── GameOverScene.ts # the failure state + restart-to-gameplay
@@ -148,6 +150,21 @@ Results land in `.verify-result.json`'s `assertions` field with one of three sta
 If you're building on this template and want `pnpm verify` to actually judge your game's acceptance criteria (not just report `unavailable`), read rule 6 in `AGENTS.md` before changing scenes.
 
 ## Adding assets
+
+### Platform-delivered assets (AI-generated title/backgrounds/characters/BGM)
+
+This template's reference scenes (`StartScene`, `GameScene`, `UiScene`) read a manifest at `public/game-assets.json` (contract: `src/game-assets.ts`) describing files the outer platform generates and drops into a fixed directory layout:
+
+```text
+public/assets/title.png          start-page hero image
+public/assets/bg/level<N>.png    per-level background (N starts at 1)
+public/assets/char/<slug>.png    a character, already alpha-matted (transparent PNG)
+public/assets/bgm/main.mp3       background music
+```
+
+`PreloadScene` queues exactly the files the manifest lists — nothing is ever requested on a guess. Missing manifest, a missing individual file, or no manifest at all (the common case early in a project) all degrade the same way: no exception, no failed-looking load, just the existing procedural placeholder shapes / plain background / no audio, unchanged from this template's zero-asset default. If you're building on this template and want your generated files picked up, write them to the paths above and describe them in `public/game-assets.json` — see `src/game-assets.ts`'s header doc for the exact JSON shape, and `skills/game-flow-and-hud/SKILL.md`'s "Platform-Delivered Assets" section for the reasoning behind the degrade-gracefully contract.
+
+### Everything else
 
 Drop image/audio files under `public/assets/` (create the directory) and load them the normal Phaser way in `PreloadScene.preload()`:
 

@@ -2,9 +2,17 @@ import Phaser from 'phaser'
 import { GAME_WIDTH, PLAYFIELD_HEIGHT } from '../config'
 import { registerTrigger } from '../debug/harness'
 import type { GameState } from '../debug/state-jump'
+import { backgroundTextureKey, PLAYER_CHARACTER_KEY } from '../game-assets'
 
 const PLAYER_SPEED = 260
 const BULLET_SPEED = 420
+
+/**
+ * This template ships exactly one gameplay scene ('Game') — level 1 in the
+ * `public/assets/bg/level<N>.png` numbering contract (see `../game-assets.ts`).
+ * A project that adds more levels/scenes gives each its own number here.
+ */
+const LEVEL_NUMBER = 1
 
 /**
  * Game — the actual playable scene.
@@ -69,6 +77,28 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
+    // 🔴 Real bug found by ia-assertion-runner's own gates while adding
+    // StartScene, not by inspection: `StartScene`'s "开始游戏" button calls
+    // `this.scene.start('Game')` through ITS OWN ScenePlugin instance,
+    // which (per Phaser's `ScenePlugin.start()`) queues a stop on the
+    // *calling* scene (`Start`) as well as a start on the target — so in
+    // real play, Start correctly stops itself. But `../debug/harness.ts`'s
+    // `applyState()` jumps straight to a state via the game-level
+    // `game.scene.start(id)` (`SceneManager.start()`), which — per its own
+    // doc — only manages the *target* scene's lifecycle and never touches
+    // any other running scene. Landing on `Game` that way (exactly what
+    // `pnpm verify`'s IA gate does to test `controllable`/`restart`/etc.)
+    // left `Start` active forever from the initial page load, and
+    // `activeGameplayScene()`'s scene-list scan picked `Start` (earlier in
+    // `config.ts`'s scene array) over `Game` — `getSnapshot()` reported
+    // `stateId: 'Start'` with zero entities while `Game` was genuinely
+    // running underneath it. Stopping `Start` here, unconditionally and
+    // idempotently (`SceneManager.stop()` is a documented no-op on an
+    // already-stopped scene), makes "Game has truly begun" true regardless
+    // of which of the two `start()` call sites got you here — the same
+    // ownership pattern this scene already applies to `UiScene` below.
+    this.scene.stop('Start')
+
     const keyboard = this.input.keyboard
     if (!keyboard) {
       // Keyboard plugin is disabled or unavailable (non-browser context).
@@ -91,7 +121,16 @@ export class GameScene extends Phaser.Scene {
     // no competing browser default to fight (see class doc rule 2).
     keyboard.on('keydown-R', () => this.scene.restart())
 
-    this.player = this.physics.add.sprite(GAME_WIDTH / 2, PLAYFIELD_HEIGHT - 80, 'player')
+    this.drawLevelBackground()
+
+    // `PLAYER_CHARACTER_KEY` ('player') resolves to whichever texture
+    // `PreloadScene` actually registered under that key — an AI-generated
+    // character from `public/game-assets.json`, if the manifest listed one
+    // keyed exactly `"player"` and it loaded successfully, otherwise the
+    // procedural placeholder shape (see `PreloadScene.generatePlaceholderTextures()`'s
+    // guard). This scene never branches on which one it got — that's the
+    // whole point of both landing on the same key.
+    this.player = this.physics.add.sprite(GAME_WIDTH / 2, PLAYFIELD_HEIGHT - 80, PLAYER_CHARACTER_KEY)
     this.player.setCollideWorldBounds(true)
     // Named so `../debug/harness.ts`'s `getSnapshot()` can report it as an
     // `EntitySnapshot` — this is the only entity `controllable` needs to see
@@ -170,6 +209,35 @@ export class GameScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scene.stop('UI')
     })
+  }
+
+  /**
+   * Draws this level's AI-generated background, if `PreloadScene` loaded
+   * one for `LEVEL_NUMBER` (`public/assets/bg/level<N>.png` via
+   * `game-assets.json` — see `../game-assets.ts`). No manifest re-parsing
+   * here, same discipline as the player texture above: this only ever asks
+   * the texture manager, never the manifest itself.
+   *
+   * Sized to `PLAYFIELD_HEIGHT`, not `GAME_HEIGHT` — the bottom
+   * `HUD_BAND_HEIGHT` strip belongs to `UiScene`, not this world (see class
+   * doc / `../dimensions.ts`'s HUD band / playfield contract). Added first
+   * and pinned to `setDepth(-1)` so it always renders behind the
+   * player/bullets/coins/obstacles regardless of future add-order changes
+   * in this method. Deliberately un-named (`.name` left unset): background
+   * art is not an `EntitySnapshot` the harness should ever report or
+   * bounds-check (`../debug/harness.ts`'s `collectEntities()` only
+   * collects named objects).
+   *
+   * No manifest / no matching texture ⇒ this is a no-op — the existing
+   * plain `gameConfig.backgroundColor` fill and placeholder shapes already
+   * are this game's "shape placeholder" for a level background, so there
+   * is nothing else to draw as a fallback.
+   */
+  private drawLevelBackground(): void {
+    const key = backgroundTextureKey(LEVEL_NUMBER)
+    if (!this.textures.exists(key)) return
+
+    this.add.image(GAME_WIDTH / 2, PLAYFIELD_HEIGHT / 2, key).setDisplaySize(GAME_WIDTH, PLAYFIELD_HEIGHT).setDepth(-1)
   }
 
   /**

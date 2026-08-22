@@ -1,16 +1,45 @@
 import Phaser from 'phaser'
 import { GAME_HEIGHT, GAME_WIDTH } from '../config'
+import { normalizeGameAssets, planAssetLoads, safeParseJson, PLAYER_CHARACTER_KEY } from '../game-assets'
 
 /**
- * Preload — load every asset the game needs before GameScene starts.
+ * Preload — load every asset the game needs before StartScene/GameScene start.
  *
- * This template ships with zero binary assets so `pnpm dev` works
- * immediately after `pnpm install` with nothing to fetch or generate. The
- * two textures below are drawn procedurally with Phaser's Graphics API and
- * baked into the texture manager with `generateTexture`.
+ * This template ships with zero binary assets by default so `pnpm dev`
+ * works immediately after `pnpm install` with nothing to fetch or
+ * generate — the placeholder textures below are drawn procedurally with
+ * Phaser's Graphics API and baked into the texture manager with
+ * `generateTexture`. But the platform CAN deliver AI-generated art/audio
+ * for a real project, via `public/game-assets.json` + the files it
+ * describes (see `../game-assets.ts` for the full manifest contract). This
+ * scene is what reads that manifest and queues its files — the manifest
+ * itself never needs to be re-read anywhere else; every other scene only
+ * ever asks `this.textures.exists(<well-known key>)` /
+ * `this.cache.audio.exists(<well-known key>)`.
  *
- * When you add real art/audio, load it the normal Phaser way in
- * `preload()`:
+ * 🔴 Missing/malformed `public/game-assets.json` is an EXPECTED, non-fatal
+ * case. A 404 degrades cleanly no matter how it's loaded — a per-file
+ * loaderror, never a thrown exception, same as `game-doc.json` below.
+ * A response body that ISN'T valid JSON is the one case that behaves
+ * differently depending on how you load it: `this.load.json()` calls
+ * `JSON.parse()` inside Phaser's own loader internals with no try/catch,
+ * so a malformed-but-200 manifest throws an uncaught exception that fails
+ * `scripts/verify.mjs`'s BH-1 gate (confirmed by hand). That's why this
+ * manifest is loaded as plain text (`this.load.text()`) and parsed with
+ * `../game-assets.ts`'s `safeParseJson()` instead — the exact same
+ * `JSON.parse()` call, but inside a `try/catch` this codebase controls,
+ * so a malformed body degrades to `undefined` (then `null` via
+ * `normalizeGameAssets()`) instead of throwing. `planAssetLoads(null)`
+ * then queues **nothing** (see `../game-assets.ts`'s doc: no guessed
+ * per-file request is ever made without manifest evidence that the file
+ * exists). A per-file 404 for a file the manifest DID list behaves the
+ * same way as `game-doc.json` — the texture/audio key simply never gets
+ * registered, and every consumer already treats "key not present" as the
+ * normal, checked case (`this.textures.exists(...)`), never a thrown
+ * exception.
+ *
+ * If you add more assets by hand instead of through the manifest, load
+ * them the normal Phaser way in `preload()`:
  *
  *   this.load.image('player', 'assets/player.png')
  *   this.load.audio('shoot', 'assets/shoot.mp3')
@@ -56,17 +85,52 @@ export class PreloadScene extends Phaser.Scene {
     // failures, not HTTP error statuses.
     this.load.json('gameDoc', 'game-doc.json')
 
-    // Nothing else to load yet in this starter — replace with real
-    // this.load.* calls once you have assets. Leaving the rest of the
-    // loader empty is fine; it fires 'complete' as soon as the queue above
-    // settles.
+    // AI-generated asset manifest (see ../game-assets.ts). Loaded as plain
+    // TEXT, not `this.load.json()` — see this class's header doc for why:
+    // a malformed-but-200 response body would otherwise throw inside
+    // Phaser's own JSON loader internals instead of degrading cleanly.
+    this.load.text('gameAssetsRaw', 'game-assets.json')
+
+    // 🔴 Queuing the manifest's own files has to happen HERE, mid-preload,
+    // triggered by the manifest file's own 'filecomplete' event — not in
+    // create(), after the loader has already finished. Phaser's loader
+    // accepts new `this.load.image()`/`this.load.audio()` calls made while
+    // it is still running (before its 'complete' fires) and folds them
+    // into the same load pass; queuing them only after 'complete' would
+    // need a second `this.load.start()` pass this scene has no reason to
+    // manage. If `game-assets.json` 404s, this listener simply never
+    // fires — see `queueManifestAssets()`'s doc for why that's the whole
+    // "missing manifest queues nothing" contract, not a special case.
+    this.load.once('filecomplete-text-gameAssetsRaw', () => {
+      const raw = this.cache.text.get('gameAssetsRaw') as string | undefined
+      this.queueManifestAssets(normalizeGameAssets(safeParseJson(raw)))
+    })
   }
 
   create(): void {
     this.progressBox.destroy()
     this.progressBar.destroy()
     this.generatePlaceholderTextures()
-    this.scene.start('Game')
+    this.scene.start('Start')
+  }
+
+  /**
+   * Hands every file `../game-assets.ts`'s `planAssetLoads()` decided to
+   * queue over to Phaser's loader. Deliberately a thin, untested-by-design
+   * shim over that pure function — the actual "queue nothing when the
+   * manifest is missing/invalid" decision lives in `planAssetLoads()`
+   * itself (bare-Node testable, see `tests/game-assets.test.mjs`); this
+   * method's only job is the one thing a pure function cannot do, calling
+   * the real Phaser loader.
+   */
+  private queueManifestAssets(assets: ReturnType<typeof normalizeGameAssets>): void {
+    for (const task of planAssetLoads(assets)) {
+      if (task.kind === 'image') {
+        this.load.image(task.key, task.path)
+      } else {
+        this.load.audio(task.key, task.path)
+      }
+    }
   }
 
   private drawLoadingUi(): void {
@@ -87,11 +151,23 @@ export class PreloadScene extends Phaser.Scene {
 
   /** Draw simple shapes into the texture manager so GameScene has sprites to use. */
   private generatePlaceholderTextures(): void {
-    const player = this.add.graphics()
-    player.fillStyle(0x60a5fa, 1)
-    player.fillRoundedRect(0, 0, 48, 48, 8)
-    player.generateTexture('player', 48, 48)
-    player.destroy()
+    // 🔴 Guarded, unlike bullet/coin/obstacle below: if a manifest
+    // character was keyed exactly `PLAYER_CHARACTER_KEY` ("player") and
+    // loaded successfully, `queueManifestAssets()` (called from preload(),
+    // which always runs before create()) already registered a real texture
+    // under this exact key — generating a placeholder on top of it would
+    // either silently overwrite a real, AI-generated sprite or collide
+    // with it, neither of which is "optimistic degrade to a shape", it's
+    // clobbering a real asset. `GameScene.ts`'s player sprite always
+    // requests this same key, so it transparently gets whichever of the
+    // two actually ended up registered.
+    if (!this.textures.exists(PLAYER_CHARACTER_KEY)) {
+      const player = this.add.graphics()
+      player.fillStyle(0x60a5fa, 1)
+      player.fillRoundedRect(0, 0, 48, 48, 8)
+      player.generateTexture(PLAYER_CHARACTER_KEY, 48, 48)
+      player.destroy()
+    }
 
     const bullet = this.add.graphics()
     bullet.fillStyle(0xfacc15, 1)

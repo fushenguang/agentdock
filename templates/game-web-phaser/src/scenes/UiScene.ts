@@ -1,8 +1,9 @@
 import Phaser from 'phaser'
 import { GAME_WIDTH, PLAYFIELD_HEIGHT } from '../config'
 import { normalizeGameDoc } from '../game-doc'
-import { getDocButtonRect } from '../doc-panel-geometry'
+import { getDocButtonRect, DOC_BUTTON_DIAMETER, DOC_BUTTON_MARGIN_X } from '../doc-panel-geometry'
 import { openDocPanel } from '../doc-panel'
+import { BGM_AUDIO_KEY } from '../game-assets'
 
 /**
  * UI — the HUD layer, launched in parallel with `GameScene` (`this.scene.launch('UI')`
@@ -119,6 +120,56 @@ export class UiScene extends Phaser.Scene {
     })
 
     this.mountDocEntry()
+    this.mountMuteToggle()
+  }
+
+  /**
+   * Creates the BGM mute toggle — a small circular "🔊"/"🔇" target placed
+   * immediately to the left of the doc-entry button, same top-of-HUD-band
+   * row, same `DOC_BUTTON_MARGIN_X` gap between the two (see
+   * `../doc-panel-geometry.ts`, imported read-only here — this file does
+   * not add a new geometry contract of its own for one button: its `y` and
+   * size are taken directly from `getDocButtonRect()`, so HUD-band
+   * membership is inherited from that already-tested rect rather than
+   * re-derived).
+   *
+   * 🔴 Default-hidden, same discipline as `mountDocEntry()` below: no
+   * `bgm/main.mp3` in `game-assets.json` (see `../game-assets.ts`) means
+   * `PreloadScene` never registered `BGM_AUDIO_KEY` in the audio cache, and
+   * this method returns without adding a dead control that mutes nothing.
+   *
+   * This toggle only ever flips `this.sound.mute` — it never starts/stops
+   * playback itself. Playback is started exactly once, from
+   * `../scenes/StartScene.ts`'s "开始游戏" click (the browser's autoplay
+   * gesture requirement), and `this.sound` is the Game-level
+   * `SoundManager` shared by every Scene, so it keeps playing across a
+   * `GameScene` restart without this scene needing to do anything about it
+   * beyond reflecting the current `mute` state in its icon.
+   */
+  private mountMuteToggle(): void {
+    if (!this.cache.audio.exists(BGM_AUDIO_KEY)) return
+
+    const docRect = getDocButtonRect()
+    const centerX = docRect.x - DOC_BUTTON_MARGIN_X - DOC_BUTTON_DIAMETER / 2
+    const centerY = docRect.y + docRect.height / 2
+    const radius = DOC_BUTTON_DIAMETER / 2
+
+    const button = this.add.circle(centerX, centerY, radius, 0x374151, 0.92).setScrollFactor(0)
+    button.setStrokeStyle(2, 0x9ca3af, 1)
+    button.setInteractive({ useHandCursor: true })
+
+    const icon = this.add
+      .text(centerX, centerY, this.sound.mute ? '🔇' : '🔊', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '18px',
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+
+    button.on('pointerdown', () => {
+      this.sound.mute = !this.sound.mute
+      icon.setText(this.sound.mute ? '🔇' : '🔊')
+    })
   }
 
   /**

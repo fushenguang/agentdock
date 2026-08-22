@@ -1,6 +1,6 @@
 ---
 name: game-flow-and-hud
-description: "Use this skill when structuring a Phaser game's HUD layer, level/stage progression, or scene restart flow — choosing between a dedicated UI Scene, multi-camera ignore(), or setScrollFactor(0) for HUD elements; externalizing level/stage data instead of hardcoding coordinates; deciding between scene.restart() and reusing-existing-objects for a replay loop; wiring registry/data-manager state so it survives (or correctly resets on) a restart; or computing physics-derived placement (jump distance, reachable range) before laying out level geometry. Triggers on: HUD, UI Scene, heads-up display, score display, level design, level progression, stage select, level data, Tiled, scene restart, replay, game over restart, registry persistence, reachability, jump distance, gap width, level gotchas."
+description: "Use this skill when structuring a Phaser game's HUD layer, level/stage progression, scene restart flow, start/title screen, or platform-delivered AI-generated assets — choosing between a dedicated UI Scene, multi-camera ignore(), or setScrollFactor(0) for HUD elements; externalizing level/stage data instead of hardcoding coordinates; deciding between scene.restart() and reusing-existing-objects for a replay loop; wiring registry/data-manager state so it survives (or correctly resets on) a restart; computing physics-derived placement (jump distance, reachable range) before laying out level geometry; or reading game-assets.json and degrading gracefully when an asset is missing/failed to load. Triggers on: HUD, UI Scene, heads-up display, score display, level design, level progression, stage select, level data, Tiled, scene restart, replay, game over restart, registry persistence, reachability, jump distance, gap width, level gotchas, start scene, title screen, game-assets.json, asset manifest, AI-generated assets, background music, BGM, mute toggle, autoplay policy."
 ---
 
 # Game Flow and HUD
@@ -100,6 +100,28 @@ Both paths are real and both have project-level backing; neither is universally 
 The pattern to take away: **do not default to "a global variable" or "put it on the Scene class" without asking which Scene topology you actually have.** A module singleton in a multi-Scene game re-derives Scene-scoping bugs the registry already solves for you; the registry in a genuinely single-Scene game is unneeded indirection.
 
 **4. HUD updates on events, not per-frame polling — where you can afford it.** An `xxxChanged`-style event convention (`scoreChanged`, `healthChanged`, etc., emitted from whatever mutates the underlying value) recurs across 4 games and 7 files in the surveyed projects. This is the general-purpose version of the same idea the Quick Start's polling loop uses as a cheap fallback: polling every frame is fine for one or two cheap reads (a `Text.setText()` call gated by an equality check, as in the Quick Start above), but an event-driven update is the pattern that scales once several HUD elements each depend on a different piece of state — it decouples "when does the number change" from "when does the frame tick," which polling conflates.
+
+### Platform-Delivered Assets: Reading the Manifest, Degrading Gracefully
+
+Real art/audio in this template does not arrive as files you pick and load by hand — it arrives from the outer platform as AI-generated files, dropped into a fixed directory layout, described by a manifest at `public/game-assets.json` (contract: `src/game-assets.ts`). This is the same shape of problem `game-doc.json` (`src/game-doc.ts`) already solves for the in-game documentation panel — a JSON file the platform may or may not have written yet, that the game must never treat as guaranteed to exist — extended to binary assets instead of prose.
+
+**The directory contract (do not change it — it's the platform interface):**
+
+```text
+public/assets/title.png          start-page hero image
+public/assets/bg/level<N>.png    per-level background (N starts at 1)
+public/assets/char/<slug>.png    a character, already alpha-matted (transparent PNG)
+public/assets/bgm/main.mp3       background music
+public/game-assets.json          the manifest describing all of the above
+```
+
+**Three rules, all enforced by `src/game-assets.ts` + `src/scenes/PreloadScene.ts` already, worth understanding if you extend either:**
+
+1. **Missing/malformed manifest queues zero requests, never a guess.** `PreloadScene` attempts to load `game-assets.json` itself (a 404 there is expected and non-fatal — same reasoning as `game-doc.json`, see `PreloadScene`'s header doc), but it never attempts to load `assets/title.png` or any other file *without* the manifest first confirming that file's path and existence. The decision of exactly which files to queue is a **pure function** (`planAssetLoads()` in `src/game-assets.ts`) precisely so "missing manifest ⇒ nothing queued" is a fact you can unit-test without a browser (`tests/game-assets.test.mjs`), not something you have to trust by reading Phaser plumbing.
+2. **A scene that wants to *use* an asset only ever asks the texture/audio manager, never the manifest.** `StartScene`/`GameScene`/`UiScene` call `this.textures.exists(<well-known key>)` / `this.cache.audio.exists(<well-known key>)` — they never re-parse `game-assets.json` themselves. This is what keeps "did this actually load" as a single source of truth: a file the manifest lists but that 404s on disk simply never registers under its key, and every consumer already treats "key absent" as the normal, checked path (an `if`, not a `try/catch`).
+3. **Fallback is always the existing shape/silence, never a thrown error.** No `title.png` → the start screen's plain background color already shows through (nothing to draw). No `bg/level1.png` → the gameplay scene's existing plain fill + placeholder shapes stand in, unchanged. No `bgm/main.mp3` → no audio plays and the HUD's mute toggle simply never mounts (a dead control that mutes nothing is worse than no control). No character keyed `"player"` → the procedural placeholder sprite `PreloadScene.generatePlaceholderTextures()` already drew is what's there.
+
+**Autoplay policy is the one hard gotcha here, not something graceful degradation solves for you:** browsers refuse `AudioContext`/`this.sound.play()` calls made outside a real user-gesture handler. Loading a file (`this.load.audio()`) needs no gesture and is safe to do in `PreloadScene`; *starting playback* does. This template's reference fix is to call `this.sound.play(BGM_AUDIO_KEY, { loop: true })` from inside the "开始游戏" button's own `pointerdown` handler (`StartScene.handleStart()`) — that click **is** the gesture — and never anywhere else. `this.sound` is the Game-level `SoundManager`, shared by every Scene, so starting it once there is enough for it to keep playing through every later scene; a mute toggle (see HUD Architecture above — it belongs in the UI Scene, same as score) only ever needs to flip `this.sound.mute`, never start/stop playback itself.
 
 ## Common Patterns
 
@@ -207,6 +229,10 @@ These two checks exist because "the code that implements a mechanic" and "the co
 7. **A failure/restart state with no way back to play (see Self-Check #2).** Also found in real project research. The losing path renders correctly and the bug is invisible from a screenshot of the game-over screen — it only shows up when you try to actually play again.
 
 8. **Guessing "feel" numbers (jump velocity, gravity, move speed) instead of computing derived placement from them.** See "Computed, Not Guessed" — the direction of the mistake this skill can correct is always "level geometry follows from constants," never "constants follow from what looks right in the editor." This skill does not recommend specific feel values for that same reason: there is no evidence backing any particular number, only evidence backing the calculation method.
+
+9. **Calling `this.sound.play()` anywhere except inside a real user-gesture handler.** Browsers silently refuse it otherwise — no exception, the call just does nothing, which is a confusing thing to debug from "the BGM just never plays." See "Platform-Delivered Assets" above: `this.load.audio()` (queuing the file) needs no gesture, only `this.sound.play()` (starting it) does. A start/title screen's own button click is usually the first real gesture available and the natural place to do this.
+
+10. **Hardcoding a request for a platform-delivered asset instead of consulting its manifest first.** `this.load.image('title', 'assets/title.png')` unconditionally, without checking `game-assets.json` said that file exists, reproduces exactly the failure "Platform-Delivered Assets" above exists to prevent: a request with nothing behind it whenever the platform hasn't generated that asset yet (which, for any project mid-development, is the common case, not the exception).
 
 ## Computed, Not Guessed
 
