@@ -34,14 +34,26 @@ declare global {
 }
 
 /**
- * Roles for this template's four reference states (design D1's `role`
+ * Roles for this template's five reference states (design D1's `role`
  * field). Kept here, not in `state-jump.ts`, because role is a harness-level
  * judging concept — `state-jump.ts`'s own job is legality/reproducibility,
  * not how an assertion template should read a state.
+ *
+ * 🔴 `Start` (`../scenes/StartScene.ts`) added here as `'other'` — same
+ * role as Boot/Preload, and the same reasoning: it's a real sequential step
+ * in the boot chain (Boot -> Preload -> Start -> Game), not a
+ * gameplay/gameover state, and NOT a parallel overlay like `UiScene`
+ * (deliberately excluded from `StateId`/`listStates()` entirely — see that
+ * scene's own class doc). Because `StateId` is a union type and this map is
+ * typed `Record<StateId, StateRole>`, TypeScript itself forces this entry
+ * to exist the moment `state-jump.ts`'s `StateId` gains `'Start'` — see
+ * AGENTS.md rule 6 ("every id returned by listStates() needs an entry in
+ * harness.ts's STATE_ROLES map").
  */
 const STATE_ROLES: Readonly<Record<StateId, StateRole>> = {
   Boot: 'other',
   Preload: 'other',
+  Start: 'other',
   Game: 'gameplay',
   GameOver: 'gameover',
 }
@@ -173,6 +185,14 @@ function activeGameplayScene(game: Phaser.Game): Phaser.Scene | undefined {
   // its own doc), so this filter finds the real gameplay/gameover/etc.
   // scene regardless of scene-list order or how many parallel overlay
   // scenes are running.
+  //
+  // 🔴 Re-verified when `../scenes/StartScene.ts` was added: `Start` IS one
+  // of `listStates()`'s ids (role `'other'`, see `STATE_ROLES` above), so
+  // while it's the sole active scene this correctly resolves to it (same
+  // as Boot/Preload today) rather than to `undefined` — it is not treated
+  // like `UiScene`, which is excluded from `listStates()` on purpose. No
+  // change to this filter itself was needed: `isKnownStateId()` already
+  // generalizes over whatever `state-jump.ts`'s `listStates()` returns.
   return game.scene.getScenes(true).find((scene) => isKnownStateId(scene.scene.key))
 }
 

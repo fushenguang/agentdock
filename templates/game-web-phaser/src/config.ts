@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { GAME_WIDTH, GAME_HEIGHT } from './dimensions.ts'
 import { BootScene } from './scenes/BootScene'
 import { PreloadScene } from './scenes/PreloadScene'
+import { StartScene } from './scenes/StartScene'
 import { GameScene } from './scenes/GameScene'
 import { UiScene } from './scenes/UiScene'
 import { GameOverScene } from './scenes/GameOverScene'
@@ -60,15 +61,21 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
     },
   },
 
-  // Boot -> Preload -> Game -> GameOver (on the 'obstacle' overlap) -> Game
-  // again (R restarts). Keep scenes single-purpose and split like this
-  // instead of doing loading + gameplay in one file — it's what makes the
-  // loading screen and the actual game independently testable/replaceable.
+  // Boot -> Preload -> Start -> Game -> GameOver (on the 'obstacle'
+  // overlap) -> Game again (R restarts). Keep scenes single-purpose and
+  // split like this instead of doing loading + start screen + gameplay in
+  // one file — it's what makes the loading screen, the start screen, and
+  // the actual game independently testable/replaceable. `GameOverScene`
+  // restarts straight to `Game`, not back through `Start` — the start
+  // screen is a one-time entry point for a session, not a state a real
+  // player revisits mid-run.
   //
   // `UiScene` is not a step in that chain — it's not a "state" (it has no
   // entry in `debug/state-jump.ts`'s `StateId`/`listStates()`). GameScene
   // launches it in parallel (`this.scene.launch('UI')`) for the duration of
   // gameplay and stops it when GameScene shuts down — see UiScene.ts and
-  // dimensions.ts's HUD band / playfield contract.
-  scene: [BootScene, PreloadScene, GameScene, UiScene, GameOverScene],
+  // dimensions.ts's HUD band / playfield contract. `StartScene`, by
+  // contrast, IS a listed state (role `'other'`, same as Boot/Preload) —
+  // see its own class doc and `debug/harness.ts`'s `STATE_ROLES`.
+  scene: [BootScene, PreloadScene, StartScene, GameScene, UiScene, GameOverScene],
 }

@@ -83,6 +83,13 @@ The outer platform can attach a project-root `assertions.json` (see the sample o
 
 `src/dimensions.ts` reserves a bottom strip `HUD_BAND_HEIGHT` pixels tall; `PLAYFIELD_HEIGHT = GAME_HEIGHT - HUD_BAND_HEIGHT` is everything left for gameplay. World geometry (ground, platforms, spawn points, `physics.world.setBounds(...)`) must stay within `y ∈ [0, PLAYFIELD_HEIGHT]`. HUD content (score, buttons, status text) must stay within `y ∈ [PLAYFIELD_HEIGHT, GAME_HEIGHT]` and belongs in `src/scenes/UiScene.ts` — a scene launched in parallel with `GameScene` (`this.scene.launch('UI')`), not inside `GameScene` itself. Do not add HUD elements directly to a gameplay scene; add them to `UiScene.ts` and pin them with `setScrollFactor(0)`.
 
+### 8. Platform-delivered assets: consult `game-assets.json`, never request a file it didn't confirm
+
+The outer platform can drop AI-generated art/audio into `public/assets/` (`title.png`, `bg/level<N>.png`, `char/<slug>.png`, `bgm/main.mp3`) alongside a manifest at `public/game-assets.json` describing them (contract: `src/game-assets.ts`). That manifest may not exist yet — most of a project's life, it won't. Two rules:
+
+- **Never hardcode a `this.load.image()`/`this.load.audio()` call for one of these paths without the manifest having confirmed it first.** `src/scenes/PreloadScene.ts`'s `queueManifestAssets()` — driven by the pure, unit-tested `planAssetLoads()` in `src/game-assets.ts` — is the only place that decides what to request, precisely so "missing manifest ⇒ request nothing" stays a checkable fact (`tests/game-assets.test.mjs`), not something a reviewer has to trust by reading Phaser plumbing. A missing manifest or a 404'd individual file must never throw or leave the game half-loaded — see `src/scenes/StartScene.ts`/`GameScene.ts`'s use of `this.textures.exists(...)` for the fallback pattern to copy.
+- **Starting background music requires a real user gesture.** `this.sound.play()` called anywhere outside a click/keypress/tap handler is silently refused by the browser's autoplay policy — no exception, it just does nothing. This template's reference fix starts BGM from `StartScene`'s "开始游戏" button `pointerdown` handler and nowhere else; see `skills/game-flow-and-hud/SKILL.md`'s "Platform-Delivered Assets" section for the full reasoning.
+
 ## Project layout
 
 ```text
@@ -102,14 +109,16 @@ tests/
 src/
 ├── main.ts            # creates the Phaser.Game instance — should rarely need edits
 ├── config.ts           # Phaser.Types.Core.GameConfig — Scale Manager lives here
+├── game-assets.ts       # game-assets.json manifest contract (AI-generated title/bg/char/bgm) — see rule 8
 ├── debug/
-│   ├── state-jump.ts    # listStates/jump/isValidStart contract + reference impl (Boot/Preload/Game/GameOver)
+│   ├── state-jump.ts    # listStates/jump/isValidStart contract + reference impl (Boot/Preload/Start/Game/GameOver)
 │   ├── harness-types.ts # window.__gameHarness contract types — zero imports, see rule 6
 │   ├── harness.ts        # window.__gameHarness reference implementation — see rule 6 before editing scenes
 │   └── panel.ts          # learn-build-only debug panel; never gate this with a runtime switch
 └── scenes/
     ├── BootScene.ts     # engine-level setup only, runs first
-    ├── PreloadScene.ts  # load assets, generate placeholder textures, show progress
+    ├── PreloadScene.ts  # load assets (incl. the game-assets.json manifest), generate placeholder textures, show progress
+    ├── StartScene.ts     # title/start screen — the only way into Game; also where BGM playback starts (see rule 8)
     ├── GameScene.ts     # the actual playable scene + the input-capture reference pattern
     ├── UiScene.ts        # HUD layer, launched parallel to GameScene — see rule 7 (HUD band / playfield)
     └── GameOverScene.ts # the failure state (`role: 'gameover'`) + restart-to-gameplay
