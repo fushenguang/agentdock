@@ -1,5 +1,8 @@
 import Phaser from 'phaser'
 import { GAME_WIDTH, PLAYFIELD_HEIGHT } from '../config'
+import { normalizeGameDoc } from '../game-doc'
+import { getDocButtonRect } from '../doc-panel-geometry'
+import { openDocPanel } from '../doc-panel'
 
 /**
  * UI — the HUD layer, launched in parallel with `GameScene` (`this.scene.launch('UI')`
@@ -55,12 +58,32 @@ import { GAME_WIDTH, PLAYFIELD_HEIGHT } from '../config'
  * `hud_text_present`/`score_feedback` keep judging the real, on-screen HUD
  * after it moved here — see that file's doc for the harness-side half of
  * this change.
+ *
+ * This scene also mounts the in-game documentation entry button (see
+ * `mountDocEntry()` below, `../doc-panel.ts`, `../game-doc.ts`) — same HUD
+ * band placement discipline as the score/instructions text above, and same
+ * reason it lives here rather than in `GameScene`: it's HUD, not world
+ * geometry.
  */
 export class UiScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Text
+  /**
+   * Which scene/level this HUD instance belongs to, for the doc panel's
+   * "当前这一关" lookup. Set from `init(data)` — `GameScene.create()`
+   * passes its own key via `this.scene.launch('UI', { levelKey: this.scene.key })`
+   * (design: whichever scene launches UI owns telling it who it is, rather
+   * than UiScene guessing from the scene list). Defaults to this
+   * template's own reference scene key so UiScene still behaves sensibly
+   * if some future caller launches it without that data.
+   */
+  private levelKey = 'Game'
 
   constructor() {
     super('UI')
+  }
+
+  init(data: { levelKey?: string }): void {
+    this.levelKey = data?.levelKey ?? 'Game'
   }
 
   create(): void {
@@ -93,6 +116,53 @@ export class UiScene extends Phaser.Scene {
     this.registry.events.on('changedata-score', onScoreChanged)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.registry.events.off('changedata-score', onScoreChanged)
+    })
+
+    this.mountDocEntry()
+  }
+
+  /**
+   * Creates the in-game documentation entry button — a small circular
+   * "?" target, flush against the right edge and top of the reserved HUD
+   * band (`../doc-panel-geometry.ts`'s `getDocButtonRect()` is the single
+   * source of truth for its placement; `tests/doc-panel-geometry.test.mjs`
+   * proves that rect never reaches into the playfield).
+   *
+   * 🔴 Default-hidden by design (AGENTS.md's brief for this change): if
+   * `game-doc.json` was never loaded (missing file — `PreloadScene`
+   * queues it via `this.load.json('gameDoc', ...)`, and a 404 there just
+   * leaves the cache key absent, it does not throw) or fails
+   * `normalizeGameDoc()`'s validation, this method returns without adding
+   * anything — not a disabled button, not an empty panel. See
+   * `../game-doc.ts`'s `normalizeGameDoc()` doc for why those cases are
+   * deliberately not distinguished.
+   */
+  private mountDocEntry(): void {
+    const raw = this.cache.json.get('gameDoc') as unknown
+    const doc = normalizeGameDoc(raw)
+    if (!doc) return
+
+    const rect = getDocButtonRect()
+    const centerX = rect.x + rect.width / 2
+    const centerY = rect.y + rect.height / 2
+    const radius = rect.width / 2
+
+    const button = this.add.circle(centerX, centerY, radius, 0x374151, 0.92).setScrollFactor(0)
+    button.setStrokeStyle(2, 0x9ca3af, 1)
+    button.setInteractive({ useHandCursor: true })
+
+    this.add
+      .text(centerX, centerY, '?', {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '20px',
+        fontStyle: 'bold',
+        color: '#e5e7eb',
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+
+    button.on('pointerdown', () => {
+      openDocPanel(this.game, doc, this.levelKey)
     })
   }
 }
