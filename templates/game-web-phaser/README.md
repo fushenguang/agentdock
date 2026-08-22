@@ -88,7 +88,7 @@ pnpm check-types
 pnpm verify
 ```
 
-Builds `dist-play/`, loads it in real headless Chromium over CDP, and fails loudly (non-zero exit) if the build fails, the page throws an uncaught exception or has a failed resource request, or the rendered screenshot is provably empty or the canvas has zero size. If this project has an `assertions.json` at its root, `pnpm verify` also judges every item in it — same browser session, right after the render check — and fails loudly if any of them do. See [Verifying](#verifying) below and `scripts/verify.mjs`.
+Builds `dist-play/`, loads it in real headless Chromium over CDP, and fails loudly (non-zero exit) if the build fails, the page throws an uncaught exception or has a failed resource request, or the rendered screenshot is provably empty or the canvas has zero size. If `public/game-assets.json` declared anything, it also fails loudly if none of the declared files reached the runtime, or if they loaded but nothing currently draws/plays them. If this project has an `assertions.json` at its root, `pnpm verify` also judges every item in it — same browser session, right after those checks — and fails loudly if any of them do. See [Verifying](#verifying) below and `scripts/verify.mjs`.
 
 ```bash
 pnpm test
@@ -121,17 +121,31 @@ Which target you get is decided by `--mode` on the `vite build` CLI (see `vite.c
 
 ## Verifying
 
-`pnpm verify` (`scripts/verify.mjs`) runs three gates, zero new dependencies — it spawns whatever Chromium already exists on the machine (Playwright's cache, `CHROME_PATH`, or `PATH`) and speaks CDP over Node's built-in `WebSocket` (Node ≥ 22):
+`pnpm verify` (`scripts/verify.mjs`) runs four gates, zero new dependencies — it spawns whatever Chromium already exists on the machine (Playwright's cache, `CHROME_PATH`, or `PATH`) and speaks CDP over Node's built-in `WebSocket` (Node ≥ 22):
 
 - **BH-0 build** — `vite build --mode play` exits 0.
 - **BH-1 load** — headless Chromium loads `dist-play/` with no uncaught JS exception and no failed resource request.
 - **BH-2 render** — the screenshot is provably non-empty (unique-colour count + pixel variance both clear a floor — a solid-colour PNG does **not** pass) and the game canvas has non-zero size.
+- **AU asset usage** — if `public/game-assets.json` declared anything, its files actually reached the runtime AND something currently on screen (or in the sound manager) uses them. See [Asset usage judging (AU)](#asset-usage-judging-au) below.
 
 Every gate either passes or prints exactly what it expected vs. what it found and exits non-zero — it never prints "skipping" and exits 0. If it can't find a browser or the Node runtime lacks `WebSocket`, that's a failure, not a skip.
 
+### Asset usage judging (AU)
+
+A manifest confirming a file exists is not the same as the game actually drawing or playing it. Real incident this gate exists to catch: a generated project's `game-assets.json` declared backgrounds/characters, `PreloadScene` loaded every file, and every other gate above passed — but the level scenes never called anything that consumed them, so `add.image` was hit 0 times across every level and there was no BGM, and nothing caught it until a human played the game.
+
+Right after BH-2, if `public/game-assets.json` declared anything, `pnpm verify` re-derives the same asset-load plan `PreloadScene` used and checks, over the same CDP session:
+
+1. **Declared → loaded** — did each declared texture/audio key actually reach `this.textures`/`this.cache.audio`?
+2. **Loaded → used** — is at least one `GameObject` in an active scene currently carrying that texture key (images), or has that key been handed to the sound manager via `.add()`/`.play()` (audio)?
+
+Results land in `.verify-result.json`'s `assetUsage` field with the same three-status discipline as IA below: **`absent`** (no manifest — not a failure), **`unavailable`** (couldn't judge — counts as a failure), **`judged`** (a real pass/fail). A `judged`-with-`passed: false` or `unavailable` result makes `pnpm verify` exit non-zero, same as any other gate.
+
+🔴 What this gate proves and what it doesn't: a "used" hit means a real GameObject/Sound exists with that key attached — it does **not** prove the asset looks correct, is sized right, or (for audio) is actually audible right now (browser autoplay policies can block playback even after `.play()` runs). See `src/debug/harness-types.ts`'s `AssetUsageSnapshot` doc and `scripts/lib/asset-usage.mjs`'s header for the full reasoning.
+
 ### Assertion judging (IA)
 
-If a project-root `assertions.json` exists — a list of machine-judgable acceptance items, each naming one of 7 upstream templates and its parameters — `pnpm verify` judges every one of them right after BH-2, over the **same** browser session (no second page load), by driving the live game through `window.__gameHarness` (`src/debug/harness.ts`):
+If a project-root `assertions.json` exists — a list of machine-judgable acceptance items, each naming one of 7 upstream templates and its parameters — `pnpm verify` judges every one of them right after BH-2/AU, over the **same** browser session (no second page load), by driving the live game through `window.__gameHarness` (`src/debug/harness.ts`):
 
 | templateId          | what it checks                                                                    |
 | -------------------- | ----------------------------------------------------------------------------------- |

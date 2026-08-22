@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { GAME_HEIGHT, GAME_WIDTH } from '../config'
-import { normalizeGameAssets, planAssetLoads, safeParseJson, PLAYER_CHARACTER_KEY } from '../game-assets'
+import { normalizeGameAssets, planAssetLoads, safeParseJson, PLAYER_CHARACTER_KEY, GAME_ASSETS_RAW_CACHE_KEY } from '../game-assets'
 
 /**
  * Preload — load every asset the game needs before StartScene/GameScene start.
@@ -89,7 +89,7 @@ export class PreloadScene extends Phaser.Scene {
     // TEXT, not `this.load.json()` — see this class's header doc for why:
     // a malformed-but-200 response body would otherwise throw inside
     // Phaser's own JSON loader internals instead of degrading cleanly.
-    this.load.text('gameAssetsRaw', 'game-assets.json')
+    this.load.text(GAME_ASSETS_RAW_CACHE_KEY, 'game-assets.json')
 
     // 🔴 Queuing the manifest's own files has to happen HERE, mid-preload,
     // triggered by the manifest file's own 'filecomplete' event — not in
@@ -101,8 +101,8 @@ export class PreloadScene extends Phaser.Scene {
     // manage. If `game-assets.json` 404s, this listener simply never
     // fires — see `queueManifestAssets()`'s doc for why that's the whole
     // "missing manifest queues nothing" contract, not a special case.
-    this.load.once('filecomplete-text-gameAssetsRaw', () => {
-      const raw = this.cache.text.get('gameAssetsRaw') as string | undefined
+    this.load.once(`filecomplete-text-${GAME_ASSETS_RAW_CACHE_KEY}`, () => {
+      const raw = this.cache.text.get(GAME_ASSETS_RAW_CACHE_KEY) as string | undefined
       this.queueManifestAssets(normalizeGameAssets(safeParseJson(raw)))
     })
   }
