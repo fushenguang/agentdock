@@ -1,6 +1,6 @@
 ---
 name: game-flow-and-hud
-description: "Use this skill when structuring a Phaser game's HUD layer, level/stage progression, scene restart flow, start/title screen, or platform-delivered AI-generated assets — choosing between a dedicated UI Scene, multi-camera ignore(), or setScrollFactor(0) for HUD elements; externalizing level/stage data instead of hardcoding coordinates; deciding between scene.restart() and reusing-existing-objects for a replay loop; wiring registry/data-manager state so it survives (or correctly resets on) a restart; computing physics-derived placement (jump distance, reachable range) before laying out level geometry; or reading game-assets.json and degrading gracefully when an asset is missing/failed to load. Triggers on: HUD, UI Scene, heads-up display, score display, level design, level progression, stage select, level data, Tiled, scene restart, replay, game over restart, registry persistence, reachability, jump distance, gap width, level gotchas, start scene, title screen, game-assets.json, asset manifest, AI-generated assets, background music, BGM, mute toggle, autoplay policy."
+description: "Use this skill when structuring a Phaser game's HUD layer, level/stage progression, scene restart flow, start/title screen, or platform-delivered AI-generated assets — choosing between a dedicated UI Scene, multi-camera ignore(), or setScrollFactor(0) for HUD elements; externalizing level/stage data instead of hardcoding coordinates; deciding between scene.restart() and reusing-existing-objects for a replay loop; wiring registry/data-manager state so it survives (or correctly resets on) a restart; computing physics-derived placement (jump distance, reachable range) before laying out level geometry; or reading game-assets.json and degrading gracefully when an asset is missing/failed to load; or writing a NEW playable scene (e.g. a `Level1Scene`/`Level2Scene` replacing the template's `GameScene`) that must carry forward background-image draw, player/character texture keys, and BGM gesture-gating instead of drawing shapes in their place. Triggers on: HUD, UI Scene, heads-up display, score display, level design, level progression, stage select, level data, Tiled, scene restart, replay, game over restart, registry persistence, reachability, jump distance, gap width, level gotchas, start scene, title screen, game-assets.json, asset manifest, AI-generated assets, background music, BGM, mute toggle, autoplay policy, deleting GameScene, new level scene, LevelScene, applyLevelBackground."
 ---
 
 # Game Flow and HUD
@@ -123,6 +123,39 @@ public/game-assets.json          the manifest describing all of the above
 
 **Autoplay policy is the one hard gotcha here, not something graceful degradation solves for you:** browsers refuse `AudioContext`/`this.sound.play()` calls made outside a real user-gesture handler. Loading a file (`this.load.audio()`) needs no gesture and is safe to do in `PreloadScene`; *starting playback* does. This template's reference fix is to call `this.sound.play(BGM_AUDIO_KEY, { loop: true })` from inside the "开始游戏" button's own `pointerdown` handler (`StartScene.handleStart()`) — that click **is** the gesture — and never anywhere else. `this.sound` is the Game-level `SoundManager`, shared by every Scene, so starting it once there is enough for it to keep playing through every later scene; a mute toggle (see HUD Architecture above — it belongs in the UI Scene, same as score) only ever needs to flip `this.sound.mute`, never start/stop playback itself.
 
+### Writing a New Playable Scene? This Wiring Comes With It — It Is Not `GameScene`'s Private Business
+
+🔴 **Real incident, not a hypothetical.** A generated project's builder asked for AI-generated backgrounds/characters/BGM, "而不是用形状代替" (not shape placeholders). The executing agent then deleted `GameScene.ts` outright and wrote `Level1Scene` … `Level5Scene` from scratch to hold real level content. Real-machine instrumentation afterward showed `add.image` calls hitting **zero** across all five level scenes (only `StartScene` drew one image) and `sound` calls hitting **zero** everywhere — every level shipped with a solid-colour fill and colored-rectangle "characters", exactly the thing the builder explicitly said not to do. The mechanism was simple: `GameScene` was the *only* place in the template that demonstrated how to consume the manifest, and deleting it deleted the only working example along with it.
+
+**The fix is a rule, not a patch to that one project:** deleting/replacing `GameScene` is expected and fine — its player-shooter gameplay is templated demo content, meant to be rewritten into whatever the actual game is. What is **not** demo content, and must be carried into every scene that replaces it, is the asset-consumption wiring "Platform-Delivered Assets" above describes. None of it is `GameScene`-specific; it only *lives* in `GameScene` today because this template ships exactly one gameplay scene.
+
+**Checklist for every new playable scene** (a `Level<N>Scene`, or any additional gameplay scene alongside one):
+
+1. **Background — call the shared helper, don't hand-roll the check again.** `../../src/game-assets.ts` exports `applyLevelBackground(scene, level, width, height)`: it checks `scene.textures.exists(backgroundTextureKey(level))` and, only if that texture is actually registered, draws it centered, sized to `width`×`height`, pinned to `setDepth(-1)` so it renders behind gameplay. No texture ⇒ no-op, return `false` — your scene's existing plain fill is already the fallback, there is nothing else to draw.
+
+   ```ts
+   import { applyLevelBackground, PLAYER_CHARACTER_KEY } from '../game-assets'
+   import { GAME_WIDTH, PLAYFIELD_HEIGHT } from '../config'
+
+   export class Level2Scene extends Phaser.Scene {
+     create(): void {
+       applyLevelBackground(this, 2, GAME_WIDTH, PLAYFIELD_HEIGHT) // level = 2 ⇒ reads public/assets/bg/level2.png if it loaded
+       this.player = this.physics.add.sprite(x, y, PLAYER_CHARACTER_KEY) // see point 2
+       // ...rest of this level's real gameplay
+     }
+   }
+   ```
+
+2. **Player sprite — always `PLAYER_CHARACTER_KEY`, never a key you invent.** `this.physics.add.sprite(x, y, PLAYER_CHARACTER_KEY)` resolves to the manifest's `"player"`-slugged character if the platform generated one, or `PreloadScene`'s procedural placeholder shape otherwise (see `PreloadScene.generatePlaceholderTextures()`'s guard) — every level shares the one texture-manager slot as the single source of truth for "what does the player look like." A scene that instead does `this.physics.add.sprite(x, y, 'level2-hero')` breaks that guarantee: nothing loaded that key, degradation to the placeholder never triggers, and Phaser silently renders its own "missing texture" checkerboard — which looks like a bug, not a graceful fallback.
+
+3. **Other characters (NPCs/enemies) — same manifest-driven pattern, explicit guard.** `this.textures.exists(slug)` first (the manifest's `characters` record — see `GameCharacterEntry`'s optional `level` field for level-specific ones); if true, `this.physics.add.sprite(x, y, slug)`; if false, fall back to one of the template's existing placeholder shapes (`coin`/`obstacle`/a hand-drawn `Graphics` rect) — never an unconditional sprite creation against a key that might not exist. This is the same discipline point 2 already enforces for the one reserved slug, generalized to every other character.
+
+4. **BGM — do not touch it from a level scene at all.** Playback starts exactly once, from `StartScene.handleStart()`'s `pointerdown` handler (the browser's required user gesture), and `this.sound` is the Game-level `SoundManager` — it is already playing by the time any level scene's `create()` runs. A new level scene needs zero BGM code. The mute toggle stays `UiScene`'s job, not something a level scene re-implements.
+
+5. **HUD launch — same "don't re-derive" rule, orthogonal to assets.** Whichever scene is the new gameplay scene launches `UI` and stops it on shutdown exactly the way `GameScene.create()` already shows (`this.scene.launch('UI', { levelKey: this.scene.key })` + a `SHUTDOWN` listener that stops it) — copy that pair, not just the asset calls, into each replacement scene.
+
+🔴 **Do not copy-paste the drawing logic itself between multiple `Level<N>Scene` files** — call `applyLevelBackground()` from each one. Hand-copying the `textures.exists()` + `add.image()` chain into five files is exactly the shape that goes stale the next time the fallback rule changes once and four of the five copies don't get the memo — the same reasoning `dimensions.ts` and `game-assets.ts` already apply to numeric/manifest constants, extended to a behavior.
+
 ## Common Patterns
 
 ### Full rebuild vs reuse-and-reset, side by side
@@ -233,6 +266,8 @@ These two checks exist because "the code that implements a mechanic" and "the co
 9. **Calling `this.sound.play()` anywhere except inside a real user-gesture handler.** Browsers silently refuse it otherwise — no exception, the call just does nothing, which is a confusing thing to debug from "the BGM just never plays." See "Platform-Delivered Assets" above: `this.load.audio()` (queuing the file) needs no gesture, only `this.sound.play()` (starting it) does. A start/title screen's own button click is usually the first real gesture available and the natural place to do this.
 
 10. **Hardcoding a request for a platform-delivered asset instead of consulting its manifest first.** `this.load.image('title', 'assets/title.png')` unconditionally, without checking `game-assets.json` said that file exists, reproduces exactly the failure "Platform-Delivered Assets" above exists to prevent: a request with nothing behind it whenever the platform hasn't generated that asset yet (which, for any project mid-development, is the common case, not the exception).
+
+11. **Deleting `GameScene` and not carrying its asset-consumption calls into whatever replaces it.** See "Writing a New Playable Scene? This Wiring Comes With It" above — this is the real incident this skill documents, not a hypothetical: five hand-written level scenes, zero `add.image` calls, zero `sound` calls, all-shape rendering, in a project whose builder explicitly asked for AI-generated art instead of shapes. `GameScene`'s gameplay is templated demo content and is meant to be replaced; `applyLevelBackground()` / `PLAYER_CHARACTER_KEY` / the BGM-stays-in-`StartScene` rule are not — they are the platform contract's consumer side, and they must land in every scene that plays a level, however many there end up being.
 
 ## Computed, Not Guessed
 

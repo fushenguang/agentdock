@@ -305,3 +305,80 @@ export function planAssetLoads(assets: GameAssets | null): readonly AssetLoadTas
 
   return tasks
 }
+
+// ───────────────────────────────────────────────────────────────────────
+// Level background — a helper shared by every scene that draws a level's
+// AI-generated background, not private to any one scene class.
+//
+// 🔴 Why this exists: this template ships exactly one gameplay scene
+// (`./scenes/GameScene.ts`), but a real project frequently deletes it and
+// writes its own `Level1Scene`/`Level2Scene`/... classes instead — that
+// rewrite is expected and fine, GameScene's own gameplay is templated demo
+// content. What is NOT demo content is the three-line "check the manifest
+// evidence, draw the image, pin it behind gameplay" dance GameScene used to
+// hand-roll in a private method — a real project deleted GameScene wholesale
+// and every one of its Level<N>Scene replacements ended up with a plain
+// solid-colour background and no AI art at all, because that logic had
+// nowhere else to live. See game-flow-and-hud's SKILL.md, "Platform-
+// Delivered Assets" section, for the full writeup — this function, plus
+// `PLAYER_CHARACTER_KEY`/`BGM_AUDIO_KEY` above, is what a new level scene
+// calls instead of re-deriving any of this from scratch.
+// ───────────────────────────────────────────────────────────────────────
+
+/**
+ * Structural (duck-typed) subset of `Phaser.Scene` this helper needs.
+ * Declared here instead of `import type { Scene } from 'phaser'` so this
+ * module keeps the zero-import, bare-Node-testable discipline documented at
+ * the top of this file — `tests/game-assets.test.mjs` exercises this
+ * function with a plain object literal, no Phaser/DOM/WebGL involved. A
+ * real `Phaser.Scene` satisfies this shape without any adaptation: both
+ * `scene.textures.exists(key)` and the `add.image(...).setDisplaySize(...).setDepth(...)`
+ * fluent chain are Phaser's own real, documented APIs — this interface is
+ * just that chain typed narrowly to only what's used.
+ */
+export interface BackgroundHostScene {
+  readonly textures: { exists(key: string): boolean }
+  readonly add: {
+    image(
+      x: number,
+      y: number,
+      key: string,
+    ): {
+      setDisplaySize(width: number, height: number): { setDepth(depth: number): unknown }
+    }
+  }
+}
+
+/**
+ * Draws `level`'s AI-generated background (`public/assets/bg/level<N>.png`,
+ * see the directory contract above) into `scene`, sized to `width`×`height`
+ * and pinned to `setDepth(-1)` so it always renders behind gameplay objects
+ * regardless of future add-order changes in the caller.
+ *
+ * 🔴 No manifest / no matching texture ⇒ a no-op, returning `false` — the
+ * caller's own existing plain background-color fill and placeholder shapes
+ * ARE this game's "shape placeholder" for a level background, so there is
+ * nothing else for this helper to draw as a fallback. This never re-parses
+ * `game-assets.json` and never loads anything itself (loading already
+ * happened in `PreloadScene`, or the file 404'd and never registered) — it
+ * only ever asks the texture manager, same discipline as every other
+ * consumer in this template.
+ *
+ * A new playable scene (a `Level<N>Scene` replacing `GameScene`, or an
+ * additional level alongside it) should call this once, near the top of its
+ * `create()`, instead of hand-rolling the `textures.exists()` check +
+ * `add.image()` chain again — see `GameScene.ts`'s own `drawLevelBackground()`
+ * for the reference call site. Extracting it here, not as a private method
+ * on GameScene, is what keeps the check from being lost if GameScene itself
+ * is deleted.
+ *
+ * The return value is for tests (`tests/game-assets.test.mjs`'s mutation
+ * check) — production callers don't need to branch on it, the correct
+ * fallback is already on screen either way.
+ */
+export function applyLevelBackground(scene: BackgroundHostScene, level: number, width: number, height: number): boolean {
+  const key = backgroundTextureKey(level)
+  if (!scene.textures.exists(key)) return false
+  scene.add.image(width / 2, height / 2, key).setDisplaySize(width, height).setDepth(-1)
+  return true
+}

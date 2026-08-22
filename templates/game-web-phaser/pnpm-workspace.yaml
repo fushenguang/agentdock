@@ -18,3 +18,14 @@
 # 我们把它显式写死，就不会再有人拿到一个半成品文件。
 allowBuilds:
   esbuild: true
+
+# 🔴 `packages` 是必填字段，不是可选项——实测（2026-08-22，标准 `agentdock init`
+# 脚手架出的独立项目，pnpm 9.0.0 与 npx pnpm@11.17.0 都复现）：这个文件一旦存在但
+# 没有 `packages` 键，`pnpm install` 直接报 `ERR_PNPM_INVALID_WORKSPACE_CONFIGURATION
+# packages field missing or empty`，比这个文件当初要修的 `ERR_PNPM_IGNORED_BUILDS`
+# 更早、更彻底地挡路——install 本身都跑不起来，`pnpm verify` 连门都摸不到。
+# 上面 allowBuilds 那次修复显然没有在一个真正独立（脱离 monorepo 根 pnpm-workspace.yaml）
+# 的目录里跑过 `pnpm install` 验证过，否则会当场撞见这个。
+# 这个模板不是多包 workspace，只是需要 `pnpm-workspace.yaml` 承载 allowBuilds 这一个
+# 设置，所以空数组就是正确值——不是占位，是"这里没有子包"的字面表达。
+packages: []
