@@ -1,6 +1,6 @@
 {
   "name": "@cogito.ai/minimax",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Typed, testable MiniMax media-generation client (image / music / video) with byte-only outputs and a duck-typed error classifier",
   "publishConfig": {
