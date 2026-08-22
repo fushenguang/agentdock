@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { GAME_WIDTH, PLAYFIELD_HEIGHT } from '../config'
 import { registerTrigger } from '../debug/harness'
 import type { GameState } from '../debug/state-jump'
-import { backgroundTextureKey, PLAYER_CHARACTER_KEY } from '../game-assets'
+import { applyLevelBackground, PLAYER_CHARACTER_KEY } from '../game-assets'
 
 const PLAYER_SPEED = 260
 const BULLET_SPEED = 420
@@ -214,30 +214,23 @@ export class GameScene extends Phaser.Scene {
   /**
    * Draws this level's AI-generated background, if `PreloadScene` loaded
    * one for `LEVEL_NUMBER` (`public/assets/bg/level<N>.png` via
-   * `game-assets.json` — see `../game-assets.ts`). No manifest re-parsing
-   * here, same discipline as the player texture above: this only ever asks
-   * the texture manager, never the manifest itself.
+   * `game-assets.json`). The actual "check the texture manager, draw it,
+   * pin it behind gameplay, no-op if missing" logic lives in
+   * `../game-assets.ts`'s `applyLevelBackground()` — a shared helper, not a
+   * private method on this class — specifically so it survives this class
+   * being deleted and replaced by a project's own `Level<N>Scene`(s). See
+   * that function's doc for the full contract (sizing, depth, fallback
+   * reasoning) and `../../skills/game-flow-and-hud/SKILL.md`'s
+   * "Platform-Delivered Assets" section for why this matters: a real
+   * project once deleted `GameScene` wholesale and this exact call was the
+   * one thing that didn't make it into the replacement scenes.
    *
    * Sized to `PLAYFIELD_HEIGHT`, not `GAME_HEIGHT` — the bottom
    * `HUD_BAND_HEIGHT` strip belongs to `UiScene`, not this world (see class
-   * doc / `../dimensions.ts`'s HUD band / playfield contract). Added first
-   * and pinned to `setDepth(-1)` so it always renders behind the
-   * player/bullets/coins/obstacles regardless of future add-order changes
-   * in this method. Deliberately un-named (`.name` left unset): background
-   * art is not an `EntitySnapshot` the harness should ever report or
-   * bounds-check (`../debug/harness.ts`'s `collectEntities()` only
-   * collects named objects).
-   *
-   * No manifest / no matching texture ⇒ this is a no-op — the existing
-   * plain `gameConfig.backgroundColor` fill and placeholder shapes already
-   * are this game's "shape placeholder" for a level background, so there
-   * is nothing else to draw as a fallback.
+   * doc / `../dimensions.ts`'s HUD band / playfield contract).
    */
   private drawLevelBackground(): void {
-    const key = backgroundTextureKey(LEVEL_NUMBER)
-    if (!this.textures.exists(key)) return
-
-    this.add.image(GAME_WIDTH / 2, PLAYFIELD_HEIGHT / 2, key).setDisplaySize(GAME_WIDTH, PLAYFIELD_HEIGHT).setDepth(-1)
+    applyLevelBackground(this, LEVEL_NUMBER, GAME_WIDTH, PLAYFIELD_HEIGHT)
   }
 
   /**

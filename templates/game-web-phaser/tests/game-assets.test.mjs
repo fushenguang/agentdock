@@ -21,6 +21,7 @@ import {
   parseBackgroundLevelKey,
   backgroundTextureKey,
   safeParseJson,
+  applyLevelBackground,
   TITLE_TEXTURE_KEY,
   BGM_AUDIO_KEY,
 } from '../src/game-assets.ts'
@@ -256,4 +257,97 @@ test('planAssetLoads() derives each background texture key from its manifest key
   assert.equal(tasks.length, 1)
   assert.equal(tasks[0].key, backgroundTextureKey(3))
   assert.equal(tasks[0].key, 'bg-level3')
+})
+
+// ───────────────────────────────────────────────────────────────────────
+// applyLevelBackground() — the helper shared by GameScene.ts (and any
+// Level<N>Scene a real project writes in its place, see
+// ../skills/game-flow-and-hud/SKILL.md's "Writing a New Playable Scene?"
+// section) so the "check the texture manager, draw it, pin it behind
+// gameplay, no-op if missing" logic is not private to one scene class.
+//
+// Exercised here against a plain duck-typed mock (`BackgroundHostScene` in
+// ../src/game-assets.ts), no Phaser/DOM/WebGL — same bare-Node discipline
+// as every other test in this file.
+// ───────────────────────────────────────────────────────────────────────
+
+/** A minimal fake `Phaser.GameObjects.Image`-shaped chain that records calls. */
+function makeFakeImage(calls) {
+  const image = {
+    setDisplaySize(width, height) {
+      calls.setDisplaySize.push([width, height])
+      return image
+    },
+    setDepth(depth) {
+      calls.setDepth.push(depth)
+      return image
+    },
+  }
+  return image
+}
+
+function makeFakeScene({ hasTexture }) {
+  const calls = { image: [], setDisplaySize: [], setDepth: [] }
+  const scene = {
+    textures: { exists: (key) => hasTexture(key) },
+    add: {
+      image(x, y, key) {
+        calls.image.push([x, y, key])
+        return makeFakeImage(calls)
+      },
+    },
+  }
+  return { scene, calls }
+}
+
+test('applyLevelBackground() is a no-op and returns false when the level texture is missing', () => {
+  const { scene, calls } = makeFakeScene({ hasTexture: () => false })
+  const drew = applyLevelBackground(scene, 1, 960, 476)
+  assert.equal(drew, false)
+  assert.deepEqual(calls.image, [])
+  assert.deepEqual(calls.setDisplaySize, [])
+  assert.deepEqual(calls.setDepth, [])
+})
+
+test('applyLevelBackground() draws the matching level texture, centered, sized, and depth-pinned, when it exists', () => {
+  const { scene, calls } = makeFakeScene({ hasTexture: (key) => key === backgroundTextureKey(2) })
+  const drew = applyLevelBackground(scene, 2, 960, 476)
+  assert.equal(drew, true)
+  assert.deepEqual(calls.image, [[480, 238, backgroundTextureKey(2)]])
+  assert.deepEqual(calls.setDisplaySize, [[960, 476]])
+  assert.deepEqual(calls.setDepth, [-1]) // behind gameplay regardless of add-order
+})
+
+test("applyLevelBackground() checks this level's own texture key, not just any background", () => {
+  // Manifest has level1's background loaded, but this scene is level 2 —
+  // must not draw level1's art under level2's key.
+  const { scene, calls } = makeFakeScene({ hasTexture: (key) => key === backgroundTextureKey(1) })
+  const drew = applyLevelBackground(scene, 2, 960, 476)
+  assert.equal(drew, false)
+  assert.deepEqual(calls.image, [])
+})
+
+// 🔴 Mutation check (AGENTS.md's brief for this change: flipping the
+// degrade-to-shapes branch into an unconditional load must turn a test red).
+test('mutation check: a background-apply that ignores the texture-exists guard has no discriminating power', () => {
+  const brokenApplyWithNoGuard = (scene, level, width, height) => {
+    scene.add.image(width / 2, height / 2, backgroundTextureKey(level))
+    return true
+  }
+
+  const brokenRun = makeFakeScene({ hasTexture: () => false })
+  brokenApplyWithNoGuard(brokenRun.scene, 3, 960, 476)
+  assert.notDeepEqual(
+    brokenRun.calls.image,
+    [],
+    'sanity: the deliberately-broken version does draw with no texture evidence',
+  )
+
+  const realRun = makeFakeScene({ hasTexture: () => false })
+  applyLevelBackground(realRun.scene, 3, 960, 476)
+  assert.deepEqual(
+    realRun.calls.image,
+    [],
+    'applyLevelBackground() drew without texture evidence to justify it',
+  )
 })
