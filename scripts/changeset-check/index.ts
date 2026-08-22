@@ -149,7 +149,7 @@ function main() {
 
   console.error('changeset-check: FAILED')
   console.error('')
-  console.error('This PR changes files that ship inside the @cogito.ai/cli npm package,')
+  console.error('This PR changes files that ship inside a published npm package,')
   console.error('but adds no .changeset/*.md. Without one, changesets will never open a')
   console.error('"Version Packages" PR for this change, and it will silently never be')
   console.error('published to npm — exactly what happened to PR #70/#71/#72.')
