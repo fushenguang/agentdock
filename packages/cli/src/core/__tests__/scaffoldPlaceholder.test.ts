@@ -14,6 +14,7 @@ import {
   PROJECT_NAME_PLACEHOLDER,
   scaffoldProject,
 } from '../scaffold.js'
+import { getTemplate } from '../registry.js'
 import type { RegistryTemplate } from '../registry.js'
 
 // A minimal fake PNG: real magic bytes followed by non-UTF8 bytes and, in
@@ -155,5 +156,58 @@ describe('scaffoldProject — name validation gate', () => {
     expect((result as { error: string }).error).toBe('INVALID_NAME')
     // Validation must happen before any directory is created.
     expect(existsSync(targetDir)).toBe(false)
+  })
+})
+
+// ─── end-to-end wiring: scaffoldProject → replaceProjectNamePlaceholder ──────
+//
+// The tests above exercise replaceProjectNamePlaceholder() directly, which
+// proves the function itself is correct but says nothing about whether
+// scaffoldProject() actually calls it. This block scaffolds the REAL
+// game-web-phaser template (the one with the reported bug) end-to-end and
+// asserts zero {{PROJECT_NAME}} occurrences survive — this is the test that
+// must go red if the call site in scaffoldProject is ever removed.
+describe('scaffoldProject — end-to-end placeholder substitution (real template)', () => {
+  let tmpDir: string
+
+  beforeEach(() => {
+    tmpDir = join(tmpdir(), `agentdock-scaffold-e2e-test-${Date.now()}-${Math.random()}`)
+  })
+
+  afterEach(() => {
+    try {
+      rmSync(tmpDir, { recursive: true, force: true })
+    } catch {
+      // ignore cleanup errors
+    }
+  })
+
+  it('leaves no {{PROJECT_NAME}} in the scaffolded game-web-phaser project and sets the title', () => {
+    const template = getTemplate('game-web-phaser')
+    expect(template).toBeDefined()
+    if (!template) throw new Error('game-web-phaser template not found in registry')
+
+    const targetDir = join(tmpDir, 'my-game')
+    const result = scaffoldProject({
+      targetDir,
+      name: 'My Cool Game',
+      template,
+      packageManager: 'pnpm',
+    })
+
+    expect(result.ok).toBe(true)
+
+    const indexHtml = readFileSync(join(targetDir, 'index.html'), 'utf-8')
+    expect(indexHtml).toContain('<title>My Cool Game</title>')
+    expect(indexHtml).not.toContain(PROJECT_NAME_PLACEHOLDER)
+
+    const readme = readFileSync(join(targetDir, 'README.md'), 'utf-8')
+    expect(readme).not.toContain(PROJECT_NAME_PLACEHOLDER)
+
+    const startScene = readFileSync(
+      join(targetDir, 'src', 'scenes', 'StartScene.ts'),
+      'utf-8',
+    )
+    expect(startScene).not.toContain(PROJECT_NAME_PLACEHOLDER)
   })
 })
