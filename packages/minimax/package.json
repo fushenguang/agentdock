@@ -1,0 +1,38 @@
+{
+  "name": "@cogito.ai/minimax",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Typed, testable MiniMax media-generation client (image / music / video) with byte-only outputs and a duck-typed error classifier",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "mmx-cli": "1.0.22"
+  },
+  "devDependencies": {
+    "@cogito.ai/tsconfig": "workspace:*",
+    "@types/node": "^22.0.0",
+    "typescript": "5.9.2",
+    "vitest": "^4.1.8"
+  }
+}
