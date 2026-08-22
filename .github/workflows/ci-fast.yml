@@ -1,7 +1,7 @@
 # ci-fast.yml — Quality gates on every pull request
 #
 # Jobs run IN PARALLEL for fast feedback (typically < 5 min total).
-# Covers: type-check, lint, arch-guard, build, unit-tests.
+# Covers: type-check, lint, arch-guard, changeset-check, build, unit-tests.
 # Intentionally excludes secretlint and align:check:
 #   - secretlint runs in ci-full.yml (post-merge to main)
 #   - align:check runs in align-check.yml (separate workflow, not duplicated here)
@@ -79,6 +79,34 @@ jobs:
 
       - name: Run architecture check
         run: pnpm arch:check
+
+  # ── Changeset Required ──────────────────────────────────────────────────────
+  # Guards against a repeat of PR #70/#71/#72: three template changes merged
+  # into main with zero `.changeset/*.md`, so `npx @cogito.ai/cli init` kept
+  # serving stale templates forever — changesets only cuts a release when a
+  # changeset file exists. See scripts/changeset-check/index.ts for the scope.
+  changeset-check:
+    name: Changeset Required
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need full history to diff against the PR base
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Require a changeset for publishable changes
+        env:
+          CHANGESET_CHECK_BASE: origin/${{ github.base_ref }}
+        run: pnpm changeset:check
 
   # ── Build ─────────────────────────────────────────────────────────────────
   # CLI package uses `bun build` — requires Bun runtime.
