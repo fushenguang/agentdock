@@ -10,6 +10,16 @@
 //   BH-2  render  — the screenshot is provably non-empty (unique-colour +
 //                   variance floor, not just "a PNG exists") and the game
 //                   canvas has non-zero size
+//   AU    asset usage — if `public/game-assets.json` declared anything,
+//                   the assets it named actually reached the runtime
+//                   (texture/audio cache) AND something in the game is
+//                   currently drawing/playing them — see
+//                   scripts/lib/asset-usage.mjs's header for the real
+//                   incident (add.image hit-count 0 across every level,
+//                   despite every other gate passing) that motivated this.
+//   IA    assertions — machine-judgable acceptance items from
+//                   assertions.json, judged against window.__gameHarness
+//                   (see scripts/assert.mjs).
 //
 // Zero new dependencies (Gate ②): this spawns whatever Chromium already
 // exists in the environment (scripts/lib/find-browser.mjs) and speaks CDP
@@ -32,6 +42,7 @@ import { launchBrowser } from './lib/browser-launch.mjs'
 import { inspectPage } from './lib/inspect-page.mjs'
 import { decodePng, judgeScreenshotNonEmpty } from './lib/png.mjs'
 import { judgeEntitiesWithinBounds, ENTITY_BOUNDS_MARGIN_PX, BOUNDS_OBSERVATION_MS } from './lib/entity-bounds.mjs'
+import { judgeAssetUsage } from './lib/asset-usage.mjs'
 import { runAssertions, RemoteHarness } from './assert.mjs'
 import { decideExitCode, decideVerdict } from './lib/exit-decision.mjs'
 
@@ -83,6 +94,17 @@ const ASSERTIONS_NOT_RUN = {
   results: [],
 }
 
+/**
+ * What gets written into `assetUsage` when `pnpm verify` aborts before the
+ * AU gate ever got a chance to run — same "aborted, not judged" reasoning
+ * as `ASSERTIONS_NOT_RUN` above (design consistency, not a claim that no
+ * manifest exists).
+ */
+const ASSET_USAGE_NOT_RUN = {
+  status: 'unavailable',
+  reason: 'asset-usage gate did not run — verify aborted before the BH gates completed',
+}
+
 function recordGate(id, label, passed, detail) {
   gateResults.push({ id, label, passed, detail: detail ?? null })
 }
@@ -109,7 +131,7 @@ process.on('exit', (code) => {
   if (!resultWritten) writeResultFile(code === 0)
 })
 
-function writeResultFile(passed, assertions = ASSERTIONS_NOT_RUN) {
+function writeResultFile(passed, assertions = ASSERTIONS_NOT_RUN, assetUsage = ASSET_USAGE_NOT_RUN) {
   if (resultWritten) return
   resultWritten = true
   const payload = {
@@ -125,12 +147,20 @@ function writeResultFile(passed, assertions = ASSERTIONS_NOT_RUN) {
     // 🔴 `assertions` MUST NOT be read as "IA passed" unless
     // `assertions.status === 'judged'` AND every entry in `results` passed.
     //
-    // `passed` above is the combined BH+IA verdict (`decideVerdict()`), not
-    // BH alone. It was BH-only in the first implementation, which meant a run
-    // with a failing assertion wrote `passed: true` while exiting 1 — and the
-    // web side renders 「验收结论」 straight off this field, so that run
-    // displayed as a pass. One artifact must not carry two answers.
+    // `passed` above is the combined BH+AU+IA verdict (`decideVerdict()`),
+    // not BH alone. It was BH-only in the first implementation, which meant
+    // a run with a failing assertion wrote `passed: true` while exiting 1 —
+    // and the web side renders 「验收结论」 straight off this field, so that
+    // run displayed as a pass. One artifact must not carry two answers.
     assertions,
+    // 🔴 asset-usage-gate design, added the same way `assertions` was
+    // (ia-assertion-runner): a new top-level field, `schemaVersion`
+    // deliberately NOT bumped — see that change's note on this same line
+    // for why (a version bump would make every existing generated
+    // project's results `unavailable` for a field they don't use yet).
+    // Same "must not be read as passed unless status/passed both say so"
+    // rule as `assertions` above.
+    assetUsage,
   }
   try {
     writeFileSync(RESULT_FILE, JSON.stringify(payload, null, 2) + '\n')
@@ -373,6 +403,37 @@ async function main() {
     recordGate('BH-2', '渲染', true, bh2Detail)
     console.log(`[verify] BH-2 render — passed (${bh2Detail})`)
 
+    // ---- AU (asset-usage-gate) ----
+    // 🔴 Piggybacks on the two entity-bounds snapshots already taken above —
+    // zero extra CDP round trips. `firstBoundsSnapshot` is taken right after
+    // page-load settle (whatever state boots first, e.g. Start — this is
+    // where a title-screen asset would show up as used); `secondBoundsSnapshot`
+    // (when it ran — see `secondSampleNote` above) is taken after
+    // `applyState()` onto the gameplay-role state, which is where
+    // backgrounds/characters are expected to show up. `judgeAssetUsage()`
+    // unions `usedInScene` across whichever of the two actually ran — see
+    // that function's own doc for why a single snapshot can't see everything
+    // a project draws across its state machine.
+    console.log('[verify] AU asset usage — checking declared assets made it into the runtime and are actually used...')
+    const assetSnapshotsForUsage = [firstBoundsSnapshot.assets]
+    if (secondBoundsSnapshot) assetSnapshotsForUsage.push(secondBoundsSnapshot.assets)
+    const assetUsageResult = judgeAssetUsage(assetSnapshotsForUsage)
+    logAssetUsageResult(assetUsageResult)
+
+    // 🔴 Same reasoning as IA's `absent` below: nobody declared any assets,
+    // so an AU row would be inventing a gate that does not apply to this
+    // project. `unavailable` and a `judged`-with-failure DO get a row —
+    // both are real "this did not pass" outcomes.
+    const auPassed = assetUsageResult.status === 'absent' || (assetUsageResult.status === 'judged' && assetUsageResult.passed)
+    if (assetUsageResult.status !== 'absent') {
+      recordGate(
+        'AU',
+        '素材使用',
+        auPassed,
+        assetUsageResult.status === 'unavailable' ? `未判定：${assetUsageResult.reason}` : assetUsageResult.reason,
+      )
+    }
+
     // ---- IA (ia-assertion-runner, design D7) ----
     // 🔴 Same CDP session (`inspected.client`/`inspected.sessionId`), no
     // second page load. BH-1's evidence is handed straight to `loads_clean`'s
@@ -393,7 +454,14 @@ async function main() {
     // gate list would be inventing a gate that does not apply to this
     // project. `unavailable` DOES record a red row — someone asked and we
     // could not judge it, which is never a pass.
-    const verdict = decideVerdict({ bhPassed: true, assertions: assertionsResult })
+    // 🔴 `bhPassed` here is really "everything gated before IA passed" — BH-0
+    // through BH-2 (any failure among those already threw via `fail()` and
+    // never reached this line, so it's structurally `true` for them by the
+    // time we get here) AND the AU gate above. `decideVerdict()`'s own
+    // contract only needs one boolean for "did the non-IA half of the run
+    // pass", so folding AU into it is the same shape IA itself already
+    // established, not a new concept.
+    const verdict = decideVerdict({ bhPassed: auPassed, assertions: assertionsResult })
     if (assertionsResult.status !== 'absent') {
       recordGate(
         'IA',
@@ -405,18 +473,31 @@ async function main() {
       )
     }
 
-    writeResultFile(verdict.passed, assertionsResult)
+    writeResultFile(verdict.passed, assertionsResult, assetUsageResult)
     console.log(`\n[verify] Wrote ${RESULT_FILE}`)
 
     // `process.exitCode` (not `process.exit()`) so the `finally` block below
     // still runs its cleanup before Node actually exits.
-    const exitCode = decideExitCode({ bhPassed: true, assertions: assertionsResult })
+    const exitCode = decideExitCode({ bhPassed: auPassed, assertions: assertionsResult })
     if (exitCode !== 0) {
+      // 🔴 Before AU existed, reaching `exitCode !== 0` here was only
+      // possible via IA (bhPassed was a hardcoded `true`) — so the `else`
+      // branch below could assume IA was always the cause. That's no longer
+      // true: AU can now fail this run on its own while IA is `absent` or
+      // fully `judged`-passing. Each block below is therefore gated on its
+      // OWN status actually being a failure, not on "exitCode is non-zero"
+      // — printing "IA FAILED (0/0)" for a run IA had nothing to do with
+      // would misattribute the failure.
+      if (!auPassed) {
+        console.error(
+          `\n[verify] AU asset usage — ${assetUsageResult.status === 'unavailable' ? 'UNAVAILABLE' : 'FAILED'} (${assetUsageResult.reason})`,
+        )
+      }
       if (assertionsResult.status === 'unavailable') {
         console.error(
           `\n[verify] IA assertions — UNAVAILABLE (${assertionsResult.reason}) — a gate that could not run is not a gate that passed`,
         )
-      } else {
+      } else if (assertionsResult.status === 'judged' && assertionsResult.passedCount < assertionsResult.total) {
         const failedCount = assertionsResult.total - assertionsResult.passedCount
         console.error(
           `\n[verify] IA assertions — FAILED (${failedCount}/${assertionsResult.total} failed) — see .verify-result.json "assertions.results"`,
@@ -434,6 +515,18 @@ async function main() {
     proc?.kill()
     server?.close()
   }
+}
+
+function logAssetUsageResult(result) {
+  if (result.status === 'absent') {
+    console.log(`[verify] AU asset usage — absent (${result.reason})`)
+    return
+  }
+  if (result.status === 'unavailable') {
+    console.log(`[verify] AU asset usage — unavailable (${result.reason})`)
+    return
+  }
+  console.log(`[verify] AU asset usage — judged: ${result.passed ? 'PASS' : 'FAIL'} — ${result.reason}`)
 }
 
 function logAssertionsResult(result) {

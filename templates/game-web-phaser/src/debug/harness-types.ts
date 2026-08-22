@@ -65,6 +65,55 @@ export interface WorldBoundsSnapshot {
 }
 
 /**
+ * One asset `../game-assets.ts`'s manifest declared and `planAssetLoads()`
+ * decided to queue — independent of whether it ever actually made it into
+ * the runtime. Mirrors `AssetLoadTask`'s `key`/`kind` fields exactly (not
+ * imported from there — this file's zero-import contract, see this file's
+ * header — but `tests/asset-usage.test.mjs` / `tests/game-assets.test.mjs`
+ * both exist to catch the two ever drifting apart).
+ */
+export type DeclaredAssetKind = 'image' | 'audio'
+
+/** @see DeclaredAssetKind */
+export interface DeclaredAsset {
+  readonly key: string
+  readonly kind: DeclaredAssetKind
+}
+
+/**
+ * Asset-usage evidence for one `getSnapshot()` call (asset-usage-gate
+ * design). Answers the two questions a green BH/IA run has historically
+ * been blind to — a real incident where a generated project's `add.image`
+ * hit-count was 0 across every level despite BH-0/BH-1/BH-2 and IA all
+ * passing:
+ *
+ *   1. "Did a declared asset make it into the runtime at all?" — `declared`
+ *      vs `loaded` (texture-manager / audio-cache membership).
+ *   2. "Is anything on screen (or in the sound manager) actually
+ *      referencing it right now?" — `usedInScene`.
+ *
+ * 🔴 **What `usedInScene` proves and what it doesn't.** A key appearing
+ * here means a real `GameObject` in one of the game's currently active
+ * scenes has that exact texture key attached (images), or that key has been
+ * handed to the game-level `SoundManager` at least once via `.add()`/
+ * `.play()` (audio) — see `../debug/harness.ts`'s `usedImageKeys()`/
+ * `usedAudioKeys()` for the exact mechanism. It does **not** prove the
+ * asset is drawn correctly, visible on top of everything else, sized
+ * right, or (for audio) actually audible right now — browser autoplay
+ * policies can silently block playback even after `.play()` was called.
+ * It also only reflects scenes active **at the moment this snapshot was
+ * taken** — a texture only ever drawn in a different state will not appear
+ * here even though the project genuinely uses it elsewhere. See
+ * `scripts/lib/asset-usage.mjs`'s judge, which unions more than one
+ * snapshot (taken at different points in the run) for exactly that reason.
+ */
+export interface AssetUsageSnapshot {
+  readonly declared: readonly DeclaredAsset[]
+  readonly loaded: readonly string[]
+  readonly usedInScene: readonly string[]
+}
+
+/**
  * A read-only snapshot of the live game at one instant (design D1).
  *
  * 🔴 `score: number | null` — `null` means "this game has no scoring
@@ -72,6 +121,12 @@ export interface WorldBoundsSnapshot {
  * Collapsing those into a single value would make `restart`'s "score resets
  * to zero" judgement trivially true for a game that was never scoring
  * anything in the first place.
+ *
+ * 🔴 `assets: AssetUsageSnapshot | null` follows the exact same convention:
+ * `null` means "no `game-assets.json` manifest declared anything usable at
+ * all" (asset-usage-gate `absent`), never a synthetic empty snapshot that
+ * would make "declared but unused" trivially unfalsifiable for a project
+ * that never opted into the manifest in the first place.
  */
 export interface HarnessSnapshot {
   readonly stateId: string
@@ -81,6 +136,8 @@ export interface HarnessSnapshot {
   readonly values: Readonly<Record<string, number>>
   /** trigger-integrity-and-onscreen-gate task 2.1 — read-only, no matching setter anywhere in `GameHarness`. */
   readonly worldBounds: WorldBoundsSnapshot
+  /** asset-usage-gate design — see `AssetUsageSnapshot`'s own doc. */
+  readonly assets: AssetUsageSnapshot | null
 }
 
 /**

@@ -90,6 +90,8 @@ The outer platform can drop AI-generated art/audio into `public/assets/` (`title
 - **Never hardcode a `this.load.image()`/`this.load.audio()` call for one of these paths without the manifest having confirmed it first.** `src/scenes/PreloadScene.ts`'s `queueManifestAssets()` — driven by the pure, unit-tested `planAssetLoads()` in `src/game-assets.ts` — is the only place that decides what to request, precisely so "missing manifest ⇒ request nothing" stays a checkable fact (`tests/game-assets.test.mjs`), not something a reviewer has to trust by reading Phaser plumbing. A missing manifest or a 404'd individual file must never throw or leave the game half-loaded — see `src/scenes/StartScene.ts`/`GameScene.ts`'s use of `this.textures.exists(...)` for the fallback pattern to copy.
 - **Starting background music requires a real user gesture.** `this.sound.play()` called anywhere outside a click/keypress/tap handler is silently refused by the browser's autoplay policy — no exception, it just does nothing. This template's reference fix starts BGM from `StartScene`'s "开始游戏" button `pointerdown` handler and nowhere else; see `skills/game-flow-and-hud/SKILL.md`'s "Platform-Delivered Assets" section for the full reasoning.
 
+🔴 **A manifest confirming a file exists is not the same as the game actually drawing/playing it.** Real incident: a generated project's manifest declared backgrounds/characters, `PreloadScene` queued and loaded every file, and BH-0/BH-1/BH-2/IA all passed — but the level scenes deleted/replaced `GameScene` never called anything that consumed them, so every level shipped with `add.image` hit-count 0 and no BGM. `pnpm verify`'s **AU (asset usage)** gate exists specifically to catch this: right after BH-2, it re-derives the manifest's asset-load plan and checks (a) each declared key actually reached the texture/audio cache and (b) at least one `GameObject` in an active scene (or the sound manager, for audio) is currently referencing it — see `src/debug/harness.ts`'s `readAssetUsage()`/`usedImageKeys()`/`usedAudioKeys()` and `scripts/lib/asset-usage.mjs`'s judge. Same three-state discipline as rule 6's IA gate: **`absent`** (no manifest — not a failure), **`unavailable`** (couldn't judge — counts as failure), **`judged`** (a real pass/fail, `.verify-result.json`'s `assetUsage` field). If you write a new level scene that consumes a manifest asset a different way than `applyLevelBackground()`/`PLAYER_CHARACTER_KEY`, make sure it still ends up as a real `GameObject` with that texture key attached (or a real `this.sound.add()`/`.play()` call for audio) — that GameObject/Sound existing is exactly what this gate checks for, and what it cannot check is whether the result looks good.
+
 ## Project layout
 
 ```text
@@ -97,13 +99,14 @@ index.html            # entry HTML + the CSS reset that keeps the canvas positio
 vite.config.ts         # dev/preview server config — port 8080 pinned (rule 2), build:play/build:learn outDir split
 assertions.json        # sample machine-judgable acceptance items (rule 6) — one per upstream template
 scripts/
-├── verify.mjs          # pnpm verify — BH-0/BH-1/BH-2 gates + IA assertion judging, one CDP session
+├── verify.mjs          # pnpm verify — BH-0/BH-1/BH-2 + AU (asset usage) gates + IA assertion judging, one CDP session
 ├── assert.mjs           # the IA judging engine verify.mjs calls; also runnable standalone (`node scripts/assert.mjs`)
-└── lib/                 # shared CDP/browser/static-server/PNG/entity-bounds plumbing both scripts above use
+└── lib/                 # shared CDP/browser/static-server/PNG/entity-bounds/asset-usage plumbing scripts above use
 tests/
 ├── state-jump.test.mjs  # traversal assertion for src/debug/state-jump.ts
 ├── harness-types.test.mjs # bare-Node import guard for src/debug/harness-types.ts
 ├── assert.test.mjs        # per-template judge tests (positive + negative) and design D6's order-independence test
+├── asset-usage.test.mjs   # AU gate's absent/unavailable/judged tri-state (rule 8)
 ├── exit-decision.test.mjs # design D8's exit-code rule
 └── png.test.mjs           # non-empty-screenshot judgement, incl. the required solid-colour negative case
 src/
@@ -151,7 +154,7 @@ Keep this split. Don't collapse Boot/Preload/Game back into one file — it's wh
 ## Acceptance checklist before calling a task done
 
 1. `pnpm check-types` — exits 0.
-2. `pnpm verify` — exits 0. This is the executable replacement for "build it and take a screenshot": it builds `dist-play/` (BH-0), loads it in real headless Chromium over CDP and fails loudly if the page throws an uncaught exception or has a failed resource request (BH-1), and fails loudly if the rendered screenshot is provably empty (solid-colour PNG, not just "a PNG exists"), the game canvas has zero size, or any named entity (`getSnapshot().entities`) has drifted outside the game's world bounds (BH-2). Read `scripts/verify.mjs` for the exact judgement, and `pnpm test` for the unit tests behind it (`tests/`). If this project has an `assertions.json`, `pnpm verify` also judges every item in it against `window.__gameHarness` right after the BH gates (same CDP session, no second page load) and exits non-zero if any of them fail — see rule 6 above before touching scenes if this project uses machine-judgable acceptance items.
+2. `pnpm verify` — exits 0. This is the executable replacement for "build it and take a screenshot": it builds `dist-play/` (BH-0), loads it in real headless Chromium over CDP and fails loudly if the page throws an uncaught exception or has a failed resource request (BH-1), and fails loudly if the rendered screenshot is provably empty (solid-colour PNG, not just "a PNG exists"), the game canvas has zero size, or any named entity (`getSnapshot().entities`) has drifted outside the game's world bounds (BH-2). If `public/game-assets.json` declared anything, it also fails loudly if none of the declared assets reached the texture/audio cache, or if they loaded but nothing currently on screen (or in the sound manager) actually references them (AU — see rule 8). Read `scripts/verify.mjs` for the exact judgement, and `pnpm test` for the unit tests behind it (`tests/`). If this project has an `assertions.json`, `pnpm verify` also judges every item in it against `window.__gameHarness` right after the BH/AU gates (same CDP session, no second page load) and exits non-zero if any of them fail — see rule 6 above before touching scenes if this project uses machine-judgable acceptance items.
 3. Dev server started **in the background** (rule 1), and reachable at `http://localhost:8080/`.
 4. Every interactive key/control your change touches has been pressed and observed, not just one of them (rule 5) — `pnpm verify` does not simulate keyboard input, so this one is still a judgment call for you, not the machine.
 5. Working state committed to git (rule 3).

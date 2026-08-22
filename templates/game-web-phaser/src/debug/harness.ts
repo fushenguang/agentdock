@@ -1,5 +1,6 @@
 import Phaser from 'phaser'
 import type {
+  AssetUsageSnapshot,
   EntitySnapshot,
   GameHarness,
   HarnessSnapshot,
@@ -8,6 +9,7 @@ import type {
   WorldBoundsSnapshot,
 } from './harness-types'
 import { jump, isValidStart, listStates as listStateIds, type StateId, type GameState } from './state-jump'
+import { normalizeGameAssets, planAssetLoads, safeParseJson, GAME_ASSETS_RAW_CACHE_KEY } from '../game-assets'
 
 /**
  * `window.__gameHarness` reference implementation (design D1/D2/D3).
@@ -311,6 +313,94 @@ function readValues(game: Phaser.Game): Readonly<Record<string, number>> {
   return game.registry.has('highScore') ? { highScore: game.registry.get('highScore') as number } : {}
 }
 
+/**
+ * Re-derives this project's asset-load plan from the manifest's raw cached
+ * text (`../game-assets.ts`'s `GAME_ASSETS_RAW_CACHE_KEY`) instead of
+ * threading `PreloadScene`'s own result through the registry. Cheap and
+ * pure (`normalizeGameAssets`/`safeParseJson`/`planAssetLoads` do no I/O),
+ * and it can never drift from what `PreloadScene` itself queued because
+ * both call the exact same pure functions on the exact same cached text —
+ * see that constant's own doc for the "same fact stored twice" reasoning.
+ *
+ * `undefined` cache text (manifest never loaded/404'd) flows straight
+ * through `safeParseJson()` -> `normalizeGameAssets()` -> `null`, and
+ * `planAssetLoads(null)` returns `[]` — the same missing-manifest degrade
+ * every other consumer of this module already relies on.
+ */
+function declaredAssetTasks(game: Phaser.Game): readonly { key: string; kind: 'image' | 'audio' }[] {
+  const raw = game.cache.text.get(GAME_ASSETS_RAW_CACHE_KEY) as string | undefined
+  return planAssetLoads(normalizeGameAssets(safeParseJson(raw)))
+}
+
+/**
+ * Which of `imageKeys` are attached (as `.texture.key`) to a GameObject
+ * somewhere in one of the game's currently ACTIVE scenes, right now.
+ *
+ * 🔴 Same non-recursive discipline as `collectEntities()` above: only each
+ * scene's direct `children.list` is scanned, not into `Container`s. And
+ * only scenes active *at the moment this runs* are scanned — see
+ * `AssetUsageSnapshot`'s doc on why the caller (`scripts/lib/asset-usage.mjs`)
+ * unions more than one snapshot rather than trusting a single call to see
+ * everything a project ever draws.
+ */
+function usedImageKeys(game: Phaser.Game, imageKeys: ReadonlySet<string>): string[] {
+  if (imageKeys.size === 0) return []
+  const used = new Set<string>()
+  for (const scene of game.scene.getScenes(true)) {
+    for (const child of scene.children.list) {
+      const texture = (child as Phaser.GameObjects.GameObject & { texture?: { key?: unknown } }).texture
+      const key = texture?.key
+      if (typeof key === 'string' && imageKeys.has(key)) used.add(key)
+    }
+  }
+  return [...used]
+}
+
+/**
+ * Which of `audioKeys` have ever been handed to the game-level
+ * `SoundManager` (`this.sound.add()`/`.play()` — see `StartScene.ts`'s BGM
+ * playback). Global to the whole `Phaser.Game`, not scoped to any one
+ * scene — there is exactly one `SoundManager` per game, shared by every
+ * scene — so unlike `usedImageKeys()` this does not depend on which scene
+ * is currently active. A hit proves the code referenced this audio key at
+ * least once; it does not prove audio is audible right now (browser
+ * autoplay-gesture policies can block actual playback even after `.play()`
+ * runs — see AGENTS.md rule 8).
+ */
+function usedAudioKeys(game: Phaser.Game, audioKeys: ReadonlySet<string>): string[] {
+  const used: string[] = []
+  for (const key of audioKeys) {
+    if (game.sound.get(key)) used.push(key)
+  }
+  return used
+}
+
+/**
+ * Builds this snapshot's `assets` field (asset-usage-gate design). `null`
+ * when the manifest declared nothing usable at all — see
+ * `HarnessSnapshot.assets`'s own doc for why that's `null`, not an empty
+ * object.
+ */
+function readAssetUsage(game: Phaser.Game): AssetUsageSnapshot | null {
+  const tasks = declaredAssetTasks(game)
+  if (tasks.length === 0) return null
+
+  const imageKeys = new Set(tasks.filter((t) => t.kind === 'image').map((t) => t.key))
+  const audioKeys = new Set(tasks.filter((t) => t.kind === 'audio').map((t) => t.key))
+
+  const loaded = tasks
+    .filter((t) => (t.kind === 'image' ? game.textures.exists(t.key) : game.cache.audio.exists(t.key)))
+    .map((t) => t.key)
+
+  const usedInScene = [...usedImageKeys(game, imageKeys), ...usedAudioKeys(game, audioKeys)]
+
+  return {
+    declared: tasks.map((t) => ({ key: t.key, kind: t.kind })),
+    loaded,
+    usedInScene,
+  }
+}
+
 function buildSnapshot(game: Phaser.Game): HarnessSnapshot {
   const scene = activeGameplayScene(game)
   return {
@@ -320,6 +410,7 @@ function buildSnapshot(game: Phaser.Game): HarnessSnapshot {
     hudTexts: collectHudTexts(game, scene),
     values: readValues(game),
     worldBounds: readWorldBounds(game, scene),
+    assets: readAssetUsage(game),
   }
 }
 

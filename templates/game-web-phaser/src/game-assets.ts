@@ -88,6 +88,21 @@ export interface GameAssets {
 // later" reasoning `dimensions.ts` documents at length.
 // ───────────────────────────────────────────────────────────────────────
 
+/**
+ * Phaser text-cache key `PreloadScene` stores the manifest's raw (unparsed)
+ * text under (`this.load.text('gameAssetsRaw', 'game-assets.json')` /
+ * `this.cache.text.get(GAME_ASSETS_RAW_CACHE_KEY)`).
+ *
+ * Shared with `../debug/harness.ts` (asset-usage-gate design), which
+ * re-derives the same `GameAssets`/`AssetLoadTask[]` from this cached text
+ * at snapshot time — via the exact same `safeParseJson()` +
+ * `normalizeGameAssets()` + `planAssetLoads()` pipeline `PreloadScene`
+ * already ran — instead of hand-copying this key string a second time. Same
+ * "same fact stored twice, drifts later" discipline as every other
+ * well-known key in this file.
+ */
+export const GAME_ASSETS_RAW_CACHE_KEY = 'gameAssetsRaw'
+
 /** Texture key `PreloadScene` registers `assets.title`'s image under. */
 export const TITLE_TEXTURE_KEY = 'title'
 
