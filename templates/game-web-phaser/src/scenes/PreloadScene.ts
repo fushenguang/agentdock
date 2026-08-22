@@ -37,9 +37,29 @@ export class PreloadScene extends Phaser.Scene {
       this.progressBar.fillRect(GAME_WIDTH / 2 - 160, GAME_HEIGHT / 2 - 10, 320 * value, 20)
     })
 
-    // Nothing to load yet in this starter — replace with real this.load.*
-    // calls once you have assets. Leaving the loader empty is fine; it
-    // fires 'complete' immediately.
+    // In-game documentation panel content (see ../doc-panel.ts,
+    // ../game-doc.ts, ../scenes/UiScene.ts's mountDocEntry()). Loaded here,
+    // not fetched ad hoc from UiScene, so it's ready synchronously by the
+    // time GameScene/UiScene's create() runs — no async flash of the entry
+    // button appearing then disappearing.
+    //
+    // 🔴 A missing `public/game-doc.json` is an EXPECTED, non-fatal case
+    // (see game-doc.ts's header doc: default-hidden is the whole point),
+    // not an error to guard against here. Phaser's JSONFile loader treats
+    // a failed load as a per-file loaderror — it does not throw, and it
+    // does not stop 'complete' from firing for the rest of the queue; the
+    // failed key is simply absent from `this.cache.json`, which is exactly
+    // what `UiScene.mountDocEntry()` checks for. This also does not fail
+    // scripts/verify.mjs's BH-1 gate: a 404 response completes the network
+    // request (CDP reports `Network.loadingFinished`), it does not fire
+    // `Network.loadingFailed` — BH-1 only fails on genuine network-level
+    // failures, not HTTP error statuses.
+    this.load.json('gameDoc', 'game-doc.json')
+
+    // Nothing else to load yet in this starter — replace with real
+    // this.load.* calls once you have assets. Leaving the rest of the
+    // loader empty is fine; it fires 'complete' as soon as the queue above
+    // settles.
   }
 
   create(): void {

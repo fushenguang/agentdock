@@ -153,13 +153,20 @@ export class GameScene extends Phaser.Scene {
       this.registry.set('highScore', 0)
     }
 
-    // HUD (score text + instructions) lives in UiScene, launched in
-    // parallel with this scene — see the class doc and
+    // HUD (score text + instructions + doc-panel entry) lives in UiScene,
+    // launched in parallel with this scene — see the class doc and
     // dimensions.ts's HUD band / playfield contract. `launch()` is a no-op
     // if UI is already running (e.g. mid-life state churn), and always
     // starts it fresh here because the SHUTDOWN listener below stops it
     // first on every restart/scene-change.
-    this.scene.launch('UI')
+    //
+    // `levelKey: this.scene.key` — UiScene's doc-panel entry (see its
+    // `mountDocEntry()`) needs to know which level/scene it's the HUD for,
+    // to look up `game-doc.json`'s per-level content
+    // (`../game-doc.ts`'s `resolveLevelDoc()`). Passed explicitly here
+    // rather than UiScene guessing from the scene list, so this stays
+    // correct if a future generated game has more than one gameplay scene.
+    this.scene.launch('UI', { levelKey: this.scene.key })
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scene.stop('UI')
     })
