@@ -15,8 +15,9 @@
  *                                  templates/ tree (minus node_modules/.next/.turbo)
  *                                  into `dist/templates/`, and `files: ["dist/"]`
  *                                  ships that whole tree in the npm tarball.
- *   - `packages/cli/src/**`     — `bun build bin/agentdock.ts --outfile dist/index.js`
- *   - `packages/cli/bin/**`       bundles whatever these files transitively import.
+ *   - `packages/<pkg>/src/**`   — every non-private package under `packages/`,
+ *   - `packages/<pkg>/bin/**`     derived at runtime rather than hardcoded, so a new
+ *                                 publishable package is gated the moment it exists.
  *
  * Excluded from the scope (a diff touching only these never needs a changeset):
  *   - docs: `**\/*.md`, `**\/*.mdx`
@@ -33,6 +34,7 @@
  */
 
 import { spawnSync } from 'node:child_process'
+import { readdirSync, readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -42,7 +44,40 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // Scope
 // ---------------------------------------------------------------------------
 
-const SCOPE_PREFIXES = ['templates/', 'packages/cli/src/', 'packages/cli/bin/']
+/**
+ * Publishable-package prefixes are **derived, not hardcoded**.
+ *
+ * 🔴 The first version of this gate hardcoded `packages/cli/`. That is exactly the
+ * failure shape this gate exists to prevent: it reads as "the hole is plugged",
+ * while any *other* publishable package (`@cogito.ai/minimax` landed the same day)
+ * could still ship with no changeset and nothing would notice. A half-fix that
+ * looks like a full fix is worse than no fix.
+ *
+ * So: every `packages/*` whose package.json is not `private: true` is in scope, and
+ * a newly added publishable package is gated the moment it exists — no edit here.
+ */
+function publishablePackagePrefixes(): string[] {
+  const prefixes: string[] = []
+  let entries: string[]
+  try {
+    entries = readdirSync(resolve(REPO_ROOT, 'packages'))
+  } catch {
+    return prefixes
+  }
+  for (const name of entries) {
+    let pkg: { private?: boolean }
+    try {
+      pkg = JSON.parse(readFileSync(resolve(REPO_ROOT, 'packages', name, 'package.json'), 'utf8'))
+    } catch {
+      continue // not a package directory (or unreadable) — nothing to gate
+    }
+    if (pkg.private === true) continue
+    prefixes.push(`packages/${name}/src/`, `packages/${name}/bin/`)
+  }
+  return prefixes
+}
+
+const SCOPE_PREFIXES = ['templates/', ...publishablePackagePrefixes()]
 
 const EXCLUDE_PATTERNS: RegExp[] = [
   /\.mdx?$/i,
@@ -98,7 +133,9 @@ function main() {
   const hasChangeset = files.some((f) => /^\.changeset\/.+\.md$/.test(f))
 
   if (relevant.length === 0) {
-    console.log('changeset-check: no publishable path changed (templates/, packages/cli/src|bin) — skipping.')
+    console.log(
+      `changeset-check: no publishable path changed (watched: ${SCOPE_PREFIXES.join(', ')}) — skipping.`,
+    )
     process.exit(0)
     return
   }
