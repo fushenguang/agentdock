@@ -30,3 +30,6 @@ Thumbs.db
 # Editors
 .vscode/*
 !.vscode/extensions.json
+
+# scripts/playtest.mjs 的截图产物——是给人看的一次性观测，不入库
+.playtest-screenshot.png
