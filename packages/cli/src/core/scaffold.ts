@@ -75,7 +75,9 @@ export function validateProjectName(name: string): string | null {
 export interface ScaffoldOptions {
   /** Target directory path (absolute or relative to cwd) */
   targetDir: string
-  /** Project name written into generated package.json */
+  /** Project name written into generated package.json. Must be a valid npm
+   *  package name / filesystem-safe slug — this is NOT substituted for
+   *  {@link PROJECT_NAME_PLACEHOLDER}, see `displayName`. */
   name: string
   /** Template entry from the registry */
   template: RegistryTemplate
@@ -83,6 +85,14 @@ export interface ScaffoldOptions {
   packageManager?: 'pnpm' | 'npm' | 'yarn' | 'bun'
   /** Schema name to substitute for __SCHEMA__ in .sql files. Undefined = skip substitution. */
   schema?: string | undefined
+  /**
+   * Human-facing title substituted for {@link PROJECT_NAME_PLACEHOLDER}
+   * (e.g. the generated `<title>`, in-game strings). Unlike `name`, this can
+   * be any display string, including non-ASCII text — it never becomes an
+   * npm package name. When omitted, `name` is used for substitution instead
+   * (unchanged, pre-existing behavior).
+   */
+  displayName?: string | undefined
 }
 
 export interface ScaffoldResult {
@@ -232,7 +242,7 @@ function injectPackageManager(pkgJsonPath: string): void {
 }
 
 export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | ScaffoldError {
-  const { targetDir, name, template, packageManager: _pm, schema } = options
+  const { targetDir, name, template, packageManager: _pm, schema, displayName } = options
 
   // Reject names that would break out of the HTML/JS/JSON contexts the name
   // gets substituted into below, before touching the filesystem at all.
@@ -242,6 +252,20 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
       ok: false,
       error: 'INVALID_NAME',
       message: nameError,
+    }
+  }
+
+  // displayName lands in the exact same HTML/JS/JSON contexts as `name`
+  // (see replaceProjectNamePlaceholder below), so it is subject to the same
+  // character-set gate.
+  if (displayName !== undefined) {
+    const displayNameError = validateProjectName(displayName)
+    if (displayNameError) {
+      return {
+        ok: false,
+        error: 'INVALID_NAME',
+        message: displayNameError,
+      }
     }
   }
 
@@ -284,8 +308,12 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
     injectPackageManager(pkgJsonPath)
 
     // Substitute {{PROJECT_NAME}} placeholder across generated text files
-    // (e.g. index.html <title>, StartScene.ts, README.md)
-    replaceProjectNamePlaceholder(targetDir, name)
+    // (e.g. index.html <title>, StartScene.ts, README.md). displayName, when
+    // provided, is the human-facing title (can be non-ASCII); `name` must
+    // stay a valid npm package name and is never used for this substitution
+    // when displayName is present. Omitted => falls back to `name`, byte-for
+    // -byte the pre-existing behavior.
+    replaceProjectNamePlaceholder(targetDir, displayName ?? name)
 
     // Substitute __SCHEMA__ placeholder in .sql files
     if (schema) {

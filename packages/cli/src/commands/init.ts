@@ -8,7 +8,12 @@ export const initCommand = defineCommand({
   args: {
     name: {
       type: 'string',
-      description: 'Project name',
+      description: 'Project name (npm package name / directory slug; ASCII only)',
+    },
+    'display-name': {
+      type: 'string',
+      description:
+        'Human-facing title substituted into generated source (e.g. <title>). Can be non-ASCII. Defaults to --name.',
     },
     template: {
       type: 'string',
@@ -56,6 +61,7 @@ export const initCommand = defineCommand({
         dir: args.dir,
         dataLayer: args['data-layer'] as 'supabase' | 'drizzle' | undefined,
         schema: args.schema,
+        displayName: args['display-name'],
       })
     } else {
       const { runHumanAdapter } = await import('../adapters/human.js')

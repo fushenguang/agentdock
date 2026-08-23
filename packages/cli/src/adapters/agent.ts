@@ -14,6 +14,12 @@ export interface AgentAdapterOptions {
   dataLayer?: 'supabase' | 'drizzle' | undefined
   /** Supabase schema name. Defaults to 'public' when dataLayer is 'supabase'. */
   schema?: string
+  /**
+   * Human-facing title substituted for {{PROJECT_NAME}} in generated source
+   * (e.g. <title>, in-game strings). Can be non-ASCII. `name` (the npm
+   * package name) is unaffected either way. Omitted => falls back to `name`.
+   */
+  displayName?: string
 }
 
 function emit(obj: unknown, json: boolean): void {
@@ -32,6 +38,7 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
     dir,
     dataLayer,
     schema,
+    displayName,
   } = opts
 
   const output = json || silent
@@ -84,6 +91,7 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
     template,
     packageManager: (pm as 'pnpm' | 'npm' | 'yarn' | 'bun') ?? 'pnpm',
     ...(effectiveDataLayer === 'supabase' ? { schema: schema ?? 'public' } : {}),
+    ...(displayName !== undefined ? { displayName } : {}),
   })
 
   if (output) {
