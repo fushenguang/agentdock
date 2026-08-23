@@ -17,7 +17,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { judgeAssetUsage } from '../scripts/lib/asset-usage.mjs'
+import { judgeAssetUsage, classifyAssetKey } from '../scripts/lib/asset-usage.mjs'
+import { TITLE_TEXTURE_KEY, BGM_AUDIO_KEY, backgroundTextureKey } from '../src/game-assets.ts'
 
 function snapshot({ declared = [], loaded = [], usedInScene = [] } = {}) {
   return { declared, loaded, usedInScene }
@@ -86,7 +87,8 @@ test('loaded but never drawn/played -> judged, failed — the real incident this
   assert.equal(result.passed, false)
   assert.deepEqual(result.loaded.sort(), ['bg-level1', 'player'])
   assert.deepEqual(result.usedInScene, [])
-  assert.match(result.reason, /nothing draws or plays them/)
+  assert.match(result.reason, /background declared \(bg-level1\) but none of them is drawn/)
+  assert.match(result.reason, /characters declared \(player\) but 0\/1 in use/)
 })
 
 test('loaded and used -> judged, passed', () => {
@@ -129,4 +131,162 @@ test('declared/loaded stay stable across snapshots even if only one of them is p
   assert.equal(result.status, 'judged')
   assert.equal(result.passed, true)
   assert.deepEqual(result.declared, ['bgm'])
+})
+
+// ───────────────────────────────────────────────────────────────────────
+// classifyAssetKey() — must never drift from ../src/game-assets.ts's real
+// key-generating functions (this file's own header explains why this is a
+// hand-mirrored copy, not an import).
+// ───────────────────────────────────────────────────────────────────────
+
+test('classifyAssetKey agrees with game-assets.ts\'s real well-known keys', () => {
+  assert.equal(classifyAssetKey(TITLE_TEXTURE_KEY, 'image'), 'title')
+  assert.equal(classifyAssetKey(BGM_AUDIO_KEY, 'audio'), 'bgm')
+  assert.equal(classifyAssetKey(backgroundTextureKey(1), 'image'), 'background')
+  assert.equal(classifyAssetKey(backgroundTextureKey(2), 'image'), 'background')
+  assert.equal(classifyAssetKey(backgroundTextureKey(42), 'image'), 'background')
+  // An arbitrary character slug (game-assets.ts's `characters` record keys
+  // are free-form) is never any of the well-known ones -> character.
+  assert.equal(classifyAssetKey('protagonist', 'image'), 'character')
+  assert.equal(classifyAssetKey('player', 'image'), 'character')
+})
+
+// ───────────────────────────────────────────────────────────────────────
+// Per-category judgment (2026-08-22) — see scripts/lib/asset-usage.mjs's
+// header for the real incident this section exists to catch: a run where
+// title+background were in use was enough to make the OLD "at least one
+// asset in use overall" rule report `passed: true` even though every
+// declared character AND the declared bgm were completely unused.
+// ───────────────────────────────────────────────────────────────────────
+
+test('REGRESSION: bgm and characters unused must fail even though title+background ARE in use — the literal real-world defect this change fixes', () => {
+  // This is the exact shape of the real `assetUsage` output that shipped:
+  // "7/7 declared asset(s) loaded, 2 in active use (title, bg-level1)",
+  // passed: true, declared = [title, bg-level1, bg-level2, protagonist,
+  // companion, antagonist, bgm].
+  const declared = [
+    { key: 'title', kind: 'image' },
+    { key: 'bg-level1', kind: 'image' },
+    { key: 'bg-level2', kind: 'image' },
+    { key: 'protagonist', kind: 'image' },
+    { key: 'companion', kind: 'image' },
+    { key: 'antagonist', kind: 'image' },
+    { key: 'bgm', kind: 'audio' },
+  ]
+  const loaded = declared.map((d) => d.key)
+  const usedInScene = ['title', 'bg-level1']
+  const result = judgeAssetUsage([snapshot({ declared, loaded, usedInScene })])
+  assert.equal(result.status, 'judged')
+  assert.equal(result.passed, false, 'a per-category judge must fail this — bgm and every character are unused')
+  assert.match(result.reason, /bgm declared \(bgm\) but not currently playing/)
+  assert.match(result.reason, /characters declared \(.*\) but 0\/3 in use/)
+})
+
+test('MUTATION GUARD: reverting to "at least one asset in use overall" must turn the regression test above red', () => {
+  // Same input as the regression test, but hand-computing what the OLD
+  // (pre-per-category) rule would have concluded: usedInScene.size > 0 (2
+  // keys) -> passed. This test exists so that if a future edit collapses
+  // the per-category checks back into a single "any use at all" check,
+  // THIS assertion (not just the regression test above) makes the mistake
+  // impossible to miss — it independently re-derives the old verdict and
+  // asserts it's the wrong one.
+  const oldRuleUsedInSceneSize = 2 // 'title', 'bg-level1' — matches the real shipped output
+  const oldRulePassed = oldRuleUsedInSceneSize > 0
+  assert.equal(oldRulePassed, true, 'sanity: the old rule really did consider this a pass')
+
+  const declared = [
+    { key: 'title', kind: 'image' },
+    { key: 'bg-level1', kind: 'image' },
+    { key: 'protagonist', kind: 'image' },
+    { key: 'bgm', kind: 'audio' },
+  ]
+  const loaded = declared.map((d) => d.key)
+  const usedInScene = ['title', 'bg-level1']
+  const result = judgeAssetUsage([snapshot({ declared, loaded, usedInScene })])
+  assert.notEqual(
+    result.passed,
+    oldRulePassed,
+    'the new per-category judge must disagree with the old "any use at all" verdict on this input',
+  )
+})
+
+test('background: declared but not used in the currently active scene -> fail, even with an otherwise-healthy manifest', () => {
+  const declared = [
+    { key: 'bg-level1', kind: 'image' },
+    { key: 'player', kind: 'image' },
+    { key: 'bgm', kind: 'audio' },
+  ]
+  const loaded = declared.map((d) => d.key)
+  // player and bgm both in use; background is not.
+  const usedInScene = ['player', 'bgm']
+  const result = judgeAssetUsage([snapshot({ declared, loaded, usedInScene })])
+  assert.equal(result.passed, false)
+  assert.match(result.reason, /background declared \(bg-level1\) but none of them is drawn/)
+})
+
+test('background: only the CURRENTLY ACTIVE level needs to be in use — an unvisited level\'s background must not fail the gate', () => {
+  const declared = [
+    { key: 'bg-level1', kind: 'image' },
+    { key: 'bg-level2', kind: 'image' },
+  ]
+  const loaded = declared.map((d) => d.key)
+  // Only level1 was ever the active gameplay scene during this run's
+  // probes — level2's background legitimately never got a chance to draw.
+  const usedInScene = ['bg-level1']
+  const result = judgeAssetUsage([snapshot({ declared, loaded, usedInScene })])
+  assert.equal(result.status, 'judged')
+  assert.equal(result.passed, true, 'an unvisited level\'s unused background must not be held against the project')
+  assert.match(result.reason, /background in use \(bg-level1\)/)
+})
+
+test('characters: 1 of 3 in use -> passed, but the reason names the unused ones', () => {
+  const declared = [
+    { key: 'protagonist', kind: 'image' },
+    { key: 'companion', kind: 'image' },
+    { key: 'antagonist', kind: 'image' },
+  ]
+  const loaded = declared.map((d) => d.key)
+  const usedInScene = ['protagonist']
+  const result = judgeAssetUsage([snapshot({ declared, loaded, usedInScene })])
+  assert.equal(result.status, 'judged')
+  assert.equal(result.passed, true)
+  assert.match(result.reason, /characters 1\/3 in use/)
+  assert.match(result.reason, /unused: companion, antagonist/)
+})
+
+test('characters: 0 of N in use -> fails, distinctly from the bgm/background failures', () => {
+  const declared = [
+    { key: 'protagonist', kind: 'image' },
+    { key: 'companion', kind: 'image' },
+  ]
+  const loaded = declared.map((d) => d.key)
+  const result = judgeAssetUsage([snapshot({ declared, loaded, usedInScene: [] })])
+  assert.equal(result.passed, false)
+  assert.match(result.reason, /characters declared \(protagonist, companion\) but 0\/2 in use/)
+})
+
+test('title never fails the gate on its own, even completely unused', () => {
+  const declared = [{ key: 'title', kind: 'image' }]
+  const result = judgeAssetUsage([snapshot({ declared, loaded: ['title'], usedInScene: [] })])
+  assert.equal(result.status, 'judged')
+  assert.equal(result.passed, true, 'title has no hard requirement — see this suite\'s header')
+  assert.match(result.reason, /title unused/)
+})
+
+test('all four categories declared and all satisfied -> passed, reason mentions each', () => {
+  const declared = [
+    { key: 'title', kind: 'image' },
+    { key: 'bg-level1', kind: 'image' },
+    { key: 'protagonist', kind: 'image' },
+    { key: 'bgm', kind: 'audio' },
+  ]
+  const loaded = declared.map((d) => d.key)
+  const usedInScene = ['title', 'bg-level1', 'protagonist', 'bgm']
+  const result = judgeAssetUsage([snapshot({ declared, loaded, usedInScene })])
+  assert.equal(result.status, 'judged')
+  assert.equal(result.passed, true)
+  assert.match(result.reason, /bgm playing/)
+  assert.match(result.reason, /background in use/)
+  assert.match(result.reason, /characters 1\/1 in use/)
+  assert.match(result.reason, /title in use/)
 })

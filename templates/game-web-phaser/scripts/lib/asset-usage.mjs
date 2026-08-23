@@ -33,14 +33,92 @@
 //                    绝不默认通过") that counts as a failure, the same as
 //                    IA's `unavailable`.
 //   - judged      — a real declared/loaded/used comparison ran. `passed` is
-//                    the only field that means anything here, and it is
-//                    `false` in exactly two situations, kept distinguishable
-//                    via `reason` (never collapsed into one generic message):
-//                      1. declared > 0, loaded === 0 — nothing the manifest
-//                         named ever reached the texture/audio cache.
-//                      2. loaded > 0, usedInScene === 0 — the files loaded
-//                         fine, but nothing on screen (or in the sound
-//                         manager) is currently referencing any of them.
+//                    the only field that means anything here.
+//
+// 🔴 2026-08-22 — per-category judgment, not "at least one asset in use
+// overall". The first real project this gate ran on exposed exactly the
+// hole that phrasing left open: `assetUsage` reported
+// `"7/7 declared asset(s) loaded, 2 in active use (title, bg-level1)"` and
+// `passed: true` — while all 3 declared characters AND the declared bgm
+// sat completely unused. The builder's own playtest complaint was, word
+// for word, "没有背景音乐，没有使用 AI 设计的人物形象" (no BGM, no AI
+// character art in use). A single `usedInScene.size > 0` check can never
+// catch that: title+background alone are enough to make it true, no
+// matter how much else never got touched. See
+// `tests/asset-usage.test.mjs`'s "regression" test for the literal shape
+// of this incident, kept as the mutation guard against reintroducing the
+// old "any one thing in use" rule.
+//
+// Categories are inferred from `key` alone (never from `kind`, except as a
+// fallback for a shape this template's own manifest never produces) by
+// mirroring `../../src/game-assets.ts`'s own well-known key constants —
+// `TITLE_TEXTURE_KEY`, `BGM_AUDIO_KEY`, `backgroundTextureKey()`'s
+// `"bg-level<N>"` shape. Not imported from there: this file's own
+// zero-I/O, framework-free discipline (see this header's first paragraph)
+// intentionally does not reach into `src/`, the same reasoning
+// `harness-types.ts` documents for keeping `DeclaredAssetKind` a hand-mirrored
+// type rather than an import. `tests/asset-usage.test.mjs`'s drift test
+// imports the real constants from `game-assets.ts` and asserts
+// `classifyAssetKey()` agrees with them — same "two copies of one fact,
+// caught by a test" discipline as that mirrored type.
+//
+//   - bgm         — declared ⇒ MUST be in `usedInScene` (i.e. actually
+//                    playing). There is only ever one bgm key, so "declared"
+//                    and "used" are a direct yes/no, no partial credit.
+//   - background  — declared ⇒ at least one declared background key MUST be
+//                    in `usedInScene`. NOT "every level's background" — a
+//                    snapshot only ever scans the scenes active *right now*
+//                    (see `AssetUsageSnapshot`'s doc), so a level that was
+//                    never visited during this run's probes is expected to
+//                    show 0 use for its own background, and must not be
+//                    held against the project.
+//   - character   — declared ⇒ at least one declared character MUST be in
+//                    `usedInScene` (a game legitimately may not use every
+//                    generated character), but any unused ones are always
+//                    named in `reason` so "1/3 in use" is never silently
+//                    indistinguishable from "3/3 in use".
+//   - title       — never required. The title texture is only ever drawn on
+//                    the start screen; by the time a later snapshot samples
+//                    the gameplay state, the project may have legitimately
+//                    left it behind. Reported in `reason` for visibility
+//                    only, never counted against `passed`.
+//
+// `passed` is `false` when ANY declared category with a hard requirement
+// (bgm, background, or character) fails its own rule above, OR when
+// nothing loaded at all (the pre-existing, more severe failure — see
+// below). `reason` always names every failing category by name (never one
+// generic "something's unused" message) so it stays directly actionable —
+// see this module's own `reason` construction below.
+
+/** Mirrors `../../src/game-assets.ts`'s `TITLE_TEXTURE_KEY` — see this file's header. */
+const TITLE_KEY = 'title'
+/** Mirrors `../../src/game-assets.ts`'s `BGM_AUDIO_KEY` — see this file's header. */
+const BGM_KEY = 'bgm'
+/** Mirrors `../../src/game-assets.ts`'s `backgroundTextureKey()` (`"bg-level" + N`, `N >= 1`) — see this file's header. */
+const BACKGROUND_KEY_PATTERN = /^bg-level[1-9]\d*$/
+
+/**
+ * One declared/loaded/used key -> which asset-usage category it belongs to,
+ * for the per-category judgment this module's header documents. Exported
+ * only so `tests/asset-usage.test.mjs` can assert this never drifts from
+ * `../../src/game-assets.ts`'s real key-generating functions.
+ *
+ * `kind` is consulted only as a fallback for a shape today's manifest never
+ * actually produces (an audio key that isn't `"bgm"` — there is currently no
+ * other way to declare audio at all) so a future manifest shape doesn't
+ * silently get miscategorized as a character.
+ *
+ * @param {string} key
+ * @param {'image' | 'audio' | undefined} kind
+ * @returns {'title' | 'bgm' | 'background' | 'character' | 'other'}
+ */
+export function classifyAssetKey(key, kind) {
+  if (key === TITLE_KEY) return 'title'
+  if (key === BGM_KEY) return 'bgm'
+  if (BACKGROUND_KEY_PATTERN.test(key)) return 'background'
+  if (kind === 'image') return 'character'
+  return 'other'
+}
 
 /**
  * @param {readonly (import('../../src/debug/harness-types.ts').AssetUsageSnapshot | null | undefined)[]} assetSnapshots
@@ -104,21 +182,73 @@ export function judgeAssetUsage(assetSnapshots) {
     }
   }
 
-  if (usedInScene.size === 0) {
-    return {
-      status: 'judged',
-      passed: false,
-      reason: `${loaded.size}/${declared.length} declared asset(s) loaded (${[...loaded].join(', ')}) but none of them are referenced by any GameObject in an active scene or the sound manager right now — the files load, but nothing draws or plays them`,
-      declared,
-      loaded: [...loaded],
-      usedInScene: [],
+  // Bucket every declared/loaded/used key by category — see this module's
+  // header for what each category requires.
+  const byCategory = new Map()
+  function bucket(category) {
+    let b = byCategory.get(category)
+    if (!b) {
+      b = { declared: new Set(), used: new Set() }
+      byCategory.set(category, b)
+    }
+    return b
+  }
+  for (const key of declared) bucket(classifyAssetKey(key, declaredKinds.get(key))).declared.add(key)
+  for (const key of usedInScene) {
+    if (!declaredKinds.has(key)) continue // defensive only — usedInScene is always a subset of declared in practice
+    bucket(classifyAssetKey(key, declaredKinds.get(key))).used.add(key)
+  }
+
+  const failures = []
+  const notes = []
+
+  const bgm = byCategory.get('bgm')
+  if (bgm && bgm.declared.size > 0) {
+    const unplayed = [...bgm.declared].filter((k) => !bgm.used.has(k))
+    if (unplayed.length > 0) {
+      failures.push(`bgm declared (${[...bgm.declared].join(', ')}) but not currently playing`)
+    } else {
+      notes.push('bgm playing')
     }
   }
 
+  const background = byCategory.get('background')
+  if (background && background.declared.size > 0) {
+    if (background.used.size === 0) {
+      failures.push(
+        `background declared (${[...background.declared].join(', ')}) but none of them is drawn in the currently active scene`,
+      )
+    } else {
+      notes.push(`background in use (${[...background.used].join(', ')})`)
+    }
+  }
+
+  const character = byCategory.get('character')
+  if (character && character.declared.size > 0) {
+    const unused = [...character.declared].filter((k) => !character.used.has(k))
+    if (character.used.size === 0) {
+      failures.push(`characters declared (${[...character.declared].join(', ')}) but 0/${character.declared.size} in use`)
+    } else if (unused.length > 0) {
+      notes.push(`characters ${character.used.size}/${character.declared.size} in use (unused: ${unused.join(', ')})`)
+    } else {
+      notes.push(`characters ${character.used.size}/${character.declared.size} in use`)
+    }
+  }
+
+  const title = byCategory.get('title')
+  if (title && title.declared.size > 0) {
+    notes.push(title.used.size > 0 ? 'title in use' : 'title unused (may already have left the start screen — not required)')
+  }
+
+  const passed = failures.length === 0
+  const summary = `${loaded.size}/${declared.length} declared asset(s) loaded`
+  const details = passed ? notes : failures
+  const reason = details.length > 0 ? `${summary}; ${details.join('; ')}` : summary
+
   return {
     status: 'judged',
-    passed: true,
-    reason: `${loaded.size}/${declared.length} declared asset(s) loaded, ${usedInScene.size} in active use (${[...usedInScene].join(', ')})`,
+    passed,
+    reason,
     declared,
     loaded: [...loaded],
     usedInScene: [...usedInScene],
