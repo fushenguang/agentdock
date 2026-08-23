@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 import { GAME_WIDTH, PLAYFIELD_HEIGHT } from '../config'
 import { registerTrigger } from '../debug/harness'
 import type { GameState } from '../debug/state-jump'
-import { applyLevelBackground, PLAYER_CHARACTER_KEY } from '../game-assets'
+import { applyLevelBackground, PLAYER_CHARACTER_KEY, BGM_AUDIO_KEY } from '../game-assets'
 
 const PLAYER_SPEED = 260
 const BULLET_SPEED = 420
@@ -239,10 +239,36 @@ export class GameScene extends Phaser.Scene {
    * `isValidStart()` has already accepted the snapshot. This scene's
    * `create()` has already run by the time this fires, so this only needs
    * to override whatever `create()` set to whatever the snapshot says.
+   *
+   * 🔴 asset-usage-gate per-category judgment (2026-08-22) — also ensures
+   * bgm is playing here, mirroring `../scenes/StartScene.ts`'s
+   * `handleStart()` exactly (same idempotent
+   * `cache.audio.exists() && !sound.get()` guard, same `sound.play(key,
+   * {loop:true})` call). Why duplicated here instead of left solely on the
+   * click: `applyHarnessState()` is ONLY ever invoked from
+   * `../debug/harness.ts`'s `applyState()` (see that file — it is not part
+   * of this class's public surface, nothing in a real playthrough calls
+   * it), so this branch never runs for an actual player and never changes
+   * when real playback starts for one — StartScene's click remains the
+   * only real-user autoplay-gesture trigger, completely unchanged.
+   *
+   * What this closes: `applyState('Game', seed)` only succeeds after
+   * `isValidStart()` has confirmed 'Game' is a state a real player COULD
+   * be in (design D2) — and the only door into 'Game' is StartScene's
+   * "开始游戏" click, so any real player standing here already triggered
+   * bgm. Without this, `scripts/verify.mjs`'s AU probe (which reaches
+   * 'Game' via `applyState()`, never by dispatching a real click) would
+   * see a declared, loaded bgm that never shows as `usedInScene` and fail
+   * the AU gate on a project doing everything right — a false failure
+   * confirmed by hand (see this change's PR description) against this
+   * template's own unmodified reference implementation.
    */
   applyHarnessState(state: GameState): void {
     this.addScoreAbsolute(state.score)
     this.player.setPosition(state.playerX, state.playerY)
+    if (this.cache.audio.exists(BGM_AUDIO_KEY) && !this.sound.get(BGM_AUDIO_KEY)) {
+      this.sound.play(BGM_AUDIO_KEY, { loop: true })
+    }
   }
 
   update(): void {

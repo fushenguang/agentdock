@@ -126,7 +126,7 @@ Which target you get is decided by `--mode` on the `vite build` CLI (see `vite.c
 - **BH-0 build** — `vite build --mode play` exits 0.
 - **BH-1 load** — headless Chromium loads `dist-play/` with no uncaught JS exception and no failed resource request.
 - **BH-2 render** — the screenshot is provably non-empty (unique-colour count + pixel variance both clear a floor — a solid-colour PNG does **not** pass) and the game canvas has non-zero size.
-- **AU asset usage** — if `public/game-assets.json` declared anything, its files actually reached the runtime AND something currently on screen (or in the sound manager) uses them. See [Asset usage judging (AU)](#asset-usage-judging-au) below.
+- **AU asset usage** — if `public/game-assets.json` declared anything, its files actually reached the runtime AND each *category* of asset (bgm/background/character/title) is used per its own rule, not just "something, somewhere, is used". See [Asset usage judging (AU)](#asset-usage-judging-au) below.
 
 Every gate either passes or prints exactly what it expected vs. what it found and exits non-zero — it never prints "skipping" and exits 0. If it can't find a browser or the Node runtime lacks `WebSocket`, that's a failure, not a skip.
 
@@ -137,9 +137,15 @@ A manifest confirming a file exists is not the same as the game actually drawing
 Right after BH-2, if `public/game-assets.json` declared anything, `pnpm verify` re-derives the same asset-load plan `PreloadScene` used and checks, over the same CDP session:
 
 1. **Declared → loaded** — did each declared texture/audio key actually reach `this.textures`/`this.cache.audio`?
-2. **Loaded → used** — is at least one `GameObject` in an active scene currently carrying that texture key (images), or has that key been handed to the sound manager via `.add()`/`.play()` (audio)?
+2. **Loaded → used, per category** (`scripts/lib/asset-usage.mjs`'s `classifyAssetKey()`) — a single asset somewhere being on screen is **not** enough (an earlier version of this gate worked that way and a real project shipped with 3 unused characters and no BGM while still passing, because the title and one background WERE in use). Each category has its own rule instead:
+   - **bgm** — declared ⇒ MUST be in `usedInScene` (there's only ever one bgm key, so this is a plain yes/no).
+   - **background** — declared ⇒ at least one declared background key MUST be in `usedInScene`. This is deliberately not "every level's background": a snapshot only scans scenes active *right now*, so a level this run's probes never visited is expected to show 0 use for its own background and must not be held against the project.
+   - **character** — declared ⇒ at least one declared character MUST be in `usedInScene` (a game legitimately may not use every generated character), but any unused ones are always named in `reason`.
+   - **title** — never required (the title texture only makes sense on the start screen; a later probe may have legitimately left it behind), reported for visibility only.
 
-Results land in `.verify-result.json`'s `assetUsage` field with the same three-status discipline as IA below: **`absent`** (no manifest — not a failure), **`unavailable`** (couldn't judge — counts as a failure), **`judged`** (a real pass/fail). A `judged`-with-`passed: false` or `unavailable` result makes `pnpm verify` exit non-zero, same as any other gate.
+Results land in `.verify-result.json`'s `assetUsage` field with the same three-status discipline as IA below: **`absent`** (no manifest — not a failure), **`unavailable`** (couldn't judge — counts as a failure), **`judged`** (a real pass/fail, `reason` naming every failing category by name). A `judged`-with-`passed: false` or `unavailable` result makes `pnpm verify` exit non-zero, same as any other gate.
+
+🔴 **Why `GameScene.applyHarnessState()` also starts bgm, not just `StartScene`'s click.** `StartScene.handleStart()`'s `sound.play()` call is real players' only path to audio — a browser autoplay gesture requirement, unchanged. But `src/debug/harness.ts`'s `applyState()` reaches `'Game'` by calling `game.scene.start(id)` directly, never by dispatching a real click, so a per-category AU judge that requires bgm to be `usedInScene` would otherwise fail on *every* project doing this correctly, including this template's own unmodified reference implementation (confirmed by hand). `applyHarnessState()` is only ever invoked from `applyState()` (never from a real playthrough), and `design D2` already treats reaching `'Game'` there as "a state a real player could legitimately be in" — which, since `Start`'s click is the only door into `'Game'`, implies bgm would already be playing for any real player standing there. Mirroring the same idempotent `cache.audio.exists() && !sound.get()` guard in that hook makes the harness's simulation match that implication, with zero effect on real playback timing.
 
 🔴 What this gate proves and what it doesn't: a "used" hit means a real GameObject/Sound exists with that key attached — it does **not** prove the asset looks correct, is sized right, or (for audio) is actually audible right now (browser autoplay policies can block playback even after `.play()` runs). See `src/debug/harness-types.ts`'s `AssetUsageSnapshot` doc and `scripts/lib/asset-usage.mjs`'s header for the full reasoning.
 
