@@ -5,11 +5,20 @@
 //
 // 🔴 This is an INSTRUMENT, not a gate. It never judges whether the game is
 // good, fun, or correct — it applies a state, presses the keys you name, and
-// prints what moved. Exit code is 0 whenever it managed to run; non-zero only
+// prints the numbers. Exit code is 0 whenever it managed to run; non-zero only
 // means "I could not observe anything" (no build, no browser, no harness).
 // Do not add pass/fail logic here: `scripts/verify.mjs` owns the gates, and
 // the whole reason this file exists is that the gates can be green while the
 // game is unplayable.
+//
+// 🔴 **"Prints the numbers" is meant literally, and the first version of this
+// file broke it.** It annotated every unchanged entity with `<- did not move`,
+// and the template's AGENTS.md told readers that meant "this control key is
+// dead". Measured on a real run: the annotation fired on `goal` — the level's
+// target object, which is *supposed* to stay put — with the exact same wording
+// used for a broken control. A script that cannot know which entities ought to
+// move must not phrase anything as a verdict. `dx=0.0` is a reading;
+// "did not move" is a conclusion. Print the former, never the latter.
 //
 // ## Why this exists as a script instead of prose in the task text
 //
@@ -134,15 +143,17 @@ export function formatEntityDelta(before, after) {
   return names.map((name) => {
     const b = beforeByName.get(name)
     const a = afterByName.get(name)
-    if (!b) return `  + ${name}: appeared at (${a.x.toFixed(1)}, ${a.y.toFixed(1)})`
-    if (!a) return `  - ${name}: disappeared (was at ${b.x.toFixed(1)}, ${b.y.toFixed(1)})`
+    if (!b) return `  + ${name}: (—) -> (${a.x.toFixed(1)}, ${a.y.toFixed(1)})`
+    if (!a) return `  - ${name}: (${b.x.toFixed(1)}, ${b.y.toFixed(1)}) -> (—)`
     const dx = a.x - b.x
     const dy = a.y - b.y
-    const moved = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5
+    // `~` / `=` are state markers (changed / unchanged), not verdicts — one glyph
+    // saying what the numbers already say. Nothing here appends prose: see this
+    // file's header for why the first version's `<- did not move` was wrong.
+    const changed = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5
     return (
-      `  ${moved ? '~' : '='} ${name}: (${b.x.toFixed(1)}, ${b.y.toFixed(1)}) -> ` +
-      `(${a.x.toFixed(1)}, ${a.y.toFixed(1)})  dx=${dx.toFixed(1)} dy=${dy.toFixed(1)}` +
-      `${moved ? '' : '   <- did not move'}`
+      `  ${changed ? '~' : '='} ${name}: (${b.x.toFixed(1)}, ${b.y.toFixed(1)}) -> ` +
+      `(${a.x.toFixed(1)}, ${a.y.toFixed(1)})  dx=${dx.toFixed(1)} dy=${dy.toFixed(1)}`
     )
   })
 }
@@ -211,7 +222,8 @@ async function main() {
     console.log(`\napplyState(${JSON.stringify(targetState)}, ${opts.seed}) -> ${applied}`)
     console.log(`  stateId after ${opts.settleMs}ms : ${snapshotAfterJump.stateId}`)
     if (snapshotAfterJump.stateId !== targetState) {
-      console.log(`  🔴 stateId is not "${targetState}" — the jump did not land. Everything below is about ${snapshotAfterJump.stateId}.`)
+      // Factual mismatch, stated as a mismatch — not "the jump failed".
+      console.log(`  (requested "${targetState}", reading "${snapshotAfterJump.stateId}")`)
     }
     console.log(`  score          : ${snapshotAfterJump.score}`)
     console.log(`  hudTexts       : ${JSON.stringify(snapshotAfterJump.hudTexts)}`)
