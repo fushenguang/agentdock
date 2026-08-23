@@ -210,4 +210,87 @@ describe('scaffoldProject — end-to-end placeholder substitution (real template
     )
     expect(startScene).not.toContain(PROJECT_NAME_PLACEHOLDER)
   })
+
+  // ─── displayName: package name (ASCII slug) vs. display title (any text) ──
+  //
+  // `--name` is used both as the npm package name AND, historically, as the
+  // {{PROJECT_NAME}} substitution value. A non-ASCII project name slugifies
+  // to '' upstream (cogito-lib's slugifyProjectName), which used to fall
+  // back to the literal string "project" ending up in the generated
+  // <title>. displayName decouples the two: `name` stays package-name-safe,
+  // displayName (when given) is what actually lands in generated source.
+
+  it('golden: displayName omitted falls back byte-for-byte to using name for substitution', () => {
+    const template = getTemplate('game-web-phaser')
+    if (!template) throw new Error('game-web-phaser template not found in registry')
+
+    const targetDir = join(tmpDir, 'my-game-omitted')
+    const result = scaffoldProject({
+      targetDir,
+      name: 'My Cool Game',
+      template,
+      packageManager: 'pnpm',
+    })
+
+    expect(result.ok).toBe(true)
+    const indexHtml = readFileSync(join(targetDir, 'index.html'), 'utf-8')
+    expect(indexHtml).toContain('<title>My Cool Game</title>')
+  })
+
+  it('displayName provided: substitutes displayName instead of name, and can be non-ASCII (Chinese)', () => {
+    const template = getTemplate('game-web-phaser')
+    if (!template) throw new Error('game-web-phaser template not found in registry')
+
+    const targetDir = join(tmpDir, 'star')
+    const result = scaffoldProject({
+      targetDir,
+      name: 'star', // npm-package-safe slug
+      displayName: '星星收集', // human-facing title, non-ASCII
+      template,
+      packageManager: 'pnpm',
+    })
+
+    expect(result.ok).toBe(true)
+
+    // package.json name must stay the ASCII slug — displayName never
+    // touches it.
+    const pkgJson = JSON.parse(
+      readFileSync(join(targetDir, 'package.json'), 'utf-8'),
+    ) as { name: string }
+    expect(pkgJson.name).toBe('star')
+
+    const indexHtml = readFileSync(join(targetDir, 'index.html'), 'utf-8')
+    expect(indexHtml).toContain('<title>星星收集</title>')
+    expect(indexHtml).not.toContain('project')
+    expect(indexHtml).not.toContain(PROJECT_NAME_PLACEHOLDER)
+
+    const readme = readFileSync(join(targetDir, 'README.md'), 'utf-8')
+    expect(readme).not.toContain(PROJECT_NAME_PLACEHOLDER)
+
+    const startScene = readFileSync(
+      join(targetDir, 'src', 'scenes', 'StartScene.ts'),
+      'utf-8',
+    )
+    expect(startScene).not.toContain(PROJECT_NAME_PLACEHOLDER)
+    expect(startScene).toContain('星星收集')
+  })
+
+  it('rejects a displayName containing unsafe characters, even when name is valid', () => {
+    const template = getTemplate('game-web-phaser')
+    if (!template) throw new Error('game-web-phaser template not found in registry')
+
+    const targetDir = join(tmpDir, 'unsafe-display-name')
+    const result = scaffoldProject({
+      targetDir,
+      name: 'star',
+      displayName: '<script>alert(1)</script>',
+      template,
+      packageManager: 'pnpm',
+    })
+
+    expect(result.ok).toBe(false)
+    expect((result as { error: string }).error).toBe('INVALID_NAME')
+    // Validation must happen before any directory is created.
+    expect(existsSync(targetDir)).toBe(false)
+  })
 })
