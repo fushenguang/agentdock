@@ -65,19 +65,52 @@ test('formatEntityDelta: movement, stillness, appearance, disappearance', () => 
   const lines = formatEntityDelta(before, after).join('\n')
 
   assert.match(lines, /~ player: \(100\.0, 200\.0\) -> \(260\.0, 200\.0\)\s+dx=160\.0 dy=0\.0/)
-  // 🔴 "did not move" must be stated explicitly — a silent `dx=0.0` reads the
-  // same as "I didn't check", and this script exists to remove that ambiguity.
-  assert.match(lines, /= rock: .*did not move/)
-  assert.match(lines, /\+ coin: appeared at \(50\.0, 50\.0\)/)
+  // Unchanged entities are reported with their numbers and a `=` marker — and
+  // with NO prose. See the next test for why that absence is load-bearing.
+  assert.match(lines, /= rock: \(10\.0, 10\.0\) -> \(10\.0, 10\.0\)\s+dx=0\.0 dy=0\.0/)
+  assert.match(lines, /\+ coin: \(—\) -> \(50\.0, 50\.0\)/)
   // An entity vanishing is reported, never skipped: "the player object stopped
   // existing" is exactly what this instrument is for.
-  assert.match(lines, /- gone: disappeared/)
+  assert.match(lines, /- gone: \(1\.0, 1\.0\) -> \(—\)/)
 })
 
-test('formatEntityDelta: sub-pixel jitter counts as "did not move"', () => {
+test('formatEntityDelta: sub-pixel jitter reads as unchanged (`=`)', () => {
   const lines = formatEntityDelta(
     [{ name: 'player', x: 100, y: 100 }],
     [{ name: 'player', x: 100.3, y: 100.2 }],
   ).join('\n')
-  assert.match(lines, /did not move/)
+  assert.match(lines, /^\s*= player:/)
+})
+
+/**
+ * 🔴 The load-bearing test of this file: **the output must contain no verdicts.**
+ *
+ * The first shipped version annotated unchanged entities with `<- did not move`,
+ * and AGENTS.md told readers that meant "the control key is dead". A real run
+ * showed it firing on `goal` — the level's target, which is *supposed* to stay
+ * put — with the exact same wording as a broken control. This script cannot
+ * know which entities ought to move, so it must not phrase anything as a
+ * conclusion. `dx=0.0` is a reading; "did not move" is a verdict.
+ *
+ * This test is what stops that from creeping back in one helpful sentence at
+ * a time.
+ */
+test('formatEntityDelta: prints readings, never verdicts', () => {
+  const lines = formatEntityDelta(
+    [{ name: 'player', x: 100, y: 100 }, { name: 'goal', x: 900, y: 400 }, { name: 'gone', x: 1, y: 1 }],
+    [{ name: 'player', x: 100, y: 100 }, { name: 'goal', x: 900, y: 400 }, { name: 'coin', x: 5, y: 5 }],
+  ).join('\n')
+  for (const verdict of [
+    'did not move',
+    'appeared',
+    'disappeared',
+    'dead',
+    'broken',
+    'failed',
+    'should',
+    'expected',
+    'unreachable',
+  ]) {
+    assert.ok(!lines.includes(verdict), `output must not contain the verdict word "${verdict}": ${lines}`)
+  }
 })
