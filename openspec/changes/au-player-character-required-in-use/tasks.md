@@ -49,3 +49,4 @@
 - [x] 4.3 `.changeset/` 写 `@cogito.ai/cli` patch（中文取证体，含
       trial-08 原始现场与变异验证读数，对齐 `au-gate-per-category.md` 先例）
 - [ ] 4.4 开 PR 合并（cogito-lib 侧的 slug 对齐 change 由姊妹仓另开）
+      ——PR 已开：fushenguang/agentdock#90（hub 仓合并归构建者复核），合并后勾掉本条
