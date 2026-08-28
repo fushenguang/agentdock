@@ -17,8 +17,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { judgeAssetUsage, classifyAssetKey } from '../scripts/lib/asset-usage.mjs'
-import { TITLE_TEXTURE_KEY, BGM_AUDIO_KEY, backgroundTextureKey } from '../src/game-assets.ts'
+import { judgeAssetUsage, classifyAssetKey, PLAYER_KEY } from '../scripts/lib/asset-usage.mjs'
+import { TITLE_TEXTURE_KEY, BGM_AUDIO_KEY, backgroundTextureKey, PLAYER_CHARACTER_KEY } from '../src/game-assets.ts'
 
 function snapshot({ declared = [], loaded = [], usedInScene = [] } = {}) {
   return { declared, loaded, usedInScene }
@@ -81,6 +81,10 @@ test('declared but nothing loaded -> judged, failed', () => {
 })
 
 test('loaded but never drawn/played -> judged, failed — the real incident this gate exists to catch', () => {
+  // `player` here is the RESERVED character key (see the 2026-08-28 section
+  // below), so its failure message is the player-specific one, not the
+  // generic "0/N in use" — this fixture doubles as the minimal reserved-key
+  // failure shape.
   const declared = [{ key: 'bg-level1', kind: 'image' }, { key: 'player', kind: 'image' }]
   const result = judgeAssetUsage([snapshot({ declared, loaded: ['bg-level1', 'player'], usedInScene: [] })])
   assert.equal(result.status, 'judged')
@@ -88,7 +92,7 @@ test('loaded but never drawn/played -> judged, failed — the real incident this
   assert.deepEqual(result.loaded.sort(), ['bg-level1', 'player'])
   assert.deepEqual(result.usedInScene, [])
   assert.match(result.reason, /background declared \(bg-level1\) but none of them is drawn/)
-  assert.match(result.reason, /characters declared \(player\) but 0\/1 in use/)
+  assert.match(result.reason, /player character declared \(player\) but not in use/)
 })
 
 test('loaded and used -> judged, passed', () => {
@@ -148,7 +152,11 @@ test('classifyAssetKey agrees with game-assets.ts\'s real well-known keys', () =
   // An arbitrary character slug (game-assets.ts's `characters` record keys
   // are free-form) is never any of the well-known ones -> character.
   assert.equal(classifyAssetKey('protagonist', 'image'), 'character')
-  assert.equal(classifyAssetKey('player', 'image'), 'character')
+  // The reserved player key still classifies as a plain character — the
+  // reserved-key strictness lives in the judge, not the classifier.
+  assert.equal(classifyAssetKey(PLAYER_CHARACTER_KEY, 'image'), 'character')
+  // The judge's hand-mirrored reserved key must BE the real constant.
+  assert.equal(PLAYER_KEY, PLAYER_CHARACTER_KEY)
 })
 
 // ───────────────────────────────────────────────────────────────────────
@@ -289,4 +297,89 @@ test('all four categories declared and all satisfied -> passed, reason mentions 
   assert.match(result.reason, /background in use/)
   assert.match(result.reason, /characters 1\/1 in use/)
   assert.match(result.reason, /title in use/)
+})
+
+// ───────────────────────────────────────────────────────────────────────
+// Reserved player-character key (2026-08-28) — see scripts/lib/asset-usage.mjs's
+// header for the real incident this section exists to catch: the protagonist
+// texture declared under the manifest's reserved `player` key, loaded into the
+// cache, and NEVER attached to the player — the player stayed a procedural
+// placeholder square while the gate printed "characters 1/3 in use (unused:
+// player)" and PASSED, because a companion sprite used as scene decoration
+// satisfied the lenient "at least one character in use" rule (trial-08,
+// 2026-08-27, in the platform repo that scaffolds from this template).
+// ───────────────────────────────────────────────────────────────────────
+
+test('REGRESSION (trial-08): reserved `player` declared but never worn by the player must fail, even with a side character in use', () => {
+  // The literal shape of the real incident: three characters declared and
+  // loaded, only the companion used (as scene decoration), the protagonist —
+  // declared under the reserved key — never attached. The old lenient rule
+  // reported "characters 1/3 in use (unused: player)" with passed: true.
+  const declared = [
+    { key: 'player', kind: 'image' },
+    { key: 'companion', kind: 'image' },
+    { key: 'antagonist', kind: 'image' },
+  ]
+  const loaded = declared.map((d) => d.key)
+  const usedInScene = ['companion']
+  const result = judgeAssetUsage([snapshot({ declared, loaded, usedInScene })])
+  assert.equal(result.status, 'judged')
+  assert.equal(result.passed, false, 'declaring the reserved player key means the player must actually wear it')
+  assert.match(result.reason, /player character declared \(player\) but not in use/)
+})
+
+test('MUTATION GUARD: reverting to "at least one character in use, reserved key included" must turn the regression test above red', () => {
+  // Same input as the regression test, hand-computing what the OLD
+  // (pre-reserved-key) rule concluded: characters used >= 1 (companion) ->
+  // passed. If a future edit collapses the reserved-key check back into the
+  // lenient per-category fraction, THIS assertion (not just the regression
+  // test above) makes the mistake impossible to miss — it independently
+  // re-derives the old verdict and asserts the judge must disagree with it.
+  const oldRuleCharactersInUse = 1 // 'companion' — matches the real shipped output
+  const oldRulePassed = oldRuleCharactersInUse > 0
+  assert.equal(oldRulePassed, true, 'sanity: the old rule really did consider this a pass')
+
+  const declared = [
+    { key: 'player', kind: 'image' },
+    { key: 'companion', kind: 'image' },
+    { key: 'antagonist', kind: 'image' },
+  ]
+  const loaded = declared.map((d) => d.key)
+  const usedInScene = ['companion']
+  const result = judgeAssetUsage([snapshot({ declared, loaded, usedInScene })])
+  assert.notEqual(
+    result.passed,
+    oldRulePassed,
+    'the reserved-key judge must disagree with the old "at least one character in use" verdict on this input',
+  )
+})
+
+test('reserved `player` in use -> passed, named separately, and unused side characters still only noted', () => {
+  const declared = [
+    { key: 'player', kind: 'image' },
+    { key: 'companion', kind: 'image' },
+    { key: 'antagonist', kind: 'image' },
+  ]
+  const loaded = declared.map((d) => d.key)
+  const usedInScene = ['player', 'companion']
+  const result = judgeAssetUsage([snapshot({ declared, loaded, usedInScene })])
+  assert.equal(result.status, 'judged')
+  assert.equal(result.passed, true)
+  assert.match(result.reason, /player character \(player\) in use/)
+  assert.match(result.reason, /characters 1\/2 in use \(unused: antagonist\)/)
+})
+
+test('behavior unchanged when no reserved key is declared — side characters keep the lenient rule verbatim', () => {
+  // No `player` key anywhere: the verdict and messages must be exactly what
+  // the 2026-08-22 per-category rule produced before this change.
+  const declared = [
+    { key: 'companion', kind: 'image' },
+    { key: 'antagonist', kind: 'image' },
+  ]
+  const loaded = declared.map((d) => d.key)
+  const usedInScene = ['companion']
+  const result = judgeAssetUsage([snapshot({ declared, loaded, usedInScene })])
+  assert.equal(result.status, 'judged')
+  assert.equal(result.passed, true)
+  assert.match(result.reason, /characters 1\/2 in use \(unused: antagonist\)/)
 })

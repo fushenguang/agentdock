@@ -49,16 +49,32 @@
 // of this incident, kept as the mutation guard against reintroducing the
 // old "any one thing in use" rule.
 //
+// 🔴 2026-08-28 — the reserved `player` key gets bgm's strict rule. The
+// second real project (trial-08, 2026-08-27, in the platform repo that
+// scaffolds from this template) exposed the remaining hole in the character
+// category's lenient rule above: the protagonist texture was declared,
+// loaded into the cache, and NEVER attached to the player — the player
+// stayed a procedural placeholder square, the builder's playtest verdict was
+// "逻辑不通，玩不了" (the protagonist was still a square), and this gate
+// printed `characters 1/3 in use (unused: protagonist)` and PASSED, because
+// a companion sprite used as scene decoration satisfied "at least one
+// character in use". The gate SAW the unused protagonist and the rule let it
+// through. Declaring the reserved key is how a manifest says "this character
+// IS the player sprite" (`game-assets.ts`'s `PLAYER_CHARACTER_KEY`), so from
+// that declaration alone the gate can finally tell WHICH character is the
+// load-bearing one — see `tests/asset-usage.test.mjs`'s trial-08 regression
+// test for the literal shape.
+//
 // Categories are inferred from `key` alone (never from `kind`, except as a
 // fallback for a shape this template's own manifest never produces) by
 // mirroring `../../src/game-assets.ts`'s own well-known key constants —
 // `TITLE_TEXTURE_KEY`, `BGM_AUDIO_KEY`, `backgroundTextureKey()`'s
-// `"bg-level<N>"` shape. Not imported from there: this file's own
-// zero-I/O, framework-free discipline (see this header's first paragraph)
-// intentionally does not reach into `src/`, the same reasoning
-// `harness-types.ts` documents for keeping `DeclaredAssetKind` a hand-mirrored
-// type rather than an import. `tests/asset-usage.test.mjs`'s drift test
-// imports the real constants from `game-assets.ts` and asserts
+// `"bg-level<N>"` shape, `PLAYER_CHARACTER_KEY`. Not imported from there:
+// this file's own zero-I/O, framework-free discipline (see this header's
+// first paragraph) intentionally does not reach into `src/`, the same
+// reasoning `harness-types.ts` documents for keeping `DeclaredAssetKind` a
+// hand-mirrored type rather than an import. `tests/asset-usage.test.mjs`'s
+// drift test imports the real constants from `game-assets.ts` and asserts
 // `classifyAssetKey()` agrees with them — same "two copies of one fact,
 // caught by a test" discipline as that mirrored type.
 //
@@ -72,11 +88,18 @@
 //                    never visited during this run's probes is expected to
 //                    show 0 use for its own background, and must not be
 //                    held against the project.
-//   - character   — declared ⇒ at least one declared character MUST be in
-//                    `usedInScene` (a game legitimately may not use every
-//                    generated character), but any unused ones are always
-//                    named in `reason` so "1/3 in use" is never silently
-//                    indistinguishable from "3/3 in use".
+//   - character   — split in two by the reserved key (see `PLAYER_KEY`
+//                    below): a character keyed `"player"` declared ⇒ MUST be
+//                    in `usedInScene` — bgm's strict rule, for the same
+//                    reason: the reserved key is the template's own
+//                    statement of intent ("this character IS the player
+//                    sprite"), and there is no partial credit between
+//                    "declared" and "actually worn by the player". Every
+//                    OTHER declared character only requires at least one of
+//                    them to be in `usedInScene` (a game legitimately may
+//                    not use every generated side character), but any unused
+//                    ones are always named in `reason` so "1/3 in use" is
+//                    never silently indistinguishable from "3/3 in use".
 //   - title       — never required. The title texture is only ever drawn on
 //                    the start screen; by the time a later snapshot samples
 //                    the gameplay state, the project may have legitimately
@@ -94,6 +117,18 @@
 const TITLE_KEY = 'title'
 /** Mirrors `../../src/game-assets.ts`'s `BGM_AUDIO_KEY` — see this file's header. */
 const BGM_KEY = 'bgm'
+/**
+ * Mirrors `../../src/game-assets.ts`'s `PLAYER_CHARACTER_KEY` — the one
+ * reserved character slug. Declaring a character under this key is the
+ * manifest's own statement of intent ("this character IS the player
+ * sprite"), which is what lets the judge below hold it to bgm's strict
+ * declared-⇒-MUST-use rule instead of the lenient "at least one character
+ * in use" every other character slug gets. See this file's header
+ * (2026-08-28 note) for the real incident that made this strict. Exported
+ * only so `tests/asset-usage.test.mjs`'s drift test can assert it never
+ * diverges from the real constant — same pattern as `classifyAssetKey`.
+ */
+export const PLAYER_KEY = 'player'
 /** Mirrors `../../src/game-assets.ts`'s `backgroundTextureKey()` (`"bg-level" + N`, `N >= 1`) — see this file's header. */
 const BACKGROUND_KEY_PATTERN = /^bg-level[1-9]\d*$/
 
@@ -225,13 +260,45 @@ export function judgeAssetUsage(assetSnapshots) {
 
   const character = byCategory.get('character')
   if (character && character.declared.size > 0) {
-    const unused = [...character.declared].filter((k) => !character.used.has(k))
-    if (character.used.size === 0) {
-      failures.push(`characters declared (${[...character.declared].join(', ')}) but 0/${character.declared.size} in use`)
-    } else if (unused.length > 0) {
-      notes.push(`characters ${character.used.size}/${character.declared.size} in use (unused: ${unused.join(', ')})`)
-    } else {
-      notes.push(`characters ${character.used.size}/${character.declared.size} in use`)
+    // Reserved player-character key first — see PLAYER_KEY's doc. Declaring
+    // it means "this character IS the player sprite", so unlike every other
+    // character slug there is no "a game may not use it" leniency: declared
+    // but not attached to a real GameObject in an active scene is a failure,
+    // the exact trial-08 shape (protagonist loaded, player stayed a
+    // procedural placeholder square, gate printed "1/3 in use (unused:
+    // protagonist)" and passed).
+    const playerDeclared = character.declared.has(PLAYER_KEY)
+    const playerUsed = character.used.has(PLAYER_KEY)
+    if (playerDeclared && !playerUsed) {
+      failures.push(
+        `player character declared (${PLAYER_KEY}) but not in use — the reserved "${PLAYER_KEY}" key marks it as THE player sprite, so declaring it means the player must actually wear it, not just have it loaded`,
+      )
+    } else if (playerDeclared && playerUsed) {
+      notes.push(`player character (${PLAYER_KEY}) in use`)
+    }
+
+    // Every other character keeps the lenient per-category rule — but the
+    // fraction and the failure below are computed over the non-reserved keys
+    // only, so the reserved key's verdict never hides inside an average
+    // ("1/3 in use") again.
+    const otherDeclared = [...character.declared].filter((k) => k !== PLAYER_KEY)
+    const otherUsed = [...character.used].filter((k) => k !== PLAYER_KEY)
+    if (otherDeclared.length > 0) {
+      const unused = otherDeclared.filter((k) => !otherUsed.includes(k))
+      if (character.used.size === 0) {
+        // Nothing at all is in use. When the reserved-key failure above
+        // already fired, IT is the actionable one and the generic "0/N"
+        // failure would just name the same keys again — skip it rather than
+        // emit two failures saying one thing. Only when no reserved key was
+        // declared does the plain old rule speak here, verbatim.
+        if (!playerDeclared) {
+          failures.push(`characters declared (${otherDeclared.join(', ')}) but 0/${otherDeclared.length} in use`)
+        }
+      } else if (unused.length > 0) {
+        notes.push(`characters ${otherUsed.length}/${otherDeclared.length} in use (unused: ${unused.join(', ')})`)
+      } else {
+        notes.push(`characters ${otherUsed.length}/${otherDeclared.length} in use`)
+      }
     }
   }
 
