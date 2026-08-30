@@ -6,7 +6,7 @@ This is a standalone Phaser 4 + Vite + TypeScript project — not part of a mono
 
 ## Hard rules — read before doing anything else
 
-These five exist because each one caused a real incident during earlier unstructured agent runs. They are not style preferences.
+These rules exist because each one caused a real incident during earlier unstructured agent runs (or, for rule 9, a benchmark validation producing a shipped artifact with 0 data files and 3985 lines of hardcoded scene code). They are not style preferences.
 
 ### 1. Never run a long-lived server in the foreground
 
@@ -63,7 +63,7 @@ So, before calling a UI or input change verified:
 
 ### 6. If the game's acceptance criteria include machine-judgable ("machine") items, keep `window.__gameHarness` honest as you change scenes
 
-The outer platform can attach a project-root `assertions.json` (see the sample one already in this project) — a list of the 7 upstream assertion templates (`loads_clean` / `controllable` / `restart` / `hud_text_present` / `value_persists` / `score_feedback` / `game_over_trigger`) with parameters. `pnpm verify` judges every one of them against the **built artifact**, right after the BH gates, using `src/debug/harness.ts`'s `window.__gameHarness` — the same contract `src/debug/state-jump.ts`'s `jump()`/`isValidStart()` already established for state legality. If you add a scene, a new key, a new triggerable event, or a new persisting stat, this harness has to keep describing the *real* game, or the templates that depend on it silently degrade to "can't judge this" (never a false pass — see below):
+The outer platform can attach a project-root `assertions.json` (see the sample one already in this project) — a list of the 8 upstream assertion templates (`loads_clean` / `controllable` / `restart` / `hud_text_present` / `value_persists` / `score_feedback` / `game_over_trigger` / `data_from_files`) with parameters. `pnpm verify` judges every one of them against the **built artifact**, right after the BH gates, using `src/debug/harness.ts`'s `window.__gameHarness` — the same contract `src/debug/state-jump.ts`'s `jump()`/`isValidStart()` already established for state legality. If you add a scene, a new key, a new triggerable event, or a new persisting stat, this harness has to keep describing the *real* game, or the templates that depend on it silently degrade to "can't judge this" (never a false pass — see below):
 
 - **New `StateRole`**: every `id` returned by `listStates()` (`src/debug/state-jump.ts`) needs an entry in `harness.ts`'s `STATE_ROLES` map. `game_over_trigger`/`restart` judge by **role** (`'gameplay'`/`'gameover'`), never by the scene's engine key — that's what lets a template's judgement survive you renaming a scene.
 - **New key**: add it to `harness.ts`'s `KEY_TABLE` (DOM `KeyboardEvent.code` → Phaser `KeyCodes`) or `controllable`/`restart` assertions referencing it will report "not recognized by press()" instead of judging your game.
@@ -94,12 +94,24 @@ The outer platform can drop AI-generated art/audio into `public/assets/` (`title
 
 🔴 **This is also why `GameScene.applyHarnessState()` starts bgm too, not only `StartScene`'s click.** `src/debug/harness.ts`'s `applyState()` reaches `'Game'` via `game.scene.start(id)` directly — never a real click — so a per-category bgm check would otherwise fail on *every* correctly-built project, including this template's own unmodified reference implementation (confirmed by hand: `pnpm verify` on an untouched scaffold with a declared bgm failed AU until this was added). `applyHarnessState()` only ever runs from the harness's synthetic `applyState()`, never from a real playthrough, so real users' autoplay-gesture behavior is unchanged — this only completes the harness's own premise (design D2: reaching `'Game'` via `applyState()` means "a state a real player could legitimately be in", and `Start`'s click is the only door into `'Game'`, so any real player there already triggered bgm).
 
+### 9. Gameplay content lives in `public/game-data.json` — scene classes are interpreters, not data files
+
+**Real incident (the reason this rule exists):** a benchmark-validation artifact shipped with **0 independent data files vs 3985 lines of scene code** — vocabulary, levels and rules all hardcoded in scene classes — and passed every machine gate, because nothing could see the difference. The scaffold taught that shape (constants at the top of the scene class), so executors faithfully copied it. The rule is the structural fix:
+
+- **New level / new rule / new word list = an edit to `public/game-data.json`** (`levels` / `rules` / `vocabulary` sections; extend a section if the shape doesn't fit yet). The scene class builds from what the data says — same scene class, different data, different level (换数据即换关). `src/game-data.ts` is the only door: `PreloadScene` loads the file and calls `initGameData()` (required — a missing/empty-shell manifest throws at load time and fails BH-1, by design), and scenes take entries via its accessors (`getActiveLevel()` / `getLevelById()` / `getGameRules()` / `getVocabulary()`).
+- **Scene classes MUST NOT carry content definitions** — no per-level geometry (spawn points, placements), no rule values (speeds, score weights), no word lists as constants. Infrastructure constants that have nothing to do with a *specific* level's content (canvas size, HUD band, physics world setup, scene flow) are the interpreter and stay in code. The upstream criterion this mirrors, word for word: 玩法内容（关卡/规则/词表）定义在独立数据文件中，且运行时实际从数据文件加载（场景代码不承载内容定义）.
+- The upstream `data_from_files` assertion (in the sample `assertions.json`) judges exactly this, from three layers of evidence in `getSnapshot().data`: `declared` (what the manifest says) / `loaded` (the loader actually initialized) / `usedInScene` (a scene build actually took entries through the accessors). **All three must be non-empty; a missing manifest is a FAILURE, not an unmet precondition** — that asymmetry with rule 6's trigger/state preconditions is deliberate and is the whole point of the template. What it honestly cannot catch: a scene that consumes an entry and then ignores it (double bookkeeping) — don't do that either, but know the gate's boundary.
+- Do not bypass `src/game-data.ts` (fetching the JSON yourself, or importing data as a TS module): bypassing leaves `usedInScene` empty, which fails the gate — the bypass is what's wrong, not the gate.
+
 ## Project layout
 
 ```text
 index.html            # entry HTML + the CSS reset that keeps the canvas positioned correctly
 vite.config.ts         # dev/preview server config — port 8080 pinned (rule 2), build:play/build:learn outDir split
 assertions.json        # sample machine-judgable acceptance items (rule 6) — one per upstream template
+public/
+├── game-data.json     # the gameplay-content data layer (rule 9): levels / rules / vocabulary
+└── game-doc.json      # in-game documentation panel content (default-hidden)
 scripts/
 ├── verify.mjs          # pnpm verify — BH-0/BH-1/BH-2 + AU (asset usage) gates + IA assertion judging, one CDP session
 ├── assert.mjs           # the IA judging engine verify.mjs calls; also runnable standalone (`node scripts/assert.mjs`)
@@ -109,12 +121,15 @@ tests/
 ├── harness-types.test.mjs # bare-Node import guard for src/debug/harness-types.ts
 ├── assert.test.mjs        # per-template judge tests (positive + negative) and design D6's order-independence test
 ├── asset-usage.test.mjs   # AU gate's absent/unavailable/judged tri-state (rule 8)
+├── game-data.test.mjs     # data-layer validation, accessors, consumption registry, three-layer evidence (rule 9)
+├── data-spine.test.mjs    # structural: scene classes carry no content constants; PreloadScene initializes the data layer
 ├── exit-decision.test.mjs # design D8's exit-code rule
 └── png.test.mjs           # non-empty-screenshot judgement, incl. the required solid-colour negative case
 src/
 ├── main.ts            # creates the Phaser.Game instance — should rarely need edits
 ├── config.ts           # Phaser.Types.Core.GameConfig — Scale Manager lives here
 ├── game-assets.ts       # game-assets.json manifest contract (AI-generated title/bg/char/bgm) — see rule 8
+├── game-data.ts         # game-data.json contract: validation + accessors + consumption registry — see rule 9
 ├── debug/
 │   ├── state-jump.ts    # listStates/jump/isValidStart contract + reference impl (Boot/Preload/Start/Game/GameOver)
 │   ├── harness-types.ts # window.__gameHarness contract types — zero imports, see rule 6
@@ -122,9 +137,9 @@ src/
 │   └── panel.ts          # learn-build-only debug panel; never gate this with a runtime switch
 └── scenes/
     ├── BootScene.ts     # engine-level setup only, runs first
-    ├── PreloadScene.ts  # load assets (incl. the game-assets.json manifest), generate placeholder textures, show progress
+    ├── PreloadScene.ts  # load assets + initialize the data layer (rule 9), generate placeholder textures, show progress
     ├── StartScene.ts     # title/start screen — the only way into Game; also where BGM playback starts (see rule 8)
-    ├── GameScene.ts     # the actual playable scene + the input-capture reference pattern
+    ├── GameScene.ts     # the playable scene, built FROM game-data.json (rule 9) + the input-capture reference pattern
     ├── UiScene.ts        # HUD layer, launched parallel to GameScene — see rule 7 (HUD band / playfield)
     └── GameOverScene.ts # the failure state (`role: 'gameover'`) + restart-to-gameplay
 ```

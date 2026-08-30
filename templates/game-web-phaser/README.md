@@ -19,6 +19,9 @@ A minimal, structurally-correct Phaser 4 + Vite + TypeScript starter for browser
 index.html           # entry HTML — includes the CSS reset that keeps the canvas positioned correctly
 vite.config.ts        # dev/preview server config — fixed port 8080, see below; build:play/build:learn outDir split
 assertions.json        # sample machine-judgable acceptance items — see "Verifying" below
+public/
+├── game-data.json     # the gameplay-content data layer — levels / rules / vocabulary, see "Gameplay content data" below
+└── game-doc.json      # in-game documentation panel content (default-hidden)
 scripts/
 ├── verify.mjs          # pnpm verify — zero-dep headless-Chromium/CDP checks + assertion judging, see "Verifying" below
 ├── assert.mjs           # the assertion-judging engine verify.mjs calls (also runnable standalone)
@@ -28,6 +31,7 @@ src/
 ├── main.ts           # boots the Phaser.Game instance, installs window.__gameHarness
 ├── config.ts          # Phaser.Types.Core.GameConfig — Scale Manager configured here
 ├── game-assets.ts      # game-assets.json manifest contract — AI-generated title/bg/char/bgm, see "Adding assets" below
+├── game-data.ts         # game-data.json contract — validation + accessors + consumption registry, see "Gameplay content data" below
 ├── debug/
 │   ├── state-jump.ts   # listStates/jump/isValidStart contract + a minimal reference implementation
 │   ├── harness-types.ts # window.__gameHarness contract types (zero imports)
@@ -35,9 +39,9 @@ src/
 │   └── panel.ts          # debug panel — only ever included in the build:learn bundle
 └── scenes/
     ├── BootScene.ts    # runs first, engine-level setup only
-    ├── PreloadScene.ts # loads assets (incl. the game-assets.json manifest) / generates placeholder textures, shows a loading bar
+    ├── PreloadScene.ts # loads assets + initializes the data layer / generates placeholder textures, shows a loading bar
     ├── StartScene.ts    # title/start screen — the only way into Game; also where BGM playback starts (autoplay policy)
-    ├── GameScene.ts    # the playable scene — also the reference pattern for keyboard input
+    ├── GameScene.ts    # the playable scene, built FROM game-data.json — also the reference pattern for keyboard input
     ├── UiScene.ts       # HUD layer, launched parallel to GameScene — see AGENTS.md rule 7 (HUD band / playfield)
     └── GameOverScene.ts # the failure state + restart-to-gameplay
 ```
@@ -106,7 +110,7 @@ This template exists to structurally prevent bugs hit by earlier unstructured (v
 
 3. **"I ran the agent and it said done" being the only signal a change actually worked.** Fixed by `pnpm verify` (`scripts/verify.mjs`) — see [Verifying](#verifying) below.
 
-4. **"The health-check gates pass" being conflated with "the acceptance criteria are met."** A build that loads and renders can still be uncontrollable, never show a score, or have no failure state — none of that shows up in a screenshot's pixel variance. `window.__gameHarness` (`src/debug/harness.ts`) plus `scripts/assert.mjs` close that gap for the 7 machine-judgable acceptance templates the outer platform can attach via `assertions.json` — see [Verifying](#verifying) below.
+4. **"The health-check gates pass" being conflated with "the acceptance criteria are met."** A build that loads and renders can still be uncontrollable, never show a score, have no failure state, or hardcode all its content in scene classes — none of that shows up in a screenshot's pixel variance. `window.__gameHarness` (`src/debug/harness.ts`) plus `scripts/assert.mjs` close that gap for the 8 machine-judgable acceptance templates the outer platform can attach via `assertions.json` — see [Verifying](#verifying) below.
 
 ## Two build targets
 
@@ -151,7 +155,7 @@ Results land in `.verify-result.json`'s `assetUsage` field with the same three-s
 
 ### Assertion judging (IA)
 
-If a project-root `assertions.json` exists — a list of machine-judgable acceptance items, each naming one of 7 upstream templates and its parameters — `pnpm verify` judges every one of them right after BH-2/AU, over the **same** browser session (no second page load), by driving the live game through `window.__gameHarness` (`src/debug/harness.ts`):
+If a project-root `assertions.json` exists — a list of machine-judgable acceptance items, each naming one of 8 upstream templates and its parameters — `pnpm verify` judges every one of them right after BH-2/AU, over the **same** browser session (no second page load), by driving the live game through `window.__gameHarness` (`src/debug/harness.ts`):
 
 | templateId          | what it checks                                                                    |
 | -------------------- | ----------------------------------------------------------------------------------- |
@@ -162,6 +166,7 @@ If a project-root `assertions.json` exists — a list of machine-judgable accept
 | `value_persists`      | a named value in `getSnapshot().values` is unchanged across a state transition     |
 | `score_feedback`      | firing a scoring trigger changes the HUD text (checks the **text**, not the internal score field — an internal-only change is the bug this one exists to catch) |
 | `game_over_trigger`   | firing a failure trigger lands on a `gameover`-role state                          |
+| `data_from_files`     | the three data-layer evidence layers in `getSnapshot().data` (`declared`/`loaded`/`usedInScene`) are all non-empty — gameplay content is defined in `public/game-data.json` and actually loaded by the running game. 🔴 A missing manifest is a **failure**, never an unmet precondition — that asymmetry is the whole point (see "Gameplay content data" below) |
 
 Results land in `.verify-result.json`'s `assertions` field with one of three statuses, never blurred together: **`judged`** (every item got a real pass/fail — see `results[]`), **`absent`** (no `assertions.json` — this is not a failure), or **`unavailable`** (a clean `assertions.json` exists but nothing could judge it, e.g. `window.__gameHarness` isn't installed). `judged`-with-failures and `unavailable` both make `pnpm verify` exit non-zero and write `passed: false`, same as a BH gate failure — a gate that could not run is not a gate that passed. Only `absent` is benign: a project that never opted into assertions stays green.
 
@@ -170,6 +175,13 @@ Results land in `.verify-result.json`'s `assertions` field with one of three sta
 If you're building on this template and want `pnpm verify` to actually judge your game's acceptance criteria (not just report `unavailable`), read rule 6 in `AGENTS.md` before changing scenes.
 
 ## Adding assets
+
+### Gameplay content data (levels / rules / vocabulary) — REQUIRED
+
+This template's answer to "what is a game" is **data + interpreter**: gameplay content lives in `public/game-data.json` (`levels` / `rules` / `vocabulary` sections; contract: `src/game-data.ts`), and scene classes are the interpreter that reads it. `PreloadScene` loads the file and calls `initGameData()` at load time — strict validation, so an empty-shell or malformed manifest fails **loudly** (BH-1), never silently. Scenes take entries through the accessors (`getActiveLevel()` / `getLevelById()` / `getGameRules()` / `getVocabulary()`); the loader records what they take, and `getSnapshot().data` exposes it as three evidence layers for the upstream `data_from_files` assertion.
+
+- **New level / rule value / word list = an edit to `game-data.json`**, not a new constant in a scene class. Same scene code, different data, different level (换数据即换关). This is AGENTS.md rule 9, and the reason it is a hard rule rather than a suggestion: a benchmark artifact once shipped 0 data files next to 3985 lines of hardcoded scene code and passed every machine gate, so the gate now exists and the scaffold teaches the data-driven shape.
+- Don't bypass `src/game-data.ts` (hand-fetching the JSON, or inlining content back into scene classes): the bypass itself leaves `usedInScene` empty and fails `data_from_files` — the bypass is what's wrong, not the gate.
 
 ### Platform-delivered assets (AI-generated title/backgrounds/characters/BGM)
 

@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import { GAME_HEIGHT, GAME_WIDTH } from '../config'
 import { normalizeGameAssets, planAssetLoads, safeParseJson, PLAYER_CHARACTER_KEY, GAME_ASSETS_RAW_CACHE_KEY } from '../game-assets'
+import { initGameData, GAME_DATA_RAW_CACHE_KEY } from '../game-data'
 
 /**
  * Preload — load every asset the game needs before StartScene/GameScene start.
@@ -105,9 +106,27 @@ export class PreloadScene extends Phaser.Scene {
       const raw = this.cache.text.get(GAME_ASSETS_RAW_CACHE_KEY) as string | undefined
       this.queueManifestAssets(normalizeGameAssets(safeParseJson(raw)))
     })
+
+    // Gameplay-content manifest (see ../game-data.ts). Same load-as-text
+    // trick as game-assets.json above, but a DIFFERENT contract: that
+    // manifest is platform-delivered and optional (degrades to placeholders);
+    // this one is the project's own content and REQUIRED. A missing file
+    // leaves the cache key absent, which `initGameData(undefined)` below
+    // turns into a thrown, locatable error — see create().
+    this.load.text(GAME_DATA_RAW_CACHE_KEY, 'game-data.json')
   }
 
   create(): void {
+    // 🔴 REQUIRED data layer, and the reason this call sits HERE — at page
+    // load, before any gameplay scene can run — and not inside a gameplay
+    // scene's create(): a bad or missing `game-data.json` must throw where
+    // `scripts/verify.mjs`'s BH-1 gate catches it as a clean uncaught
+    // exception. Thrown inside a gameplay scene's create() instead, the IA
+    // runner's `applyState()` would await a CREATE event that never fires
+    // and the whole verify run would hang. Load-time validation failure is
+    // the loud, early, correct death (see ../game-data.ts's initGameData doc).
+    initGameData(this.cache.text.get(GAME_DATA_RAW_CACHE_KEY) as string | undefined)
+
     this.progressBox.destroy()
     this.progressBar.destroy()
     this.generatePlaceholderTextures()

@@ -15,6 +15,7 @@
       "params": { "value": "highScore", "from": "Game", "to": "GameOver" }
     },
     { "itemId": "ai-score-feedback", "templateId": "score_feedback", "params": { "condition": "score" } },
-    { "itemId": "ai-game-over", "templateId": "game_over_trigger", "params": { "condition": "gameover" } }
+    { "itemId": "ai-game-over", "templateId": "game_over_trigger", "params": { "condition": "gameover" } },
+    { "itemId": "ai-data-from-files", "templateId": "data_from_files", "params": {} }
   ]
 }

@@ -18,6 +18,10 @@ export class MockHarness {
     hudTexts = [],
     values = {},
     score = 0,
+    // game-data-spine: the `data` evidence `judgeDataFromFiles` reads.
+    // Default null = "never declared a data layer" (the V2 pure-code shape);
+    // tests for the other two gaps pass partial three-layer snapshots.
+    data = null,
     keyTable = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyR']),
     exists = true,
     version = 1,
@@ -31,6 +35,7 @@ export class MockHarness {
     this.hudTexts = [...hudTexts]
     this.values = { ...values }
     this.score = score
+    this.data = data
     this.stateId = states[0]?.id ?? ''
     this.keyTable = keyTable
     this._exists = exists
@@ -76,6 +81,7 @@ export class MockHarness {
       entities: this.entities.map((e) => ({ ...e })),
       hudTexts: [...this.hudTexts],
       values: { ...this.values },
+      data: this.data,
     }
   }
 
@@ -117,6 +123,24 @@ export function createReferenceLikeHarness() {
     ],
     triggers: ['score', 'gameover'],
     keyTable: new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyR']),
+    // What the real reference implementation's evidence looks like after one
+    // GameScene build: the manifest declares level-1 + rules, PreloadScene
+    // initialized the loader (loaded = declared), and the scene build took
+    // both through the accessors (usedInScene = declared).
+    data: {
+      declared: [
+        { id: 'levels:level-1', section: 'levels' },
+        { id: 'rules', section: 'rules' },
+      ],
+      loaded: [
+        { id: 'levels:level-1', section: 'levels' },
+        { id: 'rules', section: 'rules' },
+      ],
+      usedInScene: [
+        { id: 'levels:level-1', section: 'levels' },
+        { id: 'rules', section: 'rules' },
+      ],
+    },
   })
   harness.highScore = 0
 

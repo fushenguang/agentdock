@@ -36,12 +36,15 @@ function writeAssertionsJson(dir, body) {
 // Template registry sync (this file's describe() mirror vs. upstream's set)
 // ───────────────────────────────────────────────────────────────────────
 
-test('KNOWN_TEMPLATE_IDS is exactly upstream\'s 7-id closed set', () => {
+test('KNOWN_TEMPLATE_IDS is exactly upstream\'s 8-id closed set', () => {
   // Pinned from cogito-lib's ASSERTION_TEMPLATE_IDS
   // (apps/web/src/core/types/workspace.ts) — if this test breaks, either
   // upstream added/removed a template id, or this mirror drifted. Either way
   // it needs a human to reconcile scripts/assert.mjs's TEMPLATE_DESCRIBERS,
-  // not a silent pass.
+  // not a silent pass. `data_from_files` joined with data-layer-gate /
+  // game-data-spine (2026-08-30): upstream adds the template id AND its
+  // describe() wording, this mirror copies both verbatim — the wording is
+  // pinned by the judge tests below, not just the id.
   const expected = [
     'restart',
     'controllable',
@@ -50,6 +53,7 @@ test('KNOWN_TEMPLATE_IDS is exactly upstream\'s 7-id closed set', () => {
     'hud_text_present',
     'value_persists',
     'loads_clean',
+    'data_from_files',
   ].sort()
   assert.deepEqual([...KNOWN_TEMPLATE_IDS].sort(), expected)
 })
@@ -558,6 +562,92 @@ test('runAssertions: one item\'s fire() violation fails ONLY that item — it mu
 })
 
 // ───────────────────────────────────────────────────────────────────────
+// data_from_files — game-data-spine design D3: every gap is a FAILURE,
+// never a precondition (the whole point of the template)
+// ───────────────────────────────────────────────────────────────────────
+
+// The describe() mirror is pinned character-for-character (design D6's
+// manual-mirror discipline made testable): every failure result carries
+// `failure.expected`, and this is the id's one zero-param entry.
+test('data_from_files: expected wording is the verbatim upstream sentence (checked via a failing case, which always carries failure.expected)', async () => {
+  const harness = new MockHarness({ states: [{ id: 'Game', role: 'gameplay' }], data: null })
+  const item = { itemId: 'a', templateId: 'data_from_files', params: {} }
+  const result = await judgeOne(harness, { exceptions: [], failedRequests: [] }, item)
+  assert.equal(result.failure.expected, '玩法内容（关卡/规则/词表）定义在独立数据文件中，且运行时实际从数据文件加载（场景代码不承载内容定义）')
+})
+
+test('data_from_files: passes when all three layers are non-empty', async () => {
+  const harness = createReferenceLikeHarness()
+  const item = { itemId: 'a', templateId: 'data_from_files', params: {} }
+  const result = await judgeOne(harness, { exceptions: [], failedRequests: [] }, item)
+  assert.deepEqual(result, { itemId: 'a', templateId: 'data_from_files', passed: true, failure: null })
+})
+
+test('data_from_files: data=null (never declared a data layer — the V2 pure-code shape) FAILS, and the hint must NOT read as an unmet precondition', async () => {
+  const harness = new MockHarness({ states: [{ id: 'Game', role: 'gameplay' }], data: null })
+  const item = { itemId: 'a', templateId: 'data_from_files', params: {} }
+  const result = await judgeOne(harness, { exceptions: [], failedRequests: [] }, item)
+  assert.equal(result.passed, false)
+  assert.ok(!result.failure.hint.startsWith(PRECONDITION_PREFIX), 'manifest-absent is a defect, never a precondition (spec)')
+  assert.match(result.failure.hint, /先按数据层约定立数据/)
+  assert.match(result.failure.actual, /声明 0 条/)
+})
+
+test('data_from_files: declared-but-never-loaded (executor stripped the init call) FAILS with the load-fix hint', async () => {
+  const harness = new MockHarness({
+    states: [{ id: 'Game', role: 'gameplay' }],
+    data: {
+      declared: [{ id: 'levels:level-1', section: 'levels' }],
+      loaded: [],
+      usedInScene: [],
+    },
+  })
+  const item = { itemId: 'a', templateId: 'data_from_files', params: {} }
+  const result = await judgeOne(harness, { exceptions: [], failedRequests: [] }, item)
+  assert.equal(result.passed, false)
+  assert.ok(!result.failure.hint.startsWith(PRECONDITION_PREFIX))
+  assert.match(result.failure.hint, /没有加载/)
+  assert.match(result.failure.actual, /声明 1 条 \/ 加载 0 条 \/ 场景消费 0 条/)
+})
+
+test('data_from_files: loaded-but-never-consumed (the empty-shell decoy) FAILS, actual distinguishes the three layers', async () => {
+  const harness = new MockHarness({
+    states: [{ id: 'Game', role: 'gameplay' }],
+    data: {
+      declared: [{ id: 'levels:level-1', section: 'levels' }, { id: 'rules', section: 'rules' }],
+      loaded: [{ id: 'levels:level-1', section: 'levels' }, { id: 'rules', section: 'rules' }],
+      usedInScene: [],
+    },
+  })
+  const item = { itemId: 'a', templateId: 'data_from_files', params: {} }
+  const result = await judgeOne(harness, { exceptions: [], failedRequests: [] }, item)
+  assert.equal(result.passed, false)
+  assert.ok(!result.failure.hint.startsWith(PRECONDITION_PREFIX))
+  assert.match(result.failure.hint, /没有消费|消费/)
+  assert.match(result.failure.actual, /声明 2 条 \/ 加载 2 条 \/ 场景消费 0 条/)
+})
+
+test('data_from_files: no gameplay state at all FAILS as a product defect, not a precondition', async () => {
+  const harness = new MockHarness({ states: [{ id: 'GameOver', role: 'gameover' }] })
+  const item = { itemId: 'a', templateId: 'data_from_files', params: {} }
+  const result = await judgeOne(harness, { exceptions: [], failedRequests: [] }, item)
+  assert.equal(result.passed, false)
+  assert.ok(!result.failure.hint.startsWith(PRECONDITION_PREFIX), 'data_from_files may never produce 前提不满足 (spec delta)')
+})
+
+test('data_from_files: applyState rejecting the gameplay state FAILS as a product defect, not a precondition', async () => {
+  const harness = new MockHarness({
+    states: [{ id: 'Game', role: 'gameplay' }],
+    data: { declared: [{ id: 'levels:level-1', section: 'levels' }], loaded: [], usedInScene: [] },
+    onApplyState: () => false,
+  })
+  const item = { itemId: 'a', templateId: 'data_from_files', params: {} }
+  const result = await judgeOne(harness, { exceptions: [], failedRequests: [] }, item)
+  assert.equal(result.passed, false)
+  assert.ok(!result.failure.hint.startsWith(PRECONDITION_PREFIX))
+})
+
+// ───────────────────────────────────────────────────────────────────────
 // design D6 — order independence, via runAssertions() end to end
 // ───────────────────────────────────────────────────────────────────────
 
@@ -570,6 +660,7 @@ test('design D6: shuffling assertions.json\'s order does not change any item\'s 
     { itemId: 'persist', templateId: 'value_persists', params: { value: 'highScore', from: 'Game', to: 'GameOver' } },
     { itemId: 'score', templateId: 'score_feedback', params: { condition: 'score' } },
     { itemId: 'over', templateId: 'game_over_trigger', params: { condition: 'gameover' } },
+    { itemId: 'data', templateId: 'data_from_files', params: {} },
   ]
   const reversedItems = [...items].reverse()
   const loadEvidence = { exceptions: [], failedRequests: [] }

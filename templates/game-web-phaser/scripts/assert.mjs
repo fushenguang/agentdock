@@ -6,7 +6,7 @@
 //
 //   1. `runAssertions()` — read the project's `assertions.json`, drive the
 //      live game through `window.__gameHarness` over an already-open CDP
-//      session, and judge each of the 7 upstream templates. This is what
+//      session, and judge each of the 8 upstream templates. This is what
 //      `scripts/verify.mjs` calls, in-process, right after BH-2 (design D7 —
 //      one browser session for the whole run).
 //   2. A standalone CLI entry (`node scripts/assert.mjs`) for developing this
@@ -84,6 +84,11 @@ const TEMPLATE_DESCRIBERS = {
   game_over_trigger: (p) => `满足「${p.condition}」后，进入 GAMEOVER 状态`,
   hud_text_present: (p) => `处于「${p.state}」状态时，界面上能看到「${p.text}」`,
   value_persists: (p) => `从「${p.from}」切到「${p.to}」时，「${p.value}」不被重置`,
+  // 🔴 game-data-spine design D6: verbatim mirror of upstream data-layer-gate
+  // design D1's zero-param describe() — do not paraphrase. Zero params by
+  // design: this template judges a FORM (content-in-data), not a
+  // parameterized behavior, so there is nothing for params to select.
+  data_from_files: () => '玩法内容（关卡/规则/词表）定义在独立数据文件中，且运行时实际从数据文件加载（场景代码不承载内容定义）',
 }
 
 export const KNOWN_TEMPLATE_IDS = new Set(Object.keys(TEMPLATE_DESCRIBERS))
@@ -221,7 +226,22 @@ export class RemoteHarness {
 
   async applyState(id, seed) {
     const args = seed !== undefined ? `${JSON.stringify(id)}, ${seed}` : JSON.stringify(id)
-    return this.eval(`window.__gameHarness.applyState(${args})`)
+    // 🔴 game-data-spine hardening: `harness.ts`'s `applyState()` resolves
+    // only when the target scene's CREATE event fires. If the scene's own
+    // `create()` throws (any executor bug — including a scene consuming a
+    // `game-data.json` section the manifest doesn't declare), CREATE never
+    // fires and a bare eval would hang this whole verify run forever. The
+    // timeout converts that hang into a thrown error, which
+    // `runAssertions()`'s crash handler reports as a red `unavailable`
+    // instead of a silent stall. Only `applyState` gets this: every other
+    // eval here resolves on its own timers.
+    const evalPromise = this.eval(`window.__gameHarness.applyState(${args})`)
+    const timeout = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`applyState("${id}") timed out after ${APPLY_STATE_TIMEOUT_MS}ms — the target scene's create() likely threw (check the page console / .verify-result.json)`))
+      }, APPLY_STATE_TIMEOUT_MS)
+    })
+    return await Promise.race([evalPromise, timeout])
   }
 
   /** Not part of GameHarness — a runner-side settle wait, same idea as harness.ts's own TRIGGER_SETTLE_MS. */
@@ -239,6 +259,9 @@ export class RemoteHarness {
 // top of that, entirely on the runner side — it does not require any harness
 // API change.
 const TRANSITION_SETTLE_MS = 100
+
+/** See `RemoteHarness.applyState()`'s comment — the one eval that can hang forever without this. */
+const APPLY_STATE_TIMEOUT_MS = 15000
 
 // ───────────────────────────────────────────────────────────────────────
 // Result helpers — every judge function below returns one of these shapes
@@ -689,6 +712,77 @@ async function judgeRestart(harness, item) {
   return passResult(item)
 }
 
+/**
+ * data_from_files — game-data-spine design D3. The ONE judge whose every
+ * "can't run" outcome is a product defect, never a precondition: a project
+ * with no gameplay state, or one whose gameplay scene won't even start, is
+ * a broken product from this assertion's point of view too. The upstream
+ * spec delta is explicit that manifest-absent MUST fail rather than
+ * precondition-out — trial-09's 0-data-files/3985-lines artifact passing
+ * every machine gate is exactly what a 前提不满足 routing here would
+ * re-enable. That also means this function NEVER calls
+ * `preconditionResult()` — every failure below is `failResult` with a
+ * hint pointing at the fix, and the tests pin that property.
+ */
+async function judgeDataFromFiles(harness, item) {
+  const expected = describeTemplate('data_from_files', {})
+  // Every `actual` names all three layers, so a reader of the failure never
+  // has to guess WHICH of the three gaps they're looking at (spec scenario
+  // 「actual 区分『声明/加载/消费』三层各自的状况」).
+  const summarize = (data) =>
+    data === null
+      ? '声明 0 条（data=null，从未声明数据清单）/ 加载 0 条 / 场景消费 0 条'
+      : `声明 ${data.declared.length} 条 / 加载 ${data.loaded.length} 条 / 场景消费 ${data.usedInScene.length} 条`
+
+  const states = await harness.listStates()
+  const gameplay = findGameplayState(states)
+  if (!gameplay) {
+    return failResult(
+      item, expected,
+      '没有 role="gameplay" 的状态——玩法场景不存在，数据层证据无处产生',
+      '这个游戏没有可进入的玩法状态：先让玩法场景存在并在其中消费 game-data.json 的条目（这是产物缺陷，不是前提不满足）',
+    )
+  }
+  // Establish the gameplay start OURSELVES (order independence): the data
+  // evidence's `usedInScene` layer only fills once a scene build has taken
+  // entries from `src/game-data.ts`, and on a fresh page load the boot chain
+  // stops at Start — Game has never run yet.
+  const applied = await harness.applyState(gameplay.id)
+  if (!applied) {
+    return failResult(
+      item, expected,
+      `applyState("${gameplay.id}") returned false`,
+      '玩法场景起不来（applyState 被拒）：没有可运行的玩法，就谈不上「运行时实际从数据文件加载」——修场景，这是产物缺陷，不是前提不满足',
+    )
+  }
+
+  const snap = await harness.getSnapshot()
+  const data = snap.data ?? null
+
+  if (data === null || data.declared.length === 0) {
+    return failResult(
+      item, expected,
+      summarize(data),
+      '先按数据层约定立数据：在项目根的 public/game-data.json 声明 levels/rules/vocabulary 分节（契约见 src/game-data.ts），并让 PreloadScene 加载它——这是产物缺陷，不是前提不满足',
+    )
+  }
+  if (data.loaded.length === 0) {
+    return failResult(
+      item, expected,
+      summarize(data),
+      '清单声明了但运行时没有加载：确认 PreloadScene 用 this.load.text(GAME_DATA_RAW_CACHE_KEY, "game-data.json") 加载并在 create() 里调用 initGameData()（不要绕开 src/game-data.ts 另起一套）',
+    )
+  }
+  if (data.usedInScene.length === 0) {
+    return failResult(
+      item, expected,
+      summarize(data),
+      '数据加载了但玩法场景构建没有消费：让场景在 create() 里经 src/game-data.ts 的访问接口取条目（getActiveLevel()/getLevelById()/getGameRules()/getVocabulary()），而不是把内容写死在场景类里',
+    )
+  }
+  return passResult(item)
+}
+
 /** Exported so tests/assert.test.mjs can drive each template's judgement directly against a mock harness, without going through runAssertions()'s file-reading and harness-presence checks. */
 export async function judgeOne(harness, loadEvidence, item) {
   switch (item.templateId) {
@@ -706,6 +800,8 @@ export async function judgeOne(harness, loadEvidence, item) {
       return judgeGameOverTrigger(harness, item)
     case 'restart':
       return judgeRestart(harness, item)
+    case 'data_from_files':
+      return judgeDataFromFiles(harness, item)
     default:
       // Unreachable in practice: readAssertionsFile() already rejects any
       // templateId outside KNOWN_TEMPLATE_IDS as `unavailable` before this
