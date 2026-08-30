@@ -90,10 +90,17 @@ export function jump(id: StateId, seed = 0): GameState {
     id,
     seed,
     score: 0,
+    // 🔴 A fixed REFERENCE start, not a mirror of the game's spawn: since the
+    // data spine (game-data-spine), where the player spawns is level CONTENT
+    // and lives in `public/game-data.json` — this contract deliberately does
+    // NOT read it (that would couple the state-legality contract to the data
+    // layer and break this module's bare-Node importability). Any in-bounds
+    // point is a legal start; `applyState()` overriding the data-driven
+    // spawn with this point is the same "synthetic but legal" move it
+    // already makes for score. PLAYFIELD_HEIGHT, not GAME_HEIGHT — the
+    // bottom HUD_BAND_HEIGHT strip is UiScene's, not world space (see
+    // dimensions.ts's HUD band / playfield contract).
     playerX: GAME_WIDTH / 2,
-    // matches GameScene.create()'s initial spawn position — PLAYFIELD_HEIGHT,
-    // not GAME_HEIGHT, since the bottom HUD_BAND_HEIGHT strip is UiScene's,
-    // not world space (see dimensions.ts's HUD band / playfield contract).
     playerY: PLAYFIELD_HEIGHT - 80,
   }
 }

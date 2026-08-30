@@ -3,16 +3,7 @@ import { GAME_WIDTH, PLAYFIELD_HEIGHT } from '../config'
 import { registerTrigger } from '../debug/harness'
 import type { GameState } from '../debug/state-jump'
 import { applyLevelBackground, PLAYER_CHARACTER_KEY, BGM_AUDIO_KEY } from '../game-assets'
-
-const PLAYER_SPEED = 260
-const BULLET_SPEED = 420
-
-/**
- * This template ships exactly one gameplay scene ('Game') — level 1 in the
- * `public/assets/bg/level<N>.png` numbering contract (see `../game-assets.ts`).
- * A project that adds more levels/scenes gives each its own number here.
- */
-const LEVEL_NUMBER = 1
+import { getActiveLevel, getGameRules, type GameLevelEntry, type GameRules } from '../game-data'
 
 /**
  * Game — the actual playable scene.
@@ -71,6 +62,17 @@ export class GameScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private spaceKey!: Phaser.Input.Keyboard.Key
   private score = 0
+  /**
+   * This level's content and this game's rules, taken from the data layer
+   * (`../game-data.ts`) at create() time. There are deliberately NO
+   * content constants in this class — no hardcoded spawn point, speeds,
+   * placements or level number: this scene is the INTERPRETER, the content
+   * it builds lives in `public/game-data.json` (game-data-spine design D4:
+   * 逐关卡几何/数值进数据，解释器设施留代码). Trial-09's 0-data-files artifact
+   * was 3985 lines of exactly the shape these fields must not regress into.
+   */
+  private level!: GameLevelEntry
+  private rules!: GameRules
 
   constructor() {
     super('Game')
@@ -121,7 +123,17 @@ export class GameScene extends Phaser.Scene {
     // no competing browser default to fight (see class doc rule 2).
     keyboard.on('keydown-R', () => this.scene.restart())
 
-    this.drawLevelBackground()
+    // ── Data layer — the whole level's content comes from here ─────────
+    // `public/game-data.json`, validated at Preload-time (see that scene's
+    // create() for why validation lives THERE). Taking entries through the
+    // accessors is also what fills the harness's `data.usedInScene`
+    // evidence (`../game-data.ts`'s consumption registry) — the thing the
+    // upstream `data_from_files` assertion judges. A new level/rule/word
+    // list is a data edit, not a scene edit (AGENTS.md rule 9).
+    this.level = getActiveLevel()
+    this.rules = getGameRules()
+
+    this.drawLevelBackground(this.level.backgroundLevel)
 
     // `PLAYER_CHARACTER_KEY` ('player') resolves to whichever texture
     // `PreloadScene` actually registered under that key — an AI-generated
@@ -130,7 +142,13 @@ export class GameScene extends Phaser.Scene {
     // procedural placeholder shape (see `PreloadScene.generatePlaceholderTextures()`'s
     // guard). This scene never branches on which one it got — that's the
     // whole point of both landing on the same key.
-    this.player = this.physics.add.sprite(GAME_WIDTH / 2, PLAYFIELD_HEIGHT - 80, PLAYER_CHARACTER_KEY)
+    // The SPAWN POINT is level content and comes from the data layer, not
+    // from a constant in this class.
+    this.player = this.physics.add.sprite(
+      this.level.playerSpawn.x,
+      this.level.playerSpawn.y,
+      PLAYER_CHARACTER_KEY,
+    )
     this.player.setCollideWorldBounds(true)
     // Named so `../debug/harness.ts`'s `getSnapshot()` can report it as an
     // `EntitySnapshot` — this is the only entity `controllable` needs to see
@@ -150,6 +168,19 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.obstacles, () => {
       this.handleObstacleHit()
     })
+
+    // Static placements — data-driven level content, using the same
+    // 'coin'/'obstacle' textures the trigger-spawned ones use. Each entry's
+    // coordinates were validated against the playfield contract at
+    // Preload-time, so no bounds-checking is needed (or wanted) here.
+    for (const coin of this.level.initialCoins) {
+      const sprite = this.coins.create(coin.x, coin.y, 'coin') as Phaser.Physics.Arcade.Sprite
+      sprite.setActive(true).setVisible(true)
+    }
+    for (const obstacle of this.level.initialObstacles) {
+      const sprite = this.obstacles.create(obstacle.x, obstacle.y, 'obstacle') as Phaser.Physics.Arcade.Sprite
+      sprite.setActive(true).setVisible(true)
+    }
 
     // What `fire('score')` / `fire('gameover')` dispatch (design D3): each
     // handler only places an object in the world. Re-registered on every
@@ -213,24 +244,26 @@ export class GameScene extends Phaser.Scene {
 
   /**
    * Draws this level's AI-generated background, if `PreloadScene` loaded
-   * one for `LEVEL_NUMBER` (`public/assets/bg/level<N>.png` via
-   * `game-assets.json`). The actual "check the texture manager, draw it,
-   * pin it behind gameplay, no-op if missing" logic lives in
-   * `../game-assets.ts`'s `applyLevelBackground()` — a shared helper, not a
-   * private method on this class — specifically so it survives this class
-   * being deleted and replaced by a project's own `Level<N>Scene`(s). See
-   * that function's doc for the full contract (sizing, depth, fallback
-   * reasoning) and `../../skills/game-flow-and-hud/SKILL.md`'s
-   * "Platform-Delivered Assets" section for why this matters: a real
-   * project once deleted `GameScene` wholesale and this exact call was the
-   * one thing that didn't make it into the replacement scenes.
+   * one for `backgroundLevel` (`public/assets/bg/level<N>.png` via
+   * `game-assets.json` — which N belongs to this level is level CONTENT,
+   * so it comes from the data layer, not from a constant here). The actual
+   * "check the texture manager, draw it, pin it behind gameplay, no-op if
+   * missing" logic lives in `../game-assets.ts`'s `applyLevelBackground()`
+   * — a shared helper, not a private method on this class — specifically
+   * so it survives this class being deleted and replaced by a project's
+   * own `Level<N>Scene`(s). See that function's doc for the full contract
+   * (sizing, depth, fallback reasoning) and
+   * `../../skills/game-flow-and-hud/SKILL.md`'s "Platform-Delivered
+   * Assets" section for why this matters: a real project once deleted
+   * `GameScene` wholesale and this exact call was the one thing that
+   * didn't make it into the replacement scenes.
    *
    * Sized to `PLAYFIELD_HEIGHT`, not `GAME_HEIGHT` — the bottom
    * `HUD_BAND_HEIGHT` strip belongs to `UiScene`, not this world (see class
    * doc / `../dimensions.ts`'s HUD band / playfield contract).
    */
-  private drawLevelBackground(): void {
-    applyLevelBackground(this, LEVEL_NUMBER, GAME_WIDTH, PLAYFIELD_HEIGHT)
+  private drawLevelBackground(backgroundLevel: number): void {
+    applyLevelBackground(this, backgroundLevel, GAME_WIDTH, PLAYFIELD_HEIGHT)
   }
 
   /**
@@ -282,15 +315,15 @@ export class GameScene extends Phaser.Scene {
     body.setVelocity(0, 0)
 
     if (this.cursors.left?.isDown) {
-      body.setVelocityX(-PLAYER_SPEED)
+      body.setVelocityX(-this.rules.playerSpeed)
     } else if (this.cursors.right?.isDown) {
-      body.setVelocityX(PLAYER_SPEED)
+      body.setVelocityX(this.rules.playerSpeed)
     }
 
     if (this.cursors.up?.isDown) {
-      body.setVelocityY(-PLAYER_SPEED)
+      body.setVelocityY(-this.rules.playerSpeed)
     } else if (this.cursors.down?.isDown) {
-      body.setVelocityY(PLAYER_SPEED)
+      body.setVelocityY(this.rules.playerSpeed)
     }
   }
 
@@ -305,9 +338,9 @@ export class GameScene extends Phaser.Scene {
     bullet.setActive(true).setVisible(true)
     const body = bullet.body as Phaser.Physics.Arcade.Body
     body.enable = true
-    body.setVelocity(0, -BULLET_SPEED)
+    body.setVelocity(0, -this.rules.bulletSpeed)
 
-    this.addScore(1)
+    this.addScore(this.rules.shootValue)
     this.playBeep()
   }
 
@@ -375,7 +408,7 @@ export class GameScene extends Phaser.Scene {
 
   private handleCoinCollected(coin: Phaser.Physics.Arcade.Sprite): void {
     coin.destroy()
-    this.addScore(1)
+    this.addScore(this.rules.coinValue)
   }
 
   private handleObstacleHit(): void {

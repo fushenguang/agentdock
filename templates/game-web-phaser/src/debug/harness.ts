@@ -1,6 +1,7 @@
 import Phaser from 'phaser'
 import type {
   AssetUsageSnapshot,
+  DataUsageSnapshot,
   EntitySnapshot,
   GameHarness,
   HarnessSnapshot,
@@ -10,6 +11,7 @@ import type {
 } from './harness-types'
 import { jump, isValidStart, listStates as listStateIds, type StateId, type GameState } from './state-jump'
 import { normalizeGameAssets, planAssetLoads, safeParseJson, GAME_ASSETS_RAW_CACHE_KEY } from '../game-assets'
+import { buildDataUsageEvidence, GAME_DATA_RAW_CACHE_KEY } from '../game-data'
 
 /**
  * `window.__gameHarness` reference implementation (design D1/D2/D3).
@@ -401,6 +403,22 @@ function readAssetUsage(game: Phaser.Game): AssetUsageSnapshot | null {
   }
 }
 
+/**
+ * Builds this snapshot's `data` field (game-data-spine design D2). Thin by
+ * design: `../game-data.ts`'s `buildDataUsageEvidence()` is a pure,
+ * bare-Node-tested function that derives `declared` from the manifest's
+ * raw cached text (the same re-derivation pattern as
+ * `declaredAssetTasks()` above — no second copy of the manifest ever gets
+ * threaded through here) and reads the loader's initialized flag +
+ * consumption registry. This wrapper only supplies the game's cache.
+ * `null` when nothing was ever declared (no text cached, loader never
+ * initialized) — see `HarnessSnapshot.data`'s own doc for why that is a
+ * FAILURE fact for `data_from_files`, not a benign absent.
+ */
+function readDataUsage(game: Phaser.Game): DataUsageSnapshot | null {
+  return buildDataUsageEvidence(game.cache.text.get(GAME_DATA_RAW_CACHE_KEY) as string | undefined)
+}
+
 function buildSnapshot(game: Phaser.Game): HarnessSnapshot {
   const scene = activeGameplayScene(game)
   return {
@@ -411,6 +429,7 @@ function buildSnapshot(game: Phaser.Game): HarnessSnapshot {
     values: readValues(game),
     worldBounds: readWorldBounds(game, scene),
     assets: readAssetUsage(game),
+    data: readDataUsage(game),
   }
 }
 

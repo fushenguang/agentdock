@@ -113,6 +113,49 @@ export interface AssetUsageSnapshot {
   readonly usedInScene: readonly string[]
 }
 
+/** @see `DataEntrySnapshot` — which section of `game-data.json` an entry belongs to. */
+export type DataSection = 'levels' | 'rules' | 'vocabulary'
+
+/**
+ * One entry `../game-data.ts`'s manifest declared — independent of whether
+ * the loader ever initialized or any scene ever took it. Mirrors
+ * `../game-data.ts`'s `DataEntrySnapshot` exactly (not imported from there
+ * — this file's zero-import contract, see its header — but
+ * `tests/game-data.test.mjs` exercises the real module, so the two
+ * drifting apart breaks a test rather than shipping silently).
+ */
+export interface DataEntrySnapshot {
+  readonly id: string
+  readonly section: DataSection
+}
+
+/**
+ * Data-usage evidence for one `getSnapshot()` call (game-data-spine design
+ * D2). Three layers, each with its own failure signature — the exact
+ * shapes the upstream `data_from_files` assertion judges:
+ *
+ *   1. `declared` — what `public/game-data.json` says, whether or not
+ *      anything ever read it.
+ *   2. `loaded` — whether the loader (`initGameData()`) actually
+ *      initialized this session. Parsing is whole-manifest, so this is
+ *      per-project, not per-entry.
+ *   3. `usedInScene` — which declared entries a scene build actually took
+ *      through `../game-data.ts`'s accessors (its consumption registry).
+ *
+ * 🔴 **What `usedInScene` proves and what it doesn't.** An entry appearing
+ * here means a scene build pulled it from the data layer — it does NOT
+ * prove the values were used correctly, or at all beyond being read (a
+ * scene that takes a level entry and then ignores its placements still
+ * counts as "consumed"). That boundary is recorded honestly in the
+ * change's design D4 ("double-bookkeeping" residual) rather than papered
+ * over with a stronger claim.
+ */
+export interface DataUsageSnapshot {
+  readonly declared: readonly DataEntrySnapshot[]
+  readonly loaded: readonly DataEntrySnapshot[]
+  readonly usedInScene: readonly DataEntrySnapshot[]
+}
+
 /**
  * A read-only snapshot of the live game at one instant (design D1).
  *
@@ -127,6 +170,13 @@ export interface AssetUsageSnapshot {
  * all" (asset-usage-gate `absent`), never a synthetic empty snapshot that
  * would make "declared but unused" trivially unfalsifiable for a project
  * that never opted into the manifest in the first place.
+ *
+ * 🔴 `data: DataUsageSnapshot | null` — same null convention, OPPOSITE
+ * default: the data layer is required (`game-data.json` is the project's
+ * own content, not an optional platform delivery), so `null` means "never
+ * declared a data layer at all" and is a FAILURE for `data_from_files`,
+ * never a benign absent. 「从未声明」与「声明了但没用起来」是两个不同的
+ * 事实，不塌缩成同一个空集合 (game-data-spine spec).
  */
 export interface HarnessSnapshot {
   readonly stateId: string
@@ -138,6 +188,8 @@ export interface HarnessSnapshot {
   readonly worldBounds: WorldBoundsSnapshot
   /** asset-usage-gate design — see `AssetUsageSnapshot`'s own doc. */
   readonly assets: AssetUsageSnapshot | null
+  /** game-data-spine design — see `DataUsageSnapshot`'s own doc. Read-only, no matching setter. */
+  readonly data: DataUsageSnapshot | null
 }
 
 /**
