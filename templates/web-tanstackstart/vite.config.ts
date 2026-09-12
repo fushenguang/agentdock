@@ -20,7 +20,9 @@ function clientOnlyLayerSplit(plugins: Plugin[]): Plugin[] {
 
 export default defineConfig({
   resolve: {
-    tsconfigPaths: true,
+    alias: {
+      "@": path.resolve(rootDir, "src"),
+    },
   },
   plugins: [
     ...clientOnlyLayerSplit(
