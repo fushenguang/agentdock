@@ -2,12 +2,21 @@ import { existsSync, readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
+export const PACKAGE_MANAGERS = ['pnpm', 'npm', 'yarn', 'bun'] as const
+
+export type PackageManager = (typeof PACKAGE_MANAGERS)[number]
+
 export interface RegistryTemplate {
   id: string
   name: string
   description: string
   minCliVersion: string
   source: string
+  packageManager: PackageManager
+  packageManagerEnforced: boolean
+  dataLayers: string[]
+  defaultDataLayer: string
+  supportsSchema: boolean
   resolvedDependencies: Record<string, string>
 }
 

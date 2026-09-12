@@ -1,5 +1,5 @@
 import { join, isAbsolute, resolve } from 'path'
-import { getTemplate } from '../core/registry.js'
+import { getTemplate, PACKAGE_MANAGERS, type PackageManager } from '../core/registry.js'
 import { scaffoldProject } from '../core/scaffold.js'
 
 export interface AgentAdapterOptions {
@@ -10,8 +10,8 @@ export interface AgentAdapterOptions {
   json?: boolean
   /** Explicit target directory. Absolute or relative to cwd. Defaults to ./<name>. */
   dir?: string
-  /** Data layer selection: 'supabase' | 'drizzle'. Defaults to undefined (no SQL schema replacement). */
-  dataLayer?: 'supabase' | 'drizzle' | undefined
+  /** Data layer selection. Defaults to the selected template's defaultDataLayer. */
+  dataLayer?: string | undefined
   /** Supabase schema name. Defaults to 'public' when dataLayer is 'supabase'. */
   schema?: string
   /**
@@ -26,6 +26,19 @@ function emit(obj: unknown, json: boolean): void {
   if (json) {
     process.stdout.write(JSON.stringify(obj) + '\n')
   }
+}
+
+function isPackageManager(value: string): value is PackageManager {
+  return PACKAGE_MANAGERS.includes(value as PackageManager)
+}
+
+function failWith(err: unknown, message: string, output: boolean): void {
+  if (output) {
+    emit(err, true)
+  } else {
+    console.error(message)
+  }
+  process.exitCode = 1
 }
 
 export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> {
@@ -45,33 +58,64 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
 
   if (!name) {
     const err = { ok: false, error: 'MISSING_ARG', field: 'name' }
-    if (output) {
-      emit(err, true)
-    } else {
-      console.error('Error: --name is required in agent mode')
-    }
-    process.exit(1)
+    failWith(err, 'Error: --name is required in agent mode', output)
+    return
   }
 
   if (!templateId) {
     const err = { ok: false, error: 'MISSING_ARG', field: 'template' }
-    if (output) {
-      emit(err, true)
-    } else {
-      console.error('Error: --template is required in agent mode')
-    }
-    process.exit(1)
+    failWith(err, 'Error: --template is required in agent mode', output)
+    return
   }
 
   const template = getTemplate(templateId)
   if (!template) {
     const err = { ok: false, error: 'TEMPLATE_NOT_FOUND', template: templateId }
-    if (output) {
-      emit(err, true)
-    } else {
-      console.error(`Error: template "${templateId}" not found`)
+    failWith(err, `Error: template "${templateId}" not found`, output)
+    return
+  }
+
+  const effectiveDataLayer = dataLayer ?? template.defaultDataLayer
+  if (!template.dataLayers.includes(effectiveDataLayer)) {
+    const err = {
+      ok: false,
+      error: 'INVALID_DATA_LAYER',
+      template: templateId,
+      dataLayer: effectiveDataLayer,
+      supportedDataLayers: template.dataLayers,
     }
-    process.exit(1)
+    failWith(
+      err,
+      `Error: data layer "${effectiveDataLayer}" is not supported by ${templateId}`,
+      output,
+    )
+    return
+  }
+
+  if (pm !== undefined && !isPackageManager(pm)) {
+    failWith(
+      { ok: false, error: 'INVALID_PACKAGE_MANAGER', packageManager: pm },
+      `Error: unsupported package manager "${pm}"`,
+      output,
+    )
+    return
+  }
+
+  const effectivePackageManager = pm ?? template.packageManager
+  if (template.packageManagerEnforced && effectivePackageManager !== template.packageManager) {
+    const err = {
+      ok: false,
+      error: 'INVALID_PACKAGE_MANAGER',
+      template: templateId,
+      packageManager: effectivePackageManager,
+      requiredPackageManager: template.packageManager,
+    }
+    failWith(
+      err,
+      `Error: template "${templateId}" requires package manager "${template.packageManager}"`,
+      output,
+    )
+    return
   }
 
   const targetDir = dir
@@ -84,13 +128,15 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
     console.log(`Scaffolding project "${name}" using template "${templateId}"...`)
   }
 
-  const effectiveDataLayer = dataLayer ?? 'supabase'
   const result = scaffoldProject({
     targetDir,
     name,
     template,
-    packageManager: (pm as 'pnpm' | 'npm' | 'yarn' | 'bun') ?? 'pnpm',
-    ...(effectiveDataLayer === 'supabase' ? { schema: schema ?? 'public' } : {}),
+    packageManager: effectivePackageManager,
+    dataLayer: effectiveDataLayer,
+    ...(effectiveDataLayer === 'supabase' && template.supportsSchema
+      ? { schema: schema ?? 'public' }
+      : {}),
     ...(displayName !== undefined ? { displayName } : {}),
   })
 
@@ -103,6 +149,6 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
   }
 
   if (!result.ok) {
-    process.exit(1)
+    process.exitCode = 1
   }
 }

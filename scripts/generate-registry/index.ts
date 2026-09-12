@@ -16,10 +16,14 @@ interface PackageJson {
   version?: string
   description?: string
   private?: boolean
+  packageManager?: string
   dependencies?: Record<string, string>
   devDependencies?: Record<string, string>
   agentdock?: {
     minCliVersion?: string
+    dataLayers?: string[]
+    defaultDataLayer?: string
+    supportsSchema?: boolean
   }
 }
 
@@ -29,6 +33,11 @@ interface RegistryTemplate {
   description: string
   minCliVersion: string
   source: string
+  packageManager: 'pnpm' | 'npm' | 'yarn' | 'bun'
+  packageManagerEnforced: boolean
+  dataLayers: string[]
+  defaultDataLayer: string
+  supportsSchema: boolean
   resolvedDependencies: Record<string, string>
 }
 
@@ -84,6 +93,33 @@ function resolveWorkspaceDeps(
   return resolved
 }
 
+const DEFAULT_DATA_LAYERS: [string, ...string[]] = ['supabase', 'drizzle']
+
+function parsePackageManager(value: string | undefined): 'pnpm' | 'npm' | 'yarn' | 'bun' {
+  if (value === undefined || value === '') return 'pnpm'
+  const manager = value.split('@')[0]
+  if (manager === 'npm' || manager === 'yarn' || manager === 'bun' || manager === 'pnpm') {
+    return manager
+  }
+  throw new Error(`Unsupported packageManager "${value}" in template package.json`)
+}
+
+function resolveDataLayers(pkg: PackageJson): string[] {
+  const configured = pkg.agentdock?.dataLayers
+  return configured && configured.length > 0 ? configured : DEFAULT_DATA_LAYERS
+}
+
+function resolveDefaultDataLayer(pkg: PackageJson, dataLayers: string[]): string {
+  const configured = pkg.agentdock?.defaultDataLayer
+  if (configured && dataLayers.includes(configured)) return configured
+  if (configured) {
+    throw new Error(
+      `defaultDataLayer "${configured}" is not present in dataLayers: ${dataLayers.join(', ')}`,
+    )
+  }
+  return dataLayers[0] ?? DEFAULT_DATA_LAYERS[0]
+}
+
 function main(): void {
   const versionMap = buildPackageVersionMap()
   const templatesDir = join(repoRoot, 'templates')
@@ -113,6 +149,7 @@ function main(): void {
     }
 
     const resolvedDependencies = resolveWorkspaceDeps(allDeps, versionMap)
+    const dataLayers = resolveDataLayers(pkg)
 
     templates.push({
       id: dir,
@@ -120,6 +157,11 @@ function main(): void {
       description: pkg.description ?? '',
       minCliVersion: pkg.agentdock?.minCliVersion ?? '0.1.0',
       source: `templates/${dir}`,
+      packageManager: parsePackageManager(pkg.packageManager),
+      packageManagerEnforced: Boolean(pkg.packageManager),
+      dataLayers,
+      defaultDataLayer: resolveDefaultDataLayer(pkg, dataLayers),
+      supportsSchema: pkg.agentdock?.supportsSchema ?? true,
       resolvedDependencies,
     })
   }

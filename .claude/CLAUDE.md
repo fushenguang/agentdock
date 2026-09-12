@@ -11,12 +11,12 @@ Docs: Fumadocs / Next.js at `apps/docs`.
 
 ## Directory Contract
 
-| Path         | Purpose                                                              |
-| ------------ | -------------------------------------------------------------------- |
-| `templates/` | Scaffolding templates (e.g. `web-nextjs`). One dir per template.     |
-| `packages/`  | Platform tooling packages (shared utilities, CLI).                   |
-| `apps/docs`  | **AgentDock platform** docs site (Fumadocs/Next.js). NOT a template. |
-| `openspec/`  | Single source of truth for platform planning.                        |
+| Path         | Purpose                                                                               |
+| ------------ | ------------------------------------------------------------------------------------- |
+| `templates/` | Scaffolding templates (e.g. `web-nextjs`, `web-tanstackstart`). One dir per template. |
+| `packages/`  | Platform tooling packages (shared utilities, CLI).                                    |
+| `apps/docs`  | **AgentDock platform** docs site (Fumadocs/Next.js). NOT a template.                  |
+| `openspec/`  | Single source of truth for platform planning.                                         |
 
 **Before placing code**, confirm which directory it belongs to above.
 

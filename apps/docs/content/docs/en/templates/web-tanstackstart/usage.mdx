@@ -1,0 +1,74 @@
+---
+title: web-tanstackstart Usage
+description: Create, run, verify and extend a web-tanstackstart project.
+---
+
+# Usage
+
+## Create A Project
+
+The CLI derives data-layer choices from the template metadata. `web-tanstackstart` defaults to SQLite:
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-internal-app \
+  --template web-tanstackstart \
+  --data-layer sqlite \
+  --pm pnpm
+```
+
+Use `--data-layer supabase` to generate an environment template for Supabase Postgres. The selected provider appears in `.env.example` as `DATA_PROVIDER`.
+
+The generated project keeps the template's `packageManager: pnpm@12.4.1`; the host CLI's pnpm version does not overwrite it.
+
+## Install And Run
+
+```bash
+cd my-internal-app
+cp .env.example .env
+pnpm install
+pnpm db:migrate
+pnpm dev
+```
+
+Open `http://localhost:3000`. The reference feature is available at `/hello`.
+
+## Database Commands
+
+```bash
+pnpm db:generate
+pnpm db:migrate
+pnpm db:studio
+pnpm db:generate:supabase
+pnpm db:migrate:supabase
+```
+
+When repository behavior changes, update both dialect schemas and both repository implementations.
+
+## Verification
+
+```bash
+pnpm format:check
+pnpm lint
+pnpm check-types
+pnpm test
+pnpm build
+```
+
+Run `pnpm check` for the complete gate. The route tree is generated before type-aware linting, type checking and build, so a clean checkout does not require a manual preparation step.
+
+## Adding A Feature
+
+1. Add shared types or repository contracts under `src/core`.
+2. Create `src/features/<name>/__contract__.ts`.
+3. Keep the public API in `src/features/<name>/index.ts`.
+4. Add a test next to the feature.
+5. Add or update an infra repository only when persistence behavior changes.
+6. Add the route under `src/routes`.
+7. Follow `DESIGN.md` for UI work and apply the relevant Agent Skill.
+
+Do not import `infra/db` from a feature. Use the provider and repository contract.
+
+## Deployment Boundary
+
+The default SQLite mode requires a persistent filesystem. Use a long-lived Node process or container with a mounted volume. Stateless/edge platforms are outside the first version's supported SQLite path; use Supabase Postgres when the application needs a remote database.

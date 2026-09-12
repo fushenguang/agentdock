@@ -1,0 +1,26 @@
+schema: spec-driven
+
+context: |
+  This project was generated from the AgentDock web-tanstackstart template.
+
+  Architecture: standalone TanStack Start application with:
+    src/core/       — domain types and repository contracts
+    src/features/   — feature behavior behind __contract__.ts and index.ts
+    src/infra/      — Drizzle schemas, clients, repositories, provider wiring
+    src/routes/     — TanStack Start file routes
+
+  Stack: pnpm 12, Node >=22.13, TypeScript 7, Vite 8, React 19,
+  TanStack Start/Router, Astryx/StyleX, Drizzle ORM, SQLite by default,
+  optional Supabase Postgres, Oxlint, Oxfmt, and Vitest.
+
+  Rules:
+    - Features use repositories; they do not import infra/db directly.
+    - Every feature has __contract__.ts and a public index.ts.
+    - Core never imports features or infra.
+    - Use pnpm only.
+    - Keep SQLite and Supabase repository behavior aligned.
+    - UI follows DESIGN.md and uses Astryx tokens and StyleX.
+
+rules:
+  proposal:
+    - "Proposal MUST contain a Non-goals section listing what this change will NOT implement."

@@ -7,15 +7,18 @@ import {
   renameSync,
   writeFileSync,
 } from 'fs'
-import { join, dirname, extname } from 'path'
+import { basename, join, dirname, extname } from 'path'
 import { fileURLToPath } from 'url'
 import { execSync } from 'child_process'
-import type { RegistryTemplate } from './registry.js'
+import type { PackageManager, RegistryTemplate } from './registry.js'
 import { checkVersion } from './version.js'
 import { VERSION as CLI_VERSION } from '../version.js'
 
 /** Single source of truth for the placeholder templates use for the project name. */
 export const PROJECT_NAME_PLACEHOLDER = '{{PROJECT_NAME}}'
+
+/** Single source of truth for the placeholder templates use for the data layer. */
+export const DATA_LAYER_PLACEHOLDER = '{{DATA_LAYER}}'
 
 // Extensions eligible for {{PROJECT_NAME}} substitution — a whitelist, not a
 // blacklist. Templates ship binary assets (audio, images, fonts) that a
@@ -34,6 +37,7 @@ const TEXT_FILE_EXTENSIONS = new Set([
   '.md',
   '.mdx',
   '.css',
+  '.example',
   '.yml',
   '.yaml',
   '.txt',
@@ -43,7 +47,28 @@ const TEXT_FILE_EXTENSIONS = new Set([
 // metadata and build/dependency output. These can be large, may contain
 // third-party files that coincidentally match, and are regenerated or
 // reinstalled by the user anyway.
-const SKIP_DIR_NAMES = new Set(['node_modules', '.git', 'dist'])
+const SKIP_DIR_NAMES = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  '.next',
+  '.turbo',
+  '.output',
+  '.tanstack',
+  '.nitro',
+  'coverage',
+])
+
+const SKIP_FILE_NAMES = new Set(['.env', '.env.local', '.DS_Store'])
+
+export function shouldCopyTemplatePath(source: string): boolean {
+  if (source.replaceAll('\\', '/').endsWith('/src/routeTree.gen.ts')) return false
+  const name = basename(source)
+  if (SKIP_DIR_NAMES.has(name) || SKIP_FILE_NAMES.has(name)) return false
+  if (name.startsWith('.env.') && name !== '.env.example') return false
+  if (name.endsWith('.db') || name.includes('.db-')) return false
+  return true
+}
 
 // `name` is written verbatim into generated HTML (<title> text content) and
 // TS/JS string literals (StartScene.ts) via a plain string replace, not a
@@ -63,8 +88,14 @@ export function validateProjectName(name: string): string | null {
     const code = name.charCodeAt(i)
     const char = name[i]
     const isControlChar = code <= 0x1f
-    const isSyntaxChar = char === '<' || char === '>' || char === '&' ||
-      char === '"' || char === "'" || char === '`' || char === '\\'
+    const isSyntaxChar =
+      char === '<' ||
+      char === '>' ||
+      char === '&' ||
+      char === '"' ||
+      char === "'" ||
+      char === '`' ||
+      char === '\\'
     if (isControlChar || isSyntaxChar) {
       return `Project name contains characters that are unsafe to embed in generated source files (< > & " ' \` \\ or control characters): "${name}"`
     }
@@ -82,7 +113,7 @@ export interface ScaffoldOptions {
   /** Template entry from the registry */
   template: RegistryTemplate
   /** Package manager hint written into generated README / lock hint */
-  packageManager?: 'pnpm' | 'npm' | 'yarn' | 'bun'
+  packageManager?: PackageManager
   /** Schema name to substitute for __SCHEMA__ in .sql files. Undefined = skip substitution. */
   schema?: string | undefined
   /**
@@ -93,6 +124,8 @@ export interface ScaffoldOptions {
    * (unchanged, pre-existing behavior).
    */
   displayName?: string | undefined
+  /** Template-declared data layer selected by the caller. */
+  dataLayer?: string | undefined
 }
 
 export interface ScaffoldResult {
@@ -104,7 +137,13 @@ export interface ScaffoldResult {
 
 export interface ScaffoldError {
   ok: false
-  error: 'TARGET_DIR_EXISTS' | 'CLI_VERSION_OUTDATED' | 'SCAFFOLD_FAILED' | 'INVALID_NAME'
+  error:
+    | 'TARGET_DIR_EXISTS'
+    | 'CLI_VERSION_OUTDATED'
+    | 'SCAFFOLD_FAILED'
+    | 'INVALID_NAME'
+    | 'INVALID_DATA_LAYER'
+    | 'INVALID_PACKAGE_MANAGER'
   message: string
 }
 
@@ -142,10 +181,6 @@ function rewritePackageJson(
   delete pkg['private']
   // Remove the agentdock meta field from generated projects
   delete pkg['agentdock']
-  // Remove packageManager — Corepack enforcement on a pinned old version causes
-  // PATH errors for users on newer pnpm versions. engines.pnpm already documents
-  // the version requirement without enforcing a specific patch version.
-  delete pkg['packageManager']
 
   // Rewrite workspace:* deps with resolved versions
   for (const key of ['dependencies', 'devDependencies', 'peerDependencies'] as const) {
@@ -207,33 +242,44 @@ function replaceSchemaPlaceholder(dir: string, schema: string): void {
  * and only opens files whose extension is in TEXT_FILE_EXTENSIONS so binary
  * assets are never read/written.
  */
-export function replaceProjectNamePlaceholder(dir: string, name: string): void {
+function replacePlaceholderInTextFiles(dir: string, placeholder: string, value: string): void {
   const entries = readdirSync(dir, { withFileTypes: true })
   for (const entry of entries) {
     const fullPath = join(dir, entry.name)
     if (entry.isDirectory()) {
       if (SKIP_DIR_NAMES.has(entry.name)) continue
-      replaceProjectNamePlaceholder(fullPath, name)
+      replacePlaceholderInTextFiles(fullPath, placeholder, value)
       continue
     }
     if (!TEXT_FILE_EXTENSIONS.has(extname(entry.name))) continue
 
     const content = readFileSync(fullPath, 'utf-8')
-    if (!content.includes(PROJECT_NAME_PLACEHOLDER)) continue
-    writeFileSync(fullPath, content.split(PROJECT_NAME_PLACEHOLDER).join(name), 'utf-8')
+    if (!content.includes(placeholder)) continue
+    writeFileSync(fullPath, content.split(placeholder).join(value), 'utf-8')
   }
+}
+
+export function replaceProjectNamePlaceholder(dir: string, name: string): void {
+  replacePlaceholderInTextFiles(dir, PROJECT_NAME_PLACEHOLDER, name)
+}
+
+/** Replaces {{DATA_LAYER}} in generated text files. */
+export function replaceDataLayerPlaceholder(dir: string, dataLayer: string): void {
+  replacePlaceholderInTextFiles(dir, DATA_LAYER_PLACEHOLDER, dataLayer)
 }
 
 function injectPackageManager(pkgJsonPath: string): void {
   if (!existsSync(pkgJsonPath)) return
   try {
+    const raw = readFileSync(pkgJsonPath, 'utf-8')
+    const pkg = JSON.parse(raw) as Record<string, unknown>
+    if (typeof pkg['packageManager'] === 'string' && pkg['packageManager'].length > 0) return
+
     const pnpmVersion = execSync('pnpm --version', {
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim()
     if (!pnpmVersion) return
-    const raw = readFileSync(pkgJsonPath, 'utf-8')
-    const pkg = JSON.parse(raw) as Record<string, unknown>
     pkg['packageManager'] = `pnpm@${pnpmVersion}`
     writeFileSync(pkgJsonPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8')
   } catch {
@@ -242,7 +288,7 @@ function injectPackageManager(pkgJsonPath: string): void {
 }
 
 export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | ScaffoldError {
-  const { targetDir, name, template, packageManager: _pm, schema, displayName } = options
+  const { targetDir, name, template, packageManager: pm, schema, displayName, dataLayer } = options
 
   // Reject names that would break out of the HTML/JS/JSON contexts the name
   // gets substituted into below, before touching the filesystem at all.
@@ -269,6 +315,22 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
     }
   }
 
+  if (dataLayer !== undefined && !template.dataLayers.includes(dataLayer)) {
+    return {
+      ok: false,
+      error: 'INVALID_DATA_LAYER',
+      message: `Data layer "${dataLayer}" is not supported by template "${template.id}".`,
+    }
+  }
+
+  if (template.packageManagerEnforced && pm !== undefined && pm !== template.packageManager) {
+    return {
+      ok: false,
+      error: 'INVALID_PACKAGE_MANAGER',
+      message: `Template "${template.id}" requires ${template.packageManager}, received ${pm}.`,
+    }
+  }
+
   // Version compatibility check
   try {
     checkVersion(CLI_VERSION, template.minCliVersion, template.id)
@@ -292,7 +354,10 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
   try {
     const sourceDir = getTemplateSourceDir(template.source)
     mkdirSync(targetDir, { recursive: true })
-    cpSync(sourceDir, targetDir, { recursive: true })
+    cpSync(sourceDir, targetDir, {
+      recursive: true,
+      filter: shouldCopyTemplatePath,
+    })
 
     // Restore dotfiles that were renamed to survive npm publish
     restoreDotfiles(targetDir)
@@ -314,6 +379,8 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
     // when displayName is present. Omitted => falls back to `name`, byte-for
     // -byte the pre-existing behavior.
     replaceProjectNamePlaceholder(targetDir, displayName ?? name)
+
+    replaceDataLayerPlaceholder(targetDir, dataLayer ?? template.defaultDataLayer)
 
     // Substitute __SCHEMA__ placeholder in .sql files
     if (schema) {

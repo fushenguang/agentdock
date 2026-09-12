@@ -1,0 +1,67 @@
+name: Template web-tanstackstart Validation
+
+on:
+  pull_request:
+    paths:
+      - 'templates/web-tanstackstart/**'
+      - 'packages/cli/src/**'
+      - 'packages/cli/bin/**'
+      - 'packages/cli/package.json'
+      - 'scripts/generate-registry/**'
+      - '.github/workflows/template-web-tanstackstart-validation.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'templates/web-tanstackstart/**'
+      - 'packages/cli/src/**'
+      - 'packages/cli/bin/**'
+      - 'packages/cli/package.json'
+      - 'scripts/generate-registry/**'
+      - '.github/workflows/template-web-tanstackstart-validation.yml'
+
+concurrency:
+  group: web-tanstackstart-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate web-tanstackstart
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: templates/web-tanstackstart
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: templates/web-tanstackstart/pnpm-lock.yaml
+
+      - name: Install template dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint and enforce architecture
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm check-types
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build

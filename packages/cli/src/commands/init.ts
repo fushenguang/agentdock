@@ -39,7 +39,7 @@ export const initCommand = defineCommand({
     },
     'data-layer': {
       type: 'string',
-      description: 'Data layer: supabase (default) | drizzle',
+      description: 'Data layer: template-dependent (e.g. supabase | drizzle | sqlite)',
     },
     schema: {
       type: 'string',
@@ -59,7 +59,7 @@ export const initCommand = defineCommand({
         silent: args.silent,
         json: args.json,
         dir: args.dir,
-        dataLayer: args['data-layer'] as 'supabase' | 'drizzle' | undefined,
+        dataLayer: args['data-layer'],
         schema: args.schema,
         displayName: args['display-name'],
       })

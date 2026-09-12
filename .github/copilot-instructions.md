@@ -6,7 +6,7 @@
 
 | Path         | Purpose                                                          |
 | ------------ | ---------------------------------------------------------------- |
-| `templates/` | Scaffolding templates (e.g. `web-nextjs`). One dir per template. |
+| `templates/` | Scaffolding templates (e.g. `web-nextjs`, `web-tanstackstart`). One dir per template. |
 | `packages/`  | Platform tooling packages (shared utilities, CLI future).        |
 | `apps/docs`  | **AgentDock platform** documentation site (Fumadocs/Next.js).    |
 | `openspec/`  | Single source of truth for platform planning.                    |
