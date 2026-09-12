@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.22.0
+
+### Minor Changes
+
+- aec925d: Add the standalone web-tanstackstart template with TanStack Start, Astryx/StyleX, Drizzle SQLite defaults, Supabase Postgres support, template-aware CLI data-layer prompts, and preserved pnpm 12 package-manager metadata.
+
 ## 0.21.0
 
 ### Minor Changes
