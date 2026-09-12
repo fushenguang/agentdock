@@ -25,7 +25,7 @@ It also ships **`@cogito.ai/cli`** (bin name `agentdock`) — a CLI for scaffold
 ## Repository Structure
 
 ```
-templates/    # Scaffolding templates (e.g., web-nextjs, skills-registry)
+templates/    # Scaffolding templates (e.g., web-nextjs, web-tanstackstart, skills-registry)
 packages/
   cli/        # @cogito.ai/cli — the `agentdock` CLI (init, auth, skill, mcp)
 openspec/     # Planning SSOT — proposals, specs, design, tasks

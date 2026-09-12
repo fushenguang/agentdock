@@ -1,18 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import {
-  mkdirSync,
-  rmSync,
-  writeFileSync,
-  readFileSync,
-  existsSync,
-} from 'fs'
+import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import {
   replaceProjectNamePlaceholder,
+  replaceDataLayerPlaceholder,
   validateProjectName,
+  DATA_LAYER_PLACEHOLDER,
   PROJECT_NAME_PLACEHOLDER,
   scaffoldProject,
+  shouldCopyTemplatePath,
 } from '../scaffold.js'
 import { getTemplate } from '../registry.js'
 import type { RegistryTemplate } from '../registry.js'
@@ -120,6 +117,52 @@ describe('validateProjectName', () => {
   })
 })
 
+describe('replaceDataLayerPlaceholder', () => {
+  let tmpDir: string
+
+  beforeEach(() => {
+    tmpDir = join(tmpdir(), `agentdock-data-layer-test-${Date.now()}-${Math.random()}`)
+    mkdirSync(tmpDir, { recursive: true })
+  })
+
+  afterEach(() => {
+    try {
+      rmSync(tmpDir, { recursive: true, force: true })
+    } catch {
+      // ignore cleanup errors
+    }
+  })
+
+  it('substitutes the data layer in text files', () => {
+    writeFileSync(join(tmpDir, '.env.example'), `DATA_PROVIDER=${DATA_LAYER_PLACEHOLDER}\n`)
+    replaceDataLayerPlaceholder(tmpDir, 'supabase')
+    expect(readFileSync(join(tmpDir, '.env.example'), 'utf-8')).toBe('DATA_PROVIDER=supabase\n')
+  })
+})
+
+describe('shouldCopyTemplatePath', () => {
+  it('skips generated artifacts, local env files, and SQLite database files', () => {
+    expect(shouldCopyTemplatePath('/template/node_modules')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/dist')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/.output')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/coverage')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/src/routeTree.gen.ts')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/.env')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/.env.local')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/.env.production.local')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/.env.production')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/data/app.db')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/data/app.db-wal')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/data/app.db-journal')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/.DS_Store')).toBe(false)
+  })
+
+  it('keeps environment examples and source files', () => {
+    expect(shouldCopyTemplatePath('/template/.env.example')).toBe(true)
+    expect(shouldCopyTemplatePath('/template/src/index.ts')).toBe(true)
+  })
+})
+
 describe('scaffoldProject — name validation gate', () => {
   const fakeTemplate: RegistryTemplate = {
     id: 'test-template',
@@ -127,6 +170,11 @@ describe('scaffoldProject — name validation gate', () => {
     description: 'Test template',
     minCliVersion: '0.1.0',
     source: 'templates/test-template',
+    packageManager: 'pnpm',
+    packageManagerEnforced: false,
+    dataLayers: ['supabase', 'drizzle'],
+    defaultDataLayer: 'supabase',
+    supportsSchema: true,
     resolvedDependencies: {},
   }
 
@@ -204,10 +252,7 @@ describe('scaffoldProject — end-to-end placeholder substitution (real template
     const readme = readFileSync(join(targetDir, 'README.md'), 'utf-8')
     expect(readme).not.toContain(PROJECT_NAME_PLACEHOLDER)
 
-    const startScene = readFileSync(
-      join(targetDir, 'src', 'scenes', 'StartScene.ts'),
-      'utf-8',
-    )
+    const startScene = readFileSync(join(targetDir, 'src', 'scenes', 'StartScene.ts'), 'utf-8')
     expect(startScene).not.toContain(PROJECT_NAME_PLACEHOLDER)
   })
 
@@ -254,9 +299,9 @@ describe('scaffoldProject — end-to-end placeholder substitution (real template
 
     // package.json name must stay the ASCII slug — displayName never
     // touches it.
-    const pkgJson = JSON.parse(
-      readFileSync(join(targetDir, 'package.json'), 'utf-8'),
-    ) as { name: string }
+    const pkgJson = JSON.parse(readFileSync(join(targetDir, 'package.json'), 'utf-8')) as {
+      name: string
+    }
     expect(pkgJson.name).toBe('star')
 
     const indexHtml = readFileSync(join(targetDir, 'index.html'), 'utf-8')
@@ -267,10 +312,7 @@ describe('scaffoldProject — end-to-end placeholder substitution (real template
     const readme = readFileSync(join(targetDir, 'README.md'), 'utf-8')
     expect(readme).not.toContain(PROJECT_NAME_PLACEHOLDER)
 
-    const startScene = readFileSync(
-      join(targetDir, 'src', 'scenes', 'StartScene.ts'),
-      'utf-8',
-    )
+    const startScene = readFileSync(join(targetDir, 'src', 'scenes', 'StartScene.ts'), 'utf-8')
     expect(startScene).not.toContain(PROJECT_NAME_PLACEHOLDER)
     expect(startScene).toContain('星星收集')
   })

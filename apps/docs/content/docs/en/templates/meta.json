@@ -2,6 +2,7 @@
   "title": "Templates",
   "pages": [
     "index",
-    "web-nextjs"
+    "web-nextjs",
+    "web-tanstackstart"
   ]
 }

@@ -1,0 +1,74 @@
+---
+title: web-tanstackstart 使用指南
+description: 创建、运行、验证和扩展 web-tanstackstart 项目。
+---
+
+# 使用指南
+
+## 创建项目
+
+CLI 会从模板元数据读取数据层选项。`web-tanstackstart` 默认使用 SQLite：
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-internal-app \
+  --template web-tanstackstart \
+  --data-layer sqlite \
+  --pm pnpm
+```
+
+使用 `--data-layer supabase` 可生成 Supabase Postgres 的环境变量模板。选择结果会写入 `.env.example` 的 `DATA_PROVIDER`。
+
+生成项目会保留模板声明的 `packageManager: pnpm@12.4.1`，不会被执行 CLI 的本机旧版 pnpm 覆盖。
+
+## 安装与运行
+
+```bash
+cd my-internal-app
+cp .env.example .env
+pnpm install
+pnpm db:migrate
+pnpm dev
+```
+
+访问 `http://localhost:3000`，参考 feature 位于 `/hello`。
+
+## 数据库命令
+
+```bash
+pnpm db:generate
+pnpm db:migrate
+pnpm db:studio
+pnpm db:generate:supabase
+pnpm db:migrate:supabase
+```
+
+修改仓储行为时，必须同步检查 SQLite 与 Postgres schema 以及两套仓储实现。
+
+## 验证
+
+```bash
+pnpm format:check
+pnpm lint
+pnpm check-types
+pnpm test
+pnpm build
+```
+
+完整门禁运行 `pnpm check`。路由树会在类型感知 lint、类型检查和生产构建前自动生成，干净 checkout 不需要手工预处理。
+
+## 新增 Feature
+
+1. 在 `src/core` 添加共享类型或仓储契约。
+2. 创建 `src/features/<name>/__contract__.ts`。
+3. 在 `src/features/<name>/index.ts` 定义公开 API。
+4. 在 feature 内添加测试。
+5. 只有持久化行为变化时才新增或修改 infra 仓储。
+6. 在 `src/routes` 添加路由。
+7. UI 工作遵循 `DESIGN.md`，并加载对应 Agent Skill。
+
+Feature 不得直接 import `infra/db`，必须通过 provider 和仓储契约访问数据。
+
+## 部署边界
+
+默认 SQLite 模式需要持久文件系统，应部署在长期运行的 Node 进程或带持久卷的容器中。无状态/边缘平台不属于首版 SQLite 支持范围；需要远程数据库时应切换 Supabase Postgres。

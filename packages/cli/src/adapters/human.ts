@@ -1,9 +1,12 @@
 import * as p from '@clack/prompts'
 import { join, isAbsolute, resolve } from 'path'
-import { getTemplates, getTemplate } from '../core/registry.js'
+import {
+  getTemplates,
+  getTemplate,
+  PACKAGE_MANAGERS,
+  type PackageManager,
+} from '../core/registry.js'
 import { scaffoldProject } from '../core/scaffold.js'
-
-type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
 
 export interface HumanAdapterOptions {
   /** Explicit target directory. Absolute or relative to cwd. Defaults to ./<name>. */
@@ -49,12 +52,20 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
     process.exit(0)
   }
 
+  const template = getTemplate(templateId as string)
+  if (!template) {
+    p.cancel(`Template "${templateId}" not found.`)
+    process.exit(1)
+  }
+
   const dataLayer = await p.select({
     message: 'Select a data layer',
-    options: [
-      { value: 'supabase', label: 'supabase', hint: 'recommended' },
-      { value: 'drizzle', label: 'drizzle', hint: 'coming soon' },
-    ],
+    initialValue: template.defaultDataLayer,
+    options: template.dataLayers.map((layer) => ({
+      value: layer,
+      label: layer,
+      ...(layer === template.defaultDataLayer ? { hint: 'recommended' } : {}),
+    })),
   })
 
   if (p.isCancel(dataLayer)) {
@@ -63,7 +74,7 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
   }
 
   let schemaName: string | undefined = undefined
-  if (dataLayer === 'supabase') {
+  if (dataLayer === 'supabase' && template.supportsSchema) {
     const schemaInput = await p.text({
       message: 'Supabase schema name',
       placeholder: 'public',
@@ -84,19 +95,24 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
     schemaName = (schemaInput as string).trim() || 'public'
   }
 
-  const pm = await p.select<PackageManager>({
-    message: 'Package manager',
-    options: [
-      { value: 'pnpm', label: 'pnpm', hint: 'recommended' },
-      { value: 'npm', label: 'npm' },
-      { value: 'yarn', label: 'yarn' },
-      { value: 'bun', label: 'bun' },
-    ],
-  })
+  let pm: PackageManager = template.packageManager
+  if (!template.packageManagerEnforced) {
+    const selectedPackageManager = await p.select<PackageManager>({
+      message: 'Package manager',
+      initialValue: template.packageManager,
+      options: PACKAGE_MANAGERS.map((packageManager) => ({
+        value: packageManager,
+        label: packageManager,
+        ...(packageManager === template.packageManager ? { hint: 'recommended' } : {}),
+      })),
+    })
 
-  if (p.isCancel(pm)) {
-    p.cancel('Cancelled.')
-    process.exit(0)
+    if (p.isCancel(selectedPackageManager)) {
+      p.cancel('Cancelled.')
+      process.exit(0)
+    }
+
+    pm = selectedPackageManager
   }
 
   const confirmed = await p.confirm({
@@ -106,12 +122,6 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
   if (p.isCancel(confirmed) || !confirmed) {
     p.cancel('Cancelled.')
     process.exit(0)
-  }
-
-  const template = getTemplate(templateId as string)
-  if (!template) {
-    p.cancel(`Template "${templateId}" not found.`)
-    process.exit(1)
   }
 
   const targetDir = opts.dir
@@ -127,7 +137,8 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
     targetDir,
     name: projectName as string,
     template,
-    packageManager: pm as PackageManager,
+    packageManager: pm,
+    dataLayer: dataLayer as string,
     ...(schemaName !== undefined ? { schema: schemaName } : {}),
   })
 

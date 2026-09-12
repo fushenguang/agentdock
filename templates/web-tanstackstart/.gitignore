@@ -1,0 +1,12 @@
+node_modules
+dist
+.output
+.nitro
+.tanstack
+data/*.db
+data/*.db-*
+coverage
+.env
+.env.local
+.DS_Store
+src/routeTree.gen.ts

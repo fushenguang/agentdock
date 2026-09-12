@@ -46,6 +46,13 @@ now:
     owner: "@sunny"
 
 next:
+  # 由 @sunny 于 2026-09-12 明确授权 AI 添加。用于新增独立
+  # web-tanstackstart 模板，并同步升级 CLI 的模板感知能力。
+  - id: web-tanstackstart-template
+    title: "Add standalone web-tanstackstart template (TanStack Start + Astryx/StyleX + Drizzle SQLite/Supabase)"
+    status: in-progress
+    owner: "@sunny"
+
   - id: cli-mvp-scaffolder
     title: "Scaffold CLI MVP (agentdock init + agentdock mcp, dual-mode human/agent)"
     status: done

@@ -7,7 +7,9 @@ context: |
   AgentDock is an open-source scaffold platform for AI coding agent–ready projects.
 
   Tech stack: TypeScript 5.9 (strict), turborepo 2.9, pnpm 9, Node ≥18
-  Templates use: Next.js 16, React 19, Tailwind CSS, Supabase (data layer, not in MVP ground work)
+  Templates use: Next.js 16 + React 19 + Tailwind + Supabase; and web-tanstackstart
+  (TanStack Start + React 19 + TypeScript 7 + Vite 8 + Astryx/StyleX + Drizzle
+  SQLite/Supabase).
   Docs site: Fumadocs / Next.js at apps/docs
 
   Directory contract:

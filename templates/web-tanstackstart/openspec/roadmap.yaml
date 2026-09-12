@@ -1,0 +1,14 @@
+# Project roadmap. Human-owned intent map.
+#
+# Buckets: now | next | later | wont
+# Status: planned | in-progress | done
+
+now:
+  - id: web-tanstackstart-builtin-suite
+    title: Standalone TanStack Start baseline with Astryx/StyleX and Drizzle
+    status: in-progress
+    owner: "@team"
+
+next: []
+later: []
+wont: []

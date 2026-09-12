@@ -83,6 +83,18 @@ describe('registry — game-web-phaser template', () => {
   })
 })
 
+describe('registry — web-tanstackstart template', () => {
+  it('exposes template-aware package and data-layer metadata', () => {
+    const template = getTemplate('web-tanstackstart')
+
+    expect(template).toBeDefined()
+    expect(template?.packageManager).toBe('pnpm')
+    expect(template?.dataLayers).toEqual(['sqlite', 'supabase'])
+    expect(template?.defaultDataLayer).toBe('sqlite')
+    expect(template?.supportsSchema).toBe(false)
+  })
+})
+
 // ─── scaffold.ts tests ────────────────────────────────────────────────────────
 
 const fakeTemplate: RegistryTemplate = {
@@ -91,6 +103,11 @@ const fakeTemplate: RegistryTemplate = {
   description: 'Test template',
   minCliVersion: '0.1.0',
   source: 'templates/test-template',
+  packageManager: 'pnpm',
+  packageManagerEnforced: false,
+  dataLayers: ['supabase', 'drizzle'],
+  defaultDataLayer: 'supabase',
+  supportsSchema: true,
   resolvedDependencies: {
     '@cogito.ai/tsconfig': '^0.1.0',
     '@cogito.ai/eslint-config': '^0.1.0',
@@ -163,6 +180,11 @@ describe('scaffoldProject', () => {
       description: 'web-nextjs',
       minCliVersion: '0.1.0',
       source: 'templates/web-nextjs',
+      packageManager: 'pnpm',
+      packageManagerEnforced: false,
+      dataLayers: ['supabase', 'drizzle'],
+      defaultDataLayer: 'supabase',
+      supportsSchema: true,
       resolvedDependencies: {
         '@fission-ai/openspec': '^1.3.1',
         turbo: 'latest',
@@ -249,6 +271,68 @@ describe('scaffoldProject', () => {
     // builds share links against this exact port (see template AGENTS.md).
     expect(pkg.scripts?.['dev']).toContain('8080')
     expect(pkg.scripts?.['preview']).toContain('8080')
+  })
+
+  it('scaffolds web-tanstackstart with SQLite default and preserves pnpm 12', () => {
+    const template = getTemplate('web-tanstackstart')
+    expect(template).toBeDefined()
+    if (!template) throw new Error('web-tanstackstart template not found in registry')
+
+    const targetDir = join(tmpDir, 'my-tanstack-app')
+    const result = scaffoldProject({
+      targetDir,
+      name: 'my-tanstack-app',
+      template,
+      packageManager: 'pnpm',
+    })
+
+    expect(result.ok).toBe(true)
+    expect(existsSync(join(targetDir, 'src', 'routes', '__root.tsx'))).toBe(true)
+    expect(existsSync(join(targetDir, 'src', 'features', 'hello', '__contract__.ts'))).toBe(true)
+    expect(existsSync(join(targetDir, 'node_modules'))).toBe(false)
+
+    const pkg = JSON.parse(readFileSync(join(targetDir, 'package.json'), 'utf-8')) as {
+      packageManager?: string
+    }
+    expect(pkg.packageManager).toBe('pnpm@12.4.1')
+
+    const envExample = readFileSync(join(targetDir, '.env.example'), 'utf-8')
+    expect(envExample).toContain('DATA_PROVIDER=sqlite')
+    expect(envExample).not.toContain('{{DATA_LAYER}}')
+  })
+
+  it('rejects a data layer not declared by the template before writing files', () => {
+    const template = getTemplate('web-tanstackstart')
+    if (!template) throw new Error('web-tanstackstart template not found in registry')
+
+    const targetDir = join(tmpDir, 'invalid-data-layer')
+    const result = scaffoldProject({
+      targetDir,
+      name: 'invalid-data-layer',
+      template,
+      dataLayer: 'mysql',
+    })
+
+    expect(result.ok).toBe(false)
+    expect((result as { error: string }).error).toBe('INVALID_DATA_LAYER')
+    expect(existsSync(targetDir)).toBe(false)
+  })
+
+  it('rejects a package manager that conflicts with an enforced template', () => {
+    const template = getTemplate('web-tanstackstart')
+    if (!template) throw new Error('web-tanstackstart template not found in registry')
+
+    const targetDir = join(tmpDir, 'invalid-package-manager')
+    const result = scaffoldProject({
+      targetDir,
+      name: 'invalid-package-manager',
+      template,
+      packageManager: 'npm',
+    })
+
+    expect(result.ok).toBe(false)
+    expect((result as { error: string }).error).toBe('INVALID_PACKAGE_MANAGER')
+    expect(existsSync(targetDir)).toBe(false)
   })
 })
 

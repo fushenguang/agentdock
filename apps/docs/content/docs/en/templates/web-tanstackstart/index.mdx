@@ -1,0 +1,63 @@
+---
+title: web-tanstackstart Template
+description: Standalone TanStack Start template with Astryx/StyleX and Drizzle SQLite or Supabase Postgres.
+---
+
+# web-tanstackstart Template
+
+`web-tanstackstart` is an independent, single-package web application template. It keeps AgentDock's semantic `core` / `features` / `infra` boundaries without using a monorepo or Turborepo.
+
+## Technology
+
+| Layer | Technology |
+| --- | --- |
+| Runtime | Node 22.13+ |
+| Package manager | pnpm 12 |
+| Language | TypeScript 7 |
+| Application | TanStack Start + TanStack Router |
+| Build | Vite 8 |
+| UI | React 19 + Astryx + StyleX |
+| Data | Drizzle ORM + SQLite by default, Supabase Postgres optional |
+| Quality | Oxlint, type-aware Oxlint, Oxfmt, Vitest |
+
+## Architecture
+
+```text
+src/routes/       TanStack Start file routes
+src/components/   Shared presentation components
+src/core/         Domain types and repository contracts
+src/features/     Feature behavior behind __contract__.ts and index.ts
+src/infra/        Drizzle schemas, clients, repositories and provider wiring
+```
+
+The `/hello` reference feature demonstrates:
+
+1. A TanStack server function.
+2. A feature use case behind its public boundary.
+3. A `core` repository contract.
+4. A SQLite implementation by default.
+5. A Supabase Postgres implementation with the same contract.
+
+## Data Providers
+
+SQLite is the default and requires no external service:
+
+```dotenv
+DATA_PROVIDER=sqlite
+SQLITE_DATABASE_URL=./data/app.db
+```
+
+To use Supabase as a Drizzle Postgres provider:
+
+```dotenv
+DATA_PROVIDER=supabase
+SUPABASE_DATABASE_URL=postgres://YOUR_USER:YOUR_PASSWORD@YOUR_HOST:6543/postgres
+```
+
+The Postgres client sets `prepare: false` for compatibility with Supabase transaction pooling. This template targets long-lived internal Node deployments; it does not provide a serverless SQLite strategy.
+
+## UI
+
+Astryx supplies components, themes and prebuilt CSS. The template also configures the official Astryx Vite StyleX integration, so first-party components can use `stylex.create` alongside Astryx components.
+
+Start with [Usage](./usage), then update `DESIGN.md` when a project establishes its own visual direction.

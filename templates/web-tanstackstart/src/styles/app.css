@@ -1,0 +1,26 @@
+@import "../../node_modules/@astryxdesign/core/src/reset.css";
+@import "../../node_modules/@astryxdesign/core/dist/astryx.css";
+@import "../../node_modules/@astryxdesign/theme-neutral/dist/theme.css";
+
+:root {
+  color-scheme: light dark;
+  font-family: var(--font-family-body);
+  background: var(--color-background-body);
+  color: var(--color-text-primary);
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-width: 320px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
