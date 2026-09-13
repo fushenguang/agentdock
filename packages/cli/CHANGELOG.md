@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.23.0
+
+### Minor Changes
+
+- abf1331: web-tanstackstart: add AI-agent onboarding docs, an Astryx AppShell, multi-theme and locale-prefixed i18n with Chinese as the default, Astryx-first component composition, a fail-fast pnpm 12 guard, and production SSR startup fixes.
+
 ## 0.22.0
 
 ### Minor Changes
