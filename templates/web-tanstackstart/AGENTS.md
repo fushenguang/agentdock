@@ -10,7 +10,7 @@ Read `LLM.md` before implementation. It contains the stack rationale, architectu
 
 ## May Execute Autonomously
 
-- `pnpm install`, `pnpm dev`, `pnpm build`, `pnpm check`, `pnpm check-types`, `pnpm lint`, `pnpm format:check`, `pnpm test`
+- `pnpm install`, `pnpm dev`, `pnpm dev:prepare`, `pnpm build`, `pnpm check`, `pnpm check-types`, `pnpm lint`, `pnpm format:check`, `pnpm test`
 - `pnpm generate-routes`
 - `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:studio`
 - Creating or editing files inside `src/core`, `src/features`, `src/infra`, `src/routes`, and `src/components`

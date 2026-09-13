@@ -137,7 +137,8 @@ Do not remove `packageManager` to make an old pnpm pass. That weakens the declar
 ## 6. Commands
 
 ```bash
-pnpm dev                 # Vite development server
+pnpm dev                 # Apply SQLite migrations, then start Vite
+pnpm dev:prepare         # Apply migrations for the active development data provider
 pnpm build               # Generate routes and produce client/server bundles
 pnpm start               # Run the built Node server
 pnpm generate-routes     # Regenerate src/routeTree.gen.ts
@@ -382,7 +383,7 @@ Run `pnpm generate-routes`. Do not edit `src/routeTree.gen.ts`.
 
 ### Database table missing
 
-Run `pnpm db:migrate` for SQLite or `pnpm db:migrate:supabase` for Supabase before starting the app.
+For the default SQLite provider, `pnpm dev` runs `pnpm dev:prepare`, which applies pending migrations before Vite starts. For an already-built app or a non-development environment, run `pnpm db:migrate` explicitly. When `DATA_PROVIDER=supabase`, `pnpm dev` intentionally skips automatic migration and prints the required `pnpm db:migrate:supabase` command.
 
 ### Styles appear missing in development
 

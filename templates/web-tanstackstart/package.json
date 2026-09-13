@@ -5,7 +5,8 @@
   "description": "Standalone TanStack Start + Astryx/StyleX + Drizzle starter with SQLite by default and Supabase Postgres as an alternate data source.",
   "type": "module",
   "scripts": {
-    "dev": "vite dev --host --port 3000 --strictPort",
+    "dev": "pnpm dev:prepare && vite dev --host --port 3000 --strictPort",
+    "dev:prepare": "node scripts/prepare-dev-db.mjs",
     "start": "node --env-file-if-exists=.env server.mjs",
     "build": "pnpm generate-routes && vite build",
     "preview": "vite preview --host --port 3000 --strictPort",

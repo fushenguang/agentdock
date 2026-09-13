@@ -39,8 +39,8 @@ Data flow: route → feature → core repository contract → infra provider/imp
 
 ## Data Layer
 
-`DATA_PROVIDER=sqlite` is the default and uses `better-sqlite3`.
-`DATA_PROVIDER=supabase` uses the Postgres driver against a Supabase connection string with `prepare: false`.
+`DATA_PROVIDER=sqlite` is the default and uses `better-sqlite3`. `pnpm dev` applies pending SQLite migrations before Vite starts; `pnpm start` does not migrate implicitly.
+`DATA_PROVIDER=supabase` uses the Postgres driver against a Supabase connection string with `prepare: false`; run `pnpm db:migrate:supabase` explicitly.
 
 Repository consumers must remain dialect-neutral. If behavior changes, update both schemas and both repository implementations.
 
