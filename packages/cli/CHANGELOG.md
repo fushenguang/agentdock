@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.23.1
+
+### Patch Changes
+
+- 8a66d64: Fix first-run `web-tanstackstart` SQLite projects: `pnpm dev` now applies pending SQLite migrations before Vite starts, while Supabase development startup skips automatic migration and prints the explicit `pnpm db:migrate:supabase` command.
+
 ## 0.23.0
 
 ### Minor Changes
