@@ -9,16 +9,16 @@ description: 基于 TanStack Start、Astryx/StyleX 与 Drizzle SQLite/Supabase �
 
 ## 技术栈
 
-| 层级 | 技术 |
-| --- | --- |
-| 运行时 | Node 22.13+ |
-| 包管理器 | pnpm 12 |
-| 语言 | TypeScript 7 |
-| 应用框架 | TanStack Start + TanStack Router |
-| 构建 | Vite 8 |
-| UI | React 19 + Astryx + StyleX |
-| 数据 | Drizzle ORM；默认 SQLite，可选 Supabase Postgres |
-| 质量工具 | Oxlint、类型感知 Oxlint、Oxfmt、Vitest |
+| 层级     | 技术                                             |
+| -------- | ------------------------------------------------ |
+| 运行时   | Node 22.13+                                      |
+| 包管理器 | pnpm 12                                          |
+| 语言     | TypeScript 7                                     |
+| 应用框架 | TanStack Start + TanStack Router                 |
+| 构建     | Vite 8                                           |
+| UI       | React 19 + Astryx（多主题 + i18n）+ StyleX       |
+| 数据     | Drizzle ORM；默认 SQLite，可选 Supabase Postgres |
+| 质量工具 | Oxlint、类型感知 Oxlint、Oxfmt、Vitest           |
 
 ## 目录契约
 
@@ -30,13 +30,26 @@ src/features/     通过 __contract__.ts 与 index.ts 暴露的 feature
 src/infra/        Drizzle schema、client、仓储实现与 provider 装配
 ```
 
-`/hello` 参考 feature 演示完整链路：
+`/{locale}/hello` 参考 feature 演示完整链路：
 
 1. TanStack server function
 2. feature 公开边界
 3. `core` 仓储契约
 4. 默认 SQLite 实现
 5. 使用相同契约的 Supabase Postgres 实现
+
+默认界面使用 Astryx `AppShell` + 顶部导航。共享布局组件统一提供页面容器、页面标题和路由框架，便于快速开发新的业务页面。
+
+Shell 默认包含：
+
+- Astryx 预编译 Neutral、Butter、Matcha、Stone 主题；
+- 跟随系统、浅色、深色三种颜色模式；
+- 简体中文（`/zh-CN`，默认）与英文（`/en`）URL 前缀路由；
+- Cookie 持久化外观偏好，以及保留当前页面的语言切换器。
+
+## Agent 开发指南
+
+生成项目内置根目录 `LLM.md`，集中说明技术选型理由、依赖边界、feature 开发流程、数据库变更、UI 开发、验证方式和故障排查。`AGENTS.md` 继续作为执行边界契约，并优先指向 `LLM.md`。
 
 ## 数据源
 
@@ -56,8 +69,10 @@ SUPABASE_DATABASE_URL=postgres://YOUR_USER:YOUR_PASSWORD@YOUR_HOST:6543/postgres
 
 Postgres client 使用 `prepare: false`，兼容 Supabase transaction pooler。首版面向企业内网中长期运行的 Node 服务，不提供无状态平台下的 SQLite 持久化方案。
 
+项目要求 pnpm 12。模板关闭了自动包管理器切换并启用严格 engine 校验，因此旧版 pnpm 会明确返回 `ERR_PNPM_UNSUPPORTED_ENGINE`，不会下载损坏的 native wrapper。可通过 `pnpm self-update 12.4.1` 或 `npx pnpm@12.4.1` 恢复。
+
 ## UI
 
-Astryx 提供组件、主题和预编译 CSS；模板同时接入官方 Astryx Vite StyleX 插件，因此业务组件可以直接使用 `stylex.create`。
+Astryx 提供组件、预编译主题、语言目录和 CSS。模板遵循 Astryx-first 组合原则：优先使用原生布局、集合、反馈和内容组件，再考虑增加薄封装；其余业务样式通过官方 Astryx Vite StyleX 插件实现。主题与语言扩展规则见 `LLM.md` 和 `DESIGN.md`。
 
 使用方式见 [模板使用](./usage)。项目确定自身视觉方向后，应同步更新 `DESIGN.md`。

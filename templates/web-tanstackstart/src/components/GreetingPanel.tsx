@@ -1,82 +1,15 @@
 import { Button } from "@astryxdesign/core/Button";
-import { Card } from "@astryxdesign/core/Card";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Heading } from "@astryxdesign/core/Heading";
+import { List, ListItem } from "@astryxdesign/core/List";
+import { Section } from "@astryxdesign/core/Section";
+import { Stack } from "@astryxdesign/core/Stack";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import * as stylex from "@stylexjs/stylex";
+import { Timestamp } from "@astryxdesign/core/Timestamp";
+import { useTranslator } from "@astryxdesign/core/i18n";
 import type { Greeting } from "@/core/types/greeting";
 import { useState, useTransition } from "react";
-
-function formatTimestamp(date: Date): string {
-  return `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
-}
-
-const styles = stylex.create({
-  page: {
-    minHeight: "100vh",
-    padding: {
-      default: 20,
-      "@media (min-width: 768px)": 40,
-    },
-    display: "grid",
-    placeItems: "start center",
-  },
-  content: {
-    width: "100%",
-    maxWidth: 760,
-    display: "grid",
-    gap: 24,
-  },
-  hero: {
-    display: "grid",
-    gap: 8,
-  },
-  eyebrow: {
-    color: "var(--color-text-secondary)",
-    fontSize: 13,
-    letterSpacing: "0.08em",
-    margin: 0,
-    textTransform: "uppercase",
-  },
-  copy: {
-    color: "var(--color-text-secondary)",
-    lineHeight: 1.6,
-    margin: 0,
-    maxWidth: 640,
-  },
-  form: {
-    display: "grid",
-    gap: 16,
-    gridTemplateColumns: {
-      default: "1fr",
-      "@media (min-width: 560px)": "1fr auto",
-    },
-    alignItems: "end",
-  },
-  list: {
-    display: "grid",
-    gap: 12,
-    listStyle: "none",
-    margin: 0,
-    padding: 0,
-  },
-  listItem: {
-    borderBottomColor: "var(--color-border)",
-    borderBottomStyle: "solid",
-    borderBottomWidth: 1,
-    display: "grid",
-    gap: 4,
-    paddingBottom: 12,
-  },
-  message: {
-    color: "var(--color-text-primary)",
-    fontSize: 16,
-    margin: 0,
-  },
-  timestamp: {
-    color: "var(--color-text-secondary)",
-    fontSize: 13,
-  },
-});
+import { PageContainer, PageHeader } from "./layout";
 
 interface GreetingPanelProps {
   readonly greetings: Greeting[];
@@ -84,6 +17,7 @@ interface GreetingPanelProps {
 }
 
 export function GreetingPanel({ greetings, onCreate }: GreetingPanelProps) {
+  const t = useTranslator();
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -99,69 +33,70 @@ export function GreetingPanel({ greetings, onCreate }: GreetingPanelProps) {
         setError(null);
       });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to save the greeting");
+      setError(cause instanceof Error ? cause.message : t("agentdock.hello.error.save"));
     }
   }
 
   return (
-    <main {...stylex.props(styles.page)}>
-      <div {...stylex.props(styles.content)}>
-        <header {...stylex.props(styles.hero)}>
-          <p {...stylex.props(styles.eyebrow)}>AgentDock / TanStack Start</p>
-          <Heading level={1}>A typed full-stack baseline</Heading>
-          <p {...stylex.props(styles.copy)}>
-            TanStack Start handles routing and server functions. Drizzle keeps the repository
-            contract explicit, while Astryx and StyleX provide the interface foundation.
-          </p>
-        </header>
+    <PageContainer>
+      <PageHeader
+        title={t("agentdock.hello.title")}
+        description={t("agentdock.hello.description")}
+      />
 
-        <Card padding={4}>
-          <form
-            {...stylex.props(styles.form)}
-            onSubmit={(event) => {
-              event.preventDefault();
-              startTransition(submit);
-            }}
-          >
+      <Section padding={4}>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            startTransition(submit);
+          }}
+        >
+          <Stack gap={4}>
             <TextInput
-              label="New greeting"
+              label={t("agentdock.hello.newGreeting")}
               value={message}
               onChange={setMessage}
-              placeholder="Write something worth persisting"
+              placeholder={t("agentdock.hello.placeholder")}
               isRequired
+              status={error ? { type: "error", message: error } : undefined}
             />
-            <Button
-              label="Add greeting"
-              type="submit"
-              variant="primary"
-              isLoading={isPending}
-              isDisabled={!message.trim()}
-            />
-            {error ? <p role="alert">{error}</p> : null}
-          </form>
-        </Card>
+            <Stack direction="horizontal" hAlign="end">
+              <Button
+                label={t("agentdock.hello.add")}
+                type="submit"
+                variant="primary"
+                isLoading={isPending}
+                isDisabled={!message.trim()}
+              />
+            </Stack>
+          </Stack>
+        </form>
+      </Section>
 
-        <section aria-labelledby="greetings-heading">
-          <Heading level={2}>Stored greetings</Heading>
-          {greetings.length === 0 ? (
-            <p {...stylex.props(styles.copy)}>No greetings yet. The SQLite default starts empty.</p>
-          ) : (
-            <ul {...stylex.props(styles.list)}>
-              {greetings.map((greeting) => (
-                <li key={greeting.id} {...stylex.props(styles.listItem)}>
-                  <p {...stylex.props(styles.message)}>{greeting.message}</p>
-                  <time
-                    {...stylex.props(styles.timestamp)}
-                    dateTime={greeting.createdAt.toISOString()}
-                  >
-                    {formatTimestamp(greeting.createdAt)}
-                  </time>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-    </main>
+      {greetings.length === 0 ? (
+        <EmptyState title={t("agentdock.hello.empty")} headingLevel={2} />
+      ) : (
+        <List
+          density="balanced"
+          hasDividers
+          header={<Heading level={2}>{t("agentdock.hello.stored")}</Heading>}
+        >
+          {greetings.map((greeting) => (
+            <ListItem
+              key={greeting.id}
+              label={greeting.message}
+              description={
+                <Timestamp
+                  value={greeting.createdAt.toISOString()}
+                  format="date_time"
+                  type="supporting"
+                  color="secondary"
+                />
+              }
+            />
+          ))}
+        </List>
+      )}
+    </PageContainer>
   );
 }

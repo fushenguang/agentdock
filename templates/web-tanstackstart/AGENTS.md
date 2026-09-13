@@ -4,13 +4,17 @@
 
 This is a standalone TanStack Start application. It keeps AgentDock's `core` / `features` / `infra` boundaries without introducing a monorepo.
 
+## Read First
+
+Read `LLM.md` before implementation. It contains the stack rationale, architecture, import rules, data flow, feature recipes, UI guidance, and verification workflow. This file defines execution boundaries; `LLM.md` defines how to build within them.
+
 ## May Execute Autonomously
 
 - `pnpm install`, `pnpm dev`, `pnpm build`, `pnpm check`, `pnpm check-types`, `pnpm lint`, `pnpm format:check`, `pnpm test`
 - `pnpm generate-routes`
 - `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:studio`
 - Creating or editing files inside `src/core`, `src/features`, `src/infra`, `src/routes`, and `src/components`
-- Adding feature tests and updating `DESIGN.md` or `README.md`
+- Adding feature tests and updating `LLM.md`, `DESIGN.md`, or `README.md`
 - Running read-only `openspec` commands
 
 ## Must Pause And Confirm
@@ -38,7 +42,7 @@ This is a standalone TanStack Start application. It keeps AgentDock's `core` / `
 
 ```text
 src/routes/       TanStack Start file routes and server-function entrypoints
-src/components/   Shared presentation components
+src/components/   Shared presentation, layout, appearance, and locale controls
 src/core/         Stable domain types and repository contracts
 src/features/     Product behavior; each feature owns a contract and public index
 src/infra/        Drizzle clients, schemas, repository implementations, provider wiring
@@ -61,10 +65,16 @@ pnpm check
 
 `pnpm check` is the acceptance command and runs the full local gate.
 
+The project requires pnpm 12. `engine-strict=true` intentionally stops older pnpm versions with `ERR_PNPM_UNSUPPORTED_ENGINE`. Recover with `pnpm self-update 12.4.1` or use `npx pnpm@12.4.1`.
+
 ## UI Rules
 
-- Use Astryx components for controls and structure; use StyleX for layout and first-party styling.
+- Use Astryx components for controls and structure; use StyleX only for remaining first-party layout or product styling.
+- Prefer native Astryx primitives (`Stack`, `Grid`, `Section`, `List`, `EmptyState`, `Center`, `Timestamp`, and component-specific APIs) over hand-rolled equivalent markup.
 - Use Astryx design tokens instead of hard-coded colors, spacing, radii, or shadows when a token exists.
+- Change themes through `AppearanceProvider`; use prebuilt Astryx themes and their compiled CSS rather than creating route-local theme stores.
+- Add every user-facing string to all catalogs in `src/i18n/messages.ts` and resolve it with `useTranslator()`.
+- Keep application pages under the `/$locale` route layout unless a route is intentionally global.
 - Keep the interface usable from 320px upward.
 - Do not add Tailwind, CSS-in-JS runtimes, or a second component library without approval.
 - Apply the `impeccable` skill before declaring a UI change complete.

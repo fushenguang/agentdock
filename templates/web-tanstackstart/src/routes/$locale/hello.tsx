@@ -2,7 +2,7 @@ import { GreetingPanel } from "@/components/GreetingPanel";
 import { createGreeting, listGreetings } from "@/features/hello";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/hello")({
+export const Route = createFileRoute("/$locale/hello")({
   loader: () => listGreetings(),
   component: HelloPage,
 });
