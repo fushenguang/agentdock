@@ -28,3 +28,9 @@ New `web-tanstackstart` projects use SQLite by default but do not create the sch
 - `templates/web-tanstackstart/scripts/prepare-dev-db.mjs`
 - Template README, LLM guide, and configuration tests
 - No application runtime or production server behavior changes
+
+## Non-goals
+
+- Automatically migrate shared Supabase/Postgres databases during development.
+- Change production `pnpm start` to run migrations implicitly.
+- Replace Drizzle Kit or add application-runtime schema initialization.
