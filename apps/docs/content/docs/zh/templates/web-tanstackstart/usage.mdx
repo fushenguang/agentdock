@@ -35,9 +35,10 @@ npx --yes --registry=https://registry.npmjs.org pnpm@12.4.1 install
 cd my-internal-app
 cp .env.example .env
 pnpm install
-pnpm db:migrate
 pnpm dev
 ```
+
+`pnpm dev` 会在启动 Vite 前自动执行待应用的 SQLite migration。生产环境执行 `pnpm start` 时不会隐式迁移，应在部署流程中显式执行 migration。
 
 访问 `http://localhost:3000`，根路径会跳转到默认的简体中文页面 `http://localhost:3000/zh-CN`；参考 feature 位于 `/zh-CN/hello`。
 
@@ -53,7 +54,7 @@ pnpm db:generate:supabase
 pnpm db:migrate:supabase
 ```
 
-修改仓储行为时，必须同步检查 SQLite 与 Postgres schema 以及两套仓储实现。
+修改仓储行为时，必须同步检查 SQLite 与 Postgres schema 以及两套仓储实现。当 `DATA_PROVIDER=supabase` 时，开发启动不会自动执行 SQLite migration，并会提示显式运行 `pnpm db:migrate:supabase`。
 
 ## 验证
 

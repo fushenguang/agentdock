@@ -23,9 +23,10 @@ npx --yes --registry=https://registry.npmjs.org pnpm@12.4.1 install
 ```bash
 cp .env.example .env
 pnpm install
-pnpm db:migrate
 pnpm dev
 ```
+
+`pnpm dev` automatically applies pending SQLite migrations before Vite starts. The production `pnpm start` command does not run migrations implicitly; apply them explicitly during deployment.
 
 Open `http://localhost:3000`. The root route redirects to the default Chinese application at `http://localhost:3000/zh-CN`.
 
@@ -42,7 +43,8 @@ UI composition prefers native Astryx primitives such as `Stack`, `Grid`, `Sectio
 ## Commands
 
 ```bash
-pnpm dev                 # Development server
+pnpm dev                 # Apply SQLite migrations, then start the development server
+pnpm dev:prepare         # Apply migrations for the selected development data provider
 pnpm build               # Generate routes and build client + server bundles
 pnpm start               # Run the production Node server
 pnpm generate-routes     # Regenerate TanStack routeTree.gen.ts
@@ -71,6 +73,8 @@ SQLite is the default:
 DATA_PROVIDER=sqlite
 SQLITE_DATABASE_URL=./data/app.db
 ```
+
+When `DATA_PROVIDER=supabase`, `pnpm dev` skips automatic SQLite migration and prints the explicit `pnpm db:migrate:supabase` command instead.
 
 Supabase Postgres uses the same repository contract:
 
