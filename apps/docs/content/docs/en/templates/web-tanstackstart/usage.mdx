@@ -23,6 +23,14 @@ The generated project keeps the template's `packageManager: pnpm@12.4.1`; the ho
 
 ## Install And Run
 
+If the local pnpm is older than 12, upgrade it or use npx before installing:
+
+```bash
+pnpm self-update 12.4.1
+# or
+npx --yes --registry=https://registry.npmjs.org pnpm@12.4.1 install
+```
+
 ```bash
 cd my-internal-app
 cp .env.example .env
@@ -31,7 +39,9 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Open `http://localhost:3000`. The reference feature is available at `/hello`.
+Open `http://localhost:3000`. The root redirects to the default Simplified Chinese locale at `http://localhost:3000/zh-CN`. The reference feature is available at `/zh-CN/hello`.
+
+The shell includes appearance and language switchers. Appearance preferences persist in a first-party cookie so SSR can render the saved theme without a flash; language is represented by the URL prefix (`/zh-CN` default, `/en` alternate).
 
 ## Database Commands
 
@@ -59,13 +69,17 @@ Run `pnpm check` for the complete gate. The route tree is generated before type-
 
 ## Adding A Feature
 
+Read `LLM.md` first. It contains the exact architecture rules, file recipes, import boundaries, and verification workflow for coding agents.
+
 1. Add shared types or repository contracts under `src/core`.
 2. Create `src/features/<name>/__contract__.ts`.
 3. Keep the public API in `src/features/<name>/index.ts`.
 4. Add a test next to the feature.
 5. Add or update an infra repository only when persistence behavior changes.
-6. Add the route under `src/routes`.
-7. Follow `DESIGN.md` for UI work and apply the relevant Agent Skill.
+6. Add the route under `src/routes/$locale/`.
+7. Add user-facing strings to every catalog in `src/i18n/messages.ts`.
+8. Follow `DESIGN.md` for UI and theme work, and apply the relevant Agent Skill.
+9. Compose the shared `TemplateShell`, `PageContainer`, and `PageHeader` components.
 
 Do not import `infra/db` from a feature. Use the provider and repository contract.
 

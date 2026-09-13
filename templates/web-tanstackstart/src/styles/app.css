@@ -1,9 +1,11 @@
 @import "../../node_modules/@astryxdesign/core/src/reset.css";
 @import "../../node_modules/@astryxdesign/core/dist/astryx.css";
 @import "../../node_modules/@astryxdesign/theme-neutral/dist/theme.css";
+@import "../../node_modules/@astryxdesign/theme-butter/dist/theme.css";
+@import "../../node_modules/@astryxdesign/theme-matcha/dist/theme.css";
+@import "../../node_modules/@astryxdesign/theme-stone/dist/theme.css";
 
 :root {
-  color-scheme: light dark;
   font-family: var(--font-family-body);
   background: var(--color-background-body);
   color: var(--color-text-primary);

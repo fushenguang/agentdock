@@ -23,6 +23,14 @@ npx @cogito.ai/cli init \
 
 ## 安装与运行
 
+如果本机 pnpm 低于 12，先升级或使用 npx：
+
+```bash
+pnpm self-update 12.4.1
+# 或
+npx --yes --registry=https://registry.npmjs.org pnpm@12.4.1 install
+```
+
 ```bash
 cd my-internal-app
 cp .env.example .env
@@ -31,7 +39,9 @@ pnpm db:migrate
 pnpm dev
 ```
 
-访问 `http://localhost:3000`，参考 feature 位于 `/hello`。
+访问 `http://localhost:3000`，根路径会跳转到默认的简体中文页面 `http://localhost:3000/zh-CN`；参考 feature 位于 `/zh-CN/hello`。
+
+Shell 内置外观与语言切换器。外观偏好通过同源 Cookie 持久化，使 SSR 能直接输出已选主题、避免闪烁；语言由 URL 前缀表示（`/zh-CN` 为默认，`/en` 为备选）。
 
 ## 数据库命令
 
@@ -59,13 +69,17 @@ pnpm build
 
 ## 新增 Feature
 
+先阅读 `LLM.md`。其中包含 agent 需要的架构规则、文件目录模板、import 边界和验证流程。
+
 1. 在 `src/core` 添加共享类型或仓储契约。
 2. 创建 `src/features/<name>/__contract__.ts`。
 3. 在 `src/features/<name>/index.ts` 定义公开 API。
 4. 在 feature 内添加测试。
 5. 只有持久化行为变化时才新增或修改 infra 仓储。
-6. 在 `src/routes` 添加路由。
-7. UI 工作遵循 `DESIGN.md`，并加载对应 Agent Skill。
+6. 在 `src/routes/$locale/` 添加路由。
+7. 所有用户可见文案同步加入 `src/i18n/messages.ts` 的全部语言目录。
+8. UI 与主题工作遵循 `DESIGN.md`，并加载对应 Agent Skill。
+9. 页面使用共享的 `TemplateShell`、`PageContainer` 和 `PageHeader`。
 
 Feature 不得直接 import `infra/db`，必须通过 provider 和仓储契约访问数据。
 

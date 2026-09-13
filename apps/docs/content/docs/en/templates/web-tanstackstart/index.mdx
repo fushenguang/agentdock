@@ -9,16 +9,16 @@ description: Standalone TanStack Start template with Astryx/StyleX and Drizzle S
 
 ## Technology
 
-| Layer | Technology |
-| --- | --- |
-| Runtime | Node 22.13+ |
-| Package manager | pnpm 12 |
-| Language | TypeScript 7 |
-| Application | TanStack Start + TanStack Router |
-| Build | Vite 8 |
-| UI | React 19 + Astryx + StyleX |
-| Data | Drizzle ORM + SQLite by default, Supabase Postgres optional |
-| Quality | Oxlint, type-aware Oxlint, Oxfmt, Vitest |
+| Layer           | Technology                                                  |
+| --------------- | ----------------------------------------------------------- |
+| Runtime         | Node 22.13+                                                 |
+| Package manager | pnpm 12                                                     |
+| Language        | TypeScript 7                                                |
+| Application     | TanStack Start + TanStack Router                            |
+| Build           | Vite 8                                                      |
+| UI              | React 19 + Astryx (multi-theme + i18n) + StyleX             |
+| Data            | Drizzle ORM + SQLite by default, Supabase Postgres optional |
+| Quality         | Oxlint, type-aware Oxlint, Oxfmt, Vitest                    |
 
 ## Architecture
 
@@ -30,13 +30,26 @@ src/features/     Feature behavior behind __contract__.ts and index.ts
 src/infra/        Drizzle schemas, clients, repositories and provider wiring
 ```
 
-The `/hello` reference feature demonstrates:
+The `/{locale}/hello` reference feature demonstrates:
 
 1. A TanStack server function.
 2. A feature use case behind its public boundary.
 3. A `core` repository contract.
 4. A SQLite implementation by default.
 5. A Supabase Postgres implementation with the same contract.
+
+The default UI is an Astryx `AppShell` with top navigation. Shared layout primitives provide a consistent page container, page header, and route frame for new business features.
+
+The shell includes:
+
+- prebuilt Astryx Neutral, Butter, Matcha, and Stone themes;
+- system, light, and dark color modes;
+- locale-prefixed routes for Simplified Chinese (`/zh-CN`, default) and English (`/en`);
+- cookie-backed appearance preferences and a locale switcher that preserves the current page.
+
+## Agent Guide
+
+The generated project includes `LLM.md`, a single agent-oriented development guide covering technology rationale, dependency boundaries, feature recipes, database changes, UI development, verification, and troubleshooting. `AGENTS.md` remains the execution-boundary contract and points to `LLM.md` first.
 
 ## Data Providers
 
@@ -56,8 +69,10 @@ SUPABASE_DATABASE_URL=postgres://YOUR_USER:YOUR_PASSWORD@YOUR_HOST:6543/postgres
 
 The Postgres client sets `prepare: false` for compatibility with Supabase transaction pooling. This template targets long-lived internal Node deployments; it does not provide a serverless SQLite strategy.
 
+The project requires pnpm 12. Automatic package-manager switching is disabled and engine validation is strict, so older pnpm versions fail with `ERR_PNPM_UNSUPPORTED_ENGINE` instead of downloading a broken native wrapper. Upgrade with `pnpm self-update 12.4.1`, or use `npx pnpm@12.4.1`.
+
 ## UI
 
-Astryx supplies components, themes and prebuilt CSS. The template also configures the official Astryx Vite StyleX integration, so first-party components can use `stylex.create` alongside Astryx components.
+Astryx supplies components, prebuilt themes, the locale catalog, and CSS. The template follows an Astryx-first composition rule: use native Astryx layout, collection, feedback, and content components before adding a thin project wrapper. The official Astryx Vite StyleX integration is configured for the remaining first-party styling. Theme and locale extension rules are documented in `LLM.md` and `DESIGN.md`.
 
 Start with [Usage](./usage), then update `DESIGN.md` when a project establishes its own visual direction.

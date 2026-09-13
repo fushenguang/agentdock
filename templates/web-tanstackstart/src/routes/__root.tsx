@@ -1,11 +1,44 @@
 import { Button } from "@astryxdesign/core/Button";
+import { Center } from "@astryxdesign/core/Center";
+import { Heading } from "@astryxdesign/core/Heading";
 import { LinkProvider } from "@astryxdesign/core/Link";
-import { Theme } from "@astryxdesign/core/theme";
-import { neutralTheme } from "@astryxdesign/theme-neutral/built";
-import { Link, Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Stack } from "@astryxdesign/core/Stack";
+import { Text } from "@astryxdesign/core/Text";
+import { getLocaleDirection, useTranslator } from "@astryxdesign/core/i18n";
+import {
+  Link,
+  Outlet,
+  createRootRoute,
+  HeadContent,
+  Scripts,
+  useRouterState,
+} from "@tanstack/react-router";
+import { AppearanceProvider } from "@/components/appearance";
+import type { AppearanceState } from "@/components/appearance/appearance";
+import { getServerAppearance } from "@/components/appearance/appearance-data";
+import { readAppearanceCookie } from "@/components/appearance/appearance-persistence";
+import { AppI18nProvider, DEFAULT_LOCALE, isSupportedLocale } from "@/i18n";
+import * as stylex from "@stylexjs/stylex";
 import appCss from "../styles/app.css?url";
 
+const styles = stylex.create({
+  copy: {
+    textAlign: "center",
+  },
+});
+
+async function getInitialAppearance(): Promise<AppearanceState> {
+  if (import.meta.env.SSR) {
+    return getServerAppearance();
+  }
+
+  return readAppearanceCookie();
+}
+
 export const Route = createRootRoute({
+  beforeLoad: async () => ({
+    appearance: await getInitialAppearance(),
+  }),
   component: RootComponent,
   notFoundComponent: NotFound,
   head: () => ({
@@ -22,30 +55,71 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  const { appearance } = Route.useRouteContext();
+
   return (
-    <RootDocument>
-      <Theme theme={neutralTheme}>
+    <RootDocument appearance={appearance}>
+      <AppearanceProvider initialAppearance={appearance}>
         <LinkProvider component={Link}>
           <Outlet />
         </LinkProvider>
-      </Theme>
+      </AppearanceProvider>
     </RootDocument>
   );
 }
 
 function NotFound() {
+  const { appearance } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const pathLocale = pathname.split("/")[1] ?? "";
+  const locale = isSupportedLocale(pathLocale) ? pathLocale : DEFAULT_LOCALE;
+
   return (
-    <main style={{ padding: 32 }}>
-      <h1>404</h1>
-      <p>The requested page does not exist.</p>
-      <Button label="Back home" variant="primary" href="/" />
-    </main>
+    <AppearanceProvider initialAppearance={appearance}>
+      <AppI18nProvider locale={locale}>
+        <NotFoundContent />
+      </AppI18nProvider>
+    </AppearanceProvider>
   );
 }
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function NotFoundContent() {
+  const t = useTranslator();
+
   return (
-    <html lang="en">
+    <Center minHeight="100vh" padding={6}>
+      <Stack gap={4} hAlign="center" maxWidth={480}>
+        <Heading level={1}>{t("agentdock.notFound.title")}</Heading>
+        <Text type="body" color="secondary" xstyle={styles.copy}>
+          {t("agentdock.notFound.description")}
+        </Text>
+        <Button
+          label={t("agentdock.notFound.backHome")}
+          variant="primary"
+          href={`/${DEFAULT_LOCALE}`}
+        />
+      </Stack>
+    </Center>
+  );
+}
+
+interface RootDocumentProps {
+  readonly appearance: AppearanceState;
+  readonly children: React.ReactNode;
+}
+
+function RootDocument({ appearance, children }: RootDocumentProps) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const pathLocale = pathname.split("/")[1] ?? "";
+  const locale = isSupportedLocale(pathLocale) ? pathLocale : DEFAULT_LOCALE;
+
+  return (
+    <html
+      lang={locale}
+      dir={getLocaleDirection(locale)}
+      data-astryx-theme={appearance.themeName}
+      data-theme={appearance.mode === "system" ? undefined : appearance.mode}
+    >
       <head>
         <HeadContent />
       </head>

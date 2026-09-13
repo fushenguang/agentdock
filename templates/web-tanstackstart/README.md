@@ -6,11 +6,19 @@ Standalone enterprise web starter built with TanStack Start, React, Astryx/Style
 
 - pnpm 12, Node 22.13+
 - TypeScript 7, Vite 8, TanStack Start/Router
-- React 19, Astryx 0.6, StyleX 0.19
+- React 19, Astryx 0.6 with prebuilt multi-theme support, StyleX 0.19
 - Drizzle ORM 0.45 with SQLite by default and Supabase Postgres as an alternate provider
 - Oxlint + type-aware Oxlint, Oxfmt, Vitest
 
 ## Start
+
+The project requires pnpm 12. If the local pnpm is older, use one of these recovery paths before installing:
+
+```bash
+npm_config_registry=https://registry.npmjs.org pnpm self-update 12.4.1
+# or
+npx --yes --registry=https://registry.npmjs.org pnpm@12.4.1 install
+```
 
 ```bash
 cp .env.example .env
@@ -19,7 +27,17 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000`. The root route redirects to the default Chinese application at `http://localhost:3000/zh-CN`.
+
+## Themes And Languages
+
+The shell includes appearance and language switchers.
+
+- Astryx themes: Neutral, Butter, Matcha, Stone
+- Color modes: system, light, dark
+- Locales: Simplified Chinese (`/zh-CN`, default) and English (`/en`)
+
+UI composition prefers native Astryx primitives such as `Stack`, `Grid`, `Section`, `List`, `EmptyState`, `Center`, and `Timestamp`; custom wrappers delegate to Astryx instead of reimplementing its behavior. Theme and mode preferences persist in the first-party `agentdock.appearance` cookie so SSR can render the saved appearance without a hydration flash. Application copy lives in `src/i18n/messages.ts`; locale and theme extension rules are documented in `LLM.md` and `DESIGN.md`.
 
 ## Commands
 
@@ -73,11 +91,11 @@ src/features     Feature use cases behind public contracts
 src/infra        Drizzle schemas, clients, repository implementations, provider wiring
 ```
 
-The reference `/hello` feature demonstrates the complete path from a TanStack server function to SQLite or Supabase through a repository.
+The reference `/{locale}/hello` feature demonstrates the complete path from a TanStack server function to SQLite or Supabase through a repository.
 
 ## Agent Assets
 
-See `AGENTS.md`, `.github/copilot-instructions.md`, and `DESIGN.md`. Vendored third-party skills and their provenance are documented under `.github/skills/THIRD_PARTY_SKILLS.md`.
+Start with `LLM.md` for the complete Agent-oriented project guide. See also `AGENTS.md`, `.github/copilot-instructions.md`, and `DESIGN.md`. Vendored third-party skills and their provenance are documented under `.github/skills/THIRD_PARTY_SKILLS.md`.
 
 ## License
 

@@ -2,6 +2,10 @@
 
 > Applies to GitHub Copilot and other agents working in generated projects.
 
+## Read First
+
+Read `LLM.md` before making changes. It is the authoritative guide for technology choices, architecture, data flow, feature recipes, UI conventions, and verification. This file is the compact execution checklist.
+
 ## Stack
 
 TanStack Start + TanStack Router, React 19, TypeScript 7, Vite 8, pnpm 12, Oxlint, Oxfmt, Vitest, Astryx, StyleX, Drizzle ORM, SQLite, and optional Supabase Postgres.
@@ -11,7 +15,7 @@ TanStack Start + TanStack Router, React 19, TypeScript 7, Vite 8, pnpm 12, Oxlin
 | Path              | Responsibility                                                      |
 | ----------------- | ------------------------------------------------------------------- |
 | `src/routes/`     | File routes, loaders, and route components                          |
-| `src/components/` | Shared UI composition                                               |
+| `src/components/` | Shared UI, AppShell layout, appearance, and locale controls         |
 | `src/core/`       | Types and repository contracts; no framework or DB imports          |
 | `src/features/`   | Feature behavior behind `__contract__.ts` and `index.ts`            |
 | `src/infra/`      | Drizzle clients, dialect schemas, repositories, and provider wiring |
@@ -27,8 +31,11 @@ Data flow: route → feature → core repository contract → infra provider/imp
 5. Use `pnpm`; do not switch package managers.
 6. Use TypeScript strict mode; no `any` and no unexplained `@ts-ignore`.
 7. Use Astryx components and StyleX for UI. Prefer Astryx tokens over literals.
-8. Never commit secrets. `.env.example` contains placeholders only.
-9. Do not edit generated `src/routeTree.gen.ts` or Drizzle metadata by hand.
+8. Prefer native Astryx layout and collections such as `Stack`, `Grid`, `Section`, `List`, `EmptyState`, `Center`, and `Timestamp` over hand-rolled equivalents.
+9. Use `AppearanceProvider` and prebuilt Astryx themes; do not create route-local theme state.
+10. Put user-facing strings in all `src/i18n/messages.ts` catalogs and resolve them with `useTranslator()`.
+11. Never commit secrets. `.env.example` contains placeholders only.
+12. Do not edit generated `src/routeTree.gen.ts` or Drizzle metadata by hand.
 
 ## Data Layer
 
@@ -37,11 +44,25 @@ Data flow: route → feature → core repository contract → infra provider/imp
 
 Repository consumers must remain dialect-neutral. If behavior changes, update both schemas and both repository implementations.
 
+## pnpm Bootstrap
+
+The project requires pnpm 12. `.npmrc` disables automatic package-manager switching and enables strict engine validation, so pnpm 10 fails cleanly instead of downloading a broken wrapper.
+
+Recover with:
+
+```bash
+pnpm self-update 12.4.1
+# or
+npx --yes pnpm@12.4.1 install
+```
+
 ## UI
 
 - Use Astryx `Theme` and `LinkProvider` from the root route.
 - Import Astryx CSS through `src/styles/app.css`; do not reorder the reset, component, and theme layers.
 - Write first-party component styles with `stylex.create`.
+- Keep theme CSS imports in `src/styles/app.css`; use `AppearanceProvider` for theme and mode selection.
+- Keep localized pages under `src/routes/$locale/` and preserve path/query/hash when switching locale.
 - Follow `DESIGN.md` before adding visual patterns.
 - Run the `impeccable` review for non-trivial UI work.
 

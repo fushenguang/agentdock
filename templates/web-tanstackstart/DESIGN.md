@@ -36,6 +36,28 @@ stylex.create({
 
 Hard-coded colors are allowed only when the value is intentionally outside the design system and documented in the component.
 
+## Themes And Color Modes
+
+The template supports Astryx `neutral`, `butter`, `matcha`, and `stone` themes plus `system`, `light`, and `dark` color modes.
+
+- Theme CSS must stay in `src/styles/app.css` in the documented layer order.
+- Use prebuilt `/built` theme objects with their compiled `theme.css` files so SSR and first paint are stable.
+- Persist selection through `AppearanceProvider`; do not create a second theme store.
+- Do not branch feature styles on a theme name. Semantic Astryx tokens must adapt automatically.
+- Verify all supported themes in light and dark modes when changing shared surfaces or component overrides.
+
+## Localization
+
+Application routes are locale-prefixed; Simplified Chinese (`/zh-CN`) is the default and English (`/en`) is the alternate. `src/routes/$locale.tsx` owns locale validation, Astryx `InternationalizationProvider`, and the application shell.
+
+- Put every user-facing string in `src/i18n/messages.ts`; keep all locale catalogs at key parity.
+- Resolve copy with `useTranslator()` rather than embedding product text in components.
+- Use stable semantic keys; do not build sentences by concatenating translated fragments.
+- Keep language names in `LOCALE_OPTIONS`; translate interface labels, not a user's language self-name.
+- Preserve path, query string, and hash when switching locale.
+- Check layout and text expansion at the narrowest supported width for each locale.
+- Use `getLocaleDirection(locale)` for document direction.
+
 ## Layout
 
 - Mobile-first; minimum supported viewport is 320px.
@@ -47,7 +69,9 @@ Hard-coded colors are allowed only when the value is intentionally outside the d
 
 ## Component Rules
 
-- Use Astryx controls before creating primitives.
+- Use Astryx controls and layout primitives before creating or hand-rolling a component.
+- Prefer `Stack`, `Grid`, `Section`, `List`, `EmptyState`, `Center`, `Timestamp`, and other native Astryx components over raw `div`, `header`, `section`, `ul`, `ol`, `li`, `p`, or `time` structures.
+- A custom wrapper must exist for a repeated project convention or semantic boundary, and its internals must delegate to Astryx primitives rather than reimplement layout or interaction behavior.
 - A wrapper component should add layout or product semantics, not restyle a control's internal implementation.
 - Keep StyleX definitions near the component and compose multiple style objects with `stylex.props`.
 - Loading, empty, error, disabled, and success states are part of the component contract.
