@@ -1,5 +1,12 @@
 # @cogito.ai/cli
 
+## 0.24.0
+
+### Minor Changes
+
+- af881b8: add automatic pnpm workspace-member mode to init
+- af881b8: support pnpm 10 and 11 alongside pnpm 12 in web-tanstackstart
+
 ## 0.23.1
 
 ### Patch Changes
