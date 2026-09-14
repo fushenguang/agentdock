@@ -7,11 +7,18 @@ import {
   renameSync,
   writeFileSync,
 } from 'fs'
-import { basename, join, dirname, extname } from 'path'
+import { basename, join, dirname, extname, relative } from 'path'
 import { fileURLToPath } from 'url'
 import { execSync } from 'child_process'
 import type { PackageManager, RegistryTemplate } from './registry.js'
 import { checkVersion } from './version.js'
+import {
+  resolveWorkspacePlacement,
+  type InitMode,
+  type RequiredRootChange,
+  type ResolvedInitMode,
+  type RootConfigConflict,
+} from './workspace.js'
 import { VERSION as CLI_VERSION } from '../version.js'
 
 /** Single source of truth for the placeholder templates use for the project name. */
@@ -61,6 +68,13 @@ const SKIP_DIR_NAMES = new Set([
 
 const SKIP_FILE_NAMES = new Set(['.env', '.env.local', '.DS_Store'])
 
+const WORKSPACE_OWNED_ROOT_FILES = new Set([
+  'pnpm-workspace.yaml',
+  'pnpm-lock.yaml',
+  '.npmrc',
+  '_npmrc',
+])
+
 export function shouldCopyTemplatePath(source: string): boolean {
   if (source.replaceAll('\\', '/').endsWith('/src/routeTree.gen.ts')) return false
   const name = basename(source)
@@ -68,6 +82,18 @@ export function shouldCopyTemplatePath(source: string): boolean {
   if (name.startsWith('.env.') && name !== '.env.example') return false
   if (name.endsWith('.db') || name.includes('.db-')) return false
   return true
+}
+
+function shouldCopyTemplatePathForMode(
+  source: string,
+  sourceDir: string,
+  mode: ResolvedInitMode,
+): boolean {
+  if (!shouldCopyTemplatePath(source)) return false
+  if (mode !== 'workspace') return true
+
+  const sourceRelativePath = relative(sourceDir, source).replaceAll('\\', '/')
+  return !WORKSPACE_OWNED_ROOT_FILES.has(sourceRelativePath)
 }
 
 // `name` is written verbatim into generated HTML (<title> text content) and
@@ -126,6 +152,8 @@ export interface ScaffoldOptions {
   displayName?: string | undefined
   /** Template-declared data layer selected by the caller. */
   dataLayer?: string | undefined
+  /** Placement mode. `auto` detects whether the target is an existing pnpm workspace member. */
+  mode?: InitMode | undefined
 }
 
 export interface ScaffoldResult {
@@ -133,6 +161,11 @@ export interface ScaffoldResult {
   targetDir: string
   name: string
   template: string
+  mode: ResolvedInitMode
+  workspaceRoot?: string
+  lockfileOwner: string
+  requiredRootChanges: RequiredRootChange[]
+  rootConfigConflicts: RootConfigConflict[]
 }
 
 export interface ScaffoldError {
@@ -144,6 +177,13 @@ export interface ScaffoldError {
     | 'INVALID_NAME'
     | 'INVALID_DATA_LAYER'
     | 'INVALID_PACKAGE_MANAGER'
+    | 'INVALID_MODE'
+    | 'WORKSPACE_MODE_UNSUPPORTED'
+    | 'WORKSPACE_NOT_MATCHED'
+    | 'WORKSPACE_STANDALONE_CONFLICT'
+    | 'WORKSPACE_CONFIG_INVALID'
+    | 'WORKSPACE_PACKAGE_MANAGER_INCOMPATIBLE'
+    | 'WORKSPACE_NODE_INCOMPATIBLE'
   message: string
 }
 
@@ -172,6 +212,7 @@ function rewritePackageJson(
   pkgJsonPath: string,
   name: string,
   resolvedDependencies: Record<string, string>,
+  workspaceMember: boolean,
 ): void {
   const raw = readFileSync(pkgJsonPath, 'utf-8')
   const pkg = JSON.parse(raw) as Record<string, unknown>
@@ -181,6 +222,15 @@ function rewritePackageJson(
   delete pkg['private']
   // Remove the agentdock meta field from generated projects
   delete pkg['agentdock']
+
+  if (workspaceMember) {
+    delete pkg['packageManager']
+    const engines = pkg['engines'] as Record<string, unknown> | undefined
+    if (engines) {
+      delete engines['pnpm']
+      if (Object.keys(engines).length === 0) delete pkg['engines']
+    }
+  }
 
   // Rewrite workspace:* deps with resolved versions
   for (const key of ['dependencies', 'devDependencies', 'peerDependencies'] as const) {
@@ -194,6 +244,48 @@ function rewritePackageJson(
   }
 
   writeFileSync(pkgJsonPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8')
+}
+
+function writeWorkspaceAgentContext(options: {
+  targetDir: string
+  name: string
+  workspaceRoot: string
+  lockfileOwner: string
+  packageManager: string
+}): void {
+  const shellName = `'${options.name.replaceAll("'", "'\\''")}'`
+  const workspaceRootRelative =
+    relative(options.targetDir, options.workspaceRoot).replaceAll('\\', '/') || '.'
+  const lockfileOwnerRelative = relative(options.targetDir, options.lockfileOwner).replaceAll(
+    '\\',
+    '/',
+  )
+  const contextDir = join(options.targetDir, '.agentdock')
+  mkdirSync(contextDir, { recursive: true })
+  writeFileSync(
+    join(contextDir, 'workspace.json'),
+    JSON.stringify(
+      {
+        mode: 'workspace',
+        workspaceRoot: workspaceRootRelative,
+        lockfileOwner: lockfileOwnerRelative,
+        packageManager: options.packageManager,
+        recommendedCommands: {
+          installFromWorkspaceRoot: 'pnpm install',
+          check: `pnpm --filter ${shellName} check`,
+        },
+      },
+      null,
+      2,
+    ) + '\n',
+    'utf-8',
+  )
+
+  const agentsFile = join(options.targetDir, 'AGENTS.md')
+  if (!existsSync(agentsFile)) return
+  const notice = `> **AgentDock workspace member**\n>\n> This notice overrides standalone installation instructions elsewhere in this file. This package belongs to a pnpm workspace whose root is ${JSON.stringify(workspaceRootRelative)} relative to this directory. The workspace root owns \`packageManager\`, \`pnpm-lock.yaml\`, and \`allowBuilds\`. Do not run \`pnpm install\` in this directory; from the workspace root run \`pnpm install\` and \`pnpm --filter ${shellName} check\`.\n\n`
+  const existing = readFileSync(agentsFile, 'utf-8')
+  writeFileSync(agentsFile, notice + existing, 'utf-8')
 }
 
 /**
@@ -288,7 +380,16 @@ function injectPackageManager(pkgJsonPath: string): void {
 }
 
 export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | ScaffoldError {
-  const { targetDir, name, template, packageManager: pm, schema, displayName, dataLayer } = options
+  const {
+    targetDir,
+    name,
+    template,
+    packageManager: pm,
+    schema,
+    displayName,
+    dataLayer,
+    mode = 'auto',
+  } = options
 
   // Reject names that would break out of the HTML/JS/JSON contexts the name
   // gets substituted into below, before touching the filesystem at all.
@@ -351,12 +452,31 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
     }
   }
 
+  let placementResult: ReturnType<typeof resolveWorkspacePlacement>
+  try {
+    placementResult = resolveWorkspacePlacement({ targetDir, mode, template })
+  } catch (err) {
+    return {
+      ok: false,
+      error: 'WORKSPACE_CONFIG_INVALID',
+      message: err instanceof Error ? err.message : String(err),
+    }
+  }
+  if (!placementResult.ok) {
+    return {
+      ok: false,
+      error: placementResult.error,
+      message: placementResult.message,
+    }
+  }
+  const placement = placementResult.placement
+
   try {
     const sourceDir = getTemplateSourceDir(template.source)
     mkdirSync(targetDir, { recursive: true })
     cpSync(sourceDir, targetDir, {
       recursive: true,
-      filter: shouldCopyTemplatePath,
+      filter: (source) => shouldCopyTemplatePathForMode(source, sourceDir, placement.mode),
     })
 
     // Restore dotfiles that were renamed to survive npm publish
@@ -365,12 +485,19 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
     // Rewrite root package.json (name, version, remove internal fields)
     const pkgJsonPath = join(targetDir, 'package.json')
     if (existsSync(pkgJsonPath)) {
-      rewritePackageJson(pkgJsonPath, name, template.resolvedDependencies)
+      rewritePackageJson(
+        pkgJsonPath,
+        name,
+        template.resolvedDependencies,
+        placement.mode === 'workspace',
+      )
     }
 
-    // Inject detected pnpm version so Turborepo can validate the package manager
-    // without needing dangerouslyDisablePackageManagerCheck in turbo.json.
-    injectPackageManager(pkgJsonPath)
+    // Legacy templates without explicit package-manager enforcement receive the
+    // host pnpm version. Range-based templates intentionally keep no exact pin.
+    if (placement.mode === 'standalone' && !template.packageManagerEnforced) {
+      injectPackageManager(pkgJsonPath)
+    }
 
     // Substitute {{PROJECT_NAME}} placeholder across generated text files
     // (e.g. index.html <title>, StartScene.ts, README.md). displayName, when
@@ -387,11 +514,26 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
       replaceSchemaPlaceholder(targetDir, schema)
     }
 
+    if (placement.mode === 'workspace' && placement.workspaceRoot && placement.packageManager) {
+      writeWorkspaceAgentContext({
+        targetDir,
+        name,
+        workspaceRoot: placement.workspaceRoot,
+        lockfileOwner: placement.lockfileOwner,
+        packageManager: placement.packageManager,
+      })
+    }
+
     return {
       ok: true,
       targetDir,
       name,
       template: template.id,
+      mode: placement.mode,
+      ...(placement.workspaceRoot ? { workspaceRoot: placement.workspaceRoot } : {}),
+      lockfileOwner: placement.lockfileOwner,
+      requiredRootChanges: placement.requiredRootChanges,
+      rootConfigConflicts: placement.rootConfigConflicts,
     }
   } catch (err) {
     return {

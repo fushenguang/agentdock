@@ -6,6 +6,11 @@ export const PACKAGE_MANAGERS = ['pnpm', 'npm', 'yarn', 'bun'] as const
 
 export type PackageManager = (typeof PACKAGE_MANAGERS)[number]
 
+export interface WorkspaceMemberMetadata {
+  /** Root pnpm-workspace.yaml build approvals required by this template. */
+  rootAllowBuilds: Record<string, boolean>
+}
+
 export interface RegistryTemplate {
   id: string
   name: string
@@ -13,7 +18,13 @@ export interface RegistryTemplate {
   minCliVersion: string
   source: string
   packageManager: PackageManager
+  packageManagerVersion?: string | null
   packageManagerEnforced: boolean
+  engines?: {
+    node?: string
+    pnpm?: string
+  }
+  workspaceMember?: WorkspaceMemberMetadata
   dataLayers: string[]
   defaultDataLayer: string
   supportsSchema: boolean

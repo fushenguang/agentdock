@@ -15,6 +15,9 @@ npx @cogito.ai/cli init
 # Headless mode (for CI / AI agents)
 npx @cogito.ai/cli init --name my-app --template web-nextjs --pm pnpm --json
 
+# Workspace-member mode (existing pnpm workspace)
+npx @cogito.ai/cli init --name my-app --template web-tanstackstart --dir apps/my-app --mode workspace --json
+
 # Start MCP Stdio server (for AI agents via Model Context Protocol)
 npx @cogito.ai/cli mcp
 ```
@@ -41,19 +44,31 @@ Scaffold a new project from a template. Auto-detects the environment:
 - **TTY** → interactive prompts (human mode)
 - **Non-TTY / `--silent` / `--json`** → headless execution (agent/CI mode)
 
-| Flag         | Type    | Default    | Description                                      |
-| ------------ | ------- | ---------- | ------------------------------------------------ |
-| `--name`     | string  | required   | Project name and target directory name           |
-| `--template` | string  | required   | Template ID (e.g. `web-nextjs`)                  |
-| `--pm`       | string  | `pnpm`     | Package manager: `pnpm` / `npm` / `yarn` / `bun` |
-| `--dir`      | string  | `./<name>` | Target directory (absolute or relative to cwd)   |
-| `--json`     | boolean | `false`    | Output NDJSON result to stdout                   |
-| `--silent`   | boolean | `false`    | Suppress all output                              |
+| Flag         | Type    | Default    | Description                                         |
+| ------------ | ------- | ---------- | --------------------------------------------------- |
+| `--name`     | string  | required   | Project name and target directory name              |
+| `--template` | string  | required   | Template ID (e.g. `web-nextjs`)                     |
+| `--pm`       | string  | `pnpm`     | Package manager: `pnpm` / `npm` / `yarn` / `bun`    |
+| `--dir`      | string  | `./<name>` | Target directory (absolute or relative to cwd)      |
+| `--mode`     | string  | `auto`     | Placement mode: `auto` / `workspace` / `standalone` |
+| `--json`     | boolean | `false`    | Output NDJSON result to stdout                      |
+| `--silent`   | boolean | `false`    | Suppress all output                                 |
+
+`--mode auto` detects the nearest pnpm workspace and checks whether the target matches its `packages` globs. Workspace-member output does not copy `pnpm-workspace.yaml`, `pnpm-lock.yaml`, or `.npmrc`, and removes the member `packageManager` / `engines.pnpm` fields. Root `allowBuilds` changes are returned in `requiredRootChanges`; the CLI does not modify the root configuration.
 
 **JSON output (success):**
 
 ```json
-{ "ok": true, "targetDir": "/path/to/my-app", "name": "my-app", "template": "web-nextjs" }
+{
+  "ok": true,
+  "targetDir": "/path/to/my-app",
+  "name": "my-app",
+  "template": "web-nextjs",
+  "mode": "standalone",
+  "lockfileOwner": "/path/to/my-app/pnpm-lock.yaml",
+  "requiredRootChanges": [],
+  "rootConfigConflicts": []
+}
 ```
 
 **JSON output (failure):**
@@ -66,7 +81,7 @@ Scaffold a new project from a template. Auto-detects the environment:
 }
 ```
 
-**Error codes:** `MISSING_ARG` · `TEMPLATE_NOT_FOUND` · `TARGET_DIR_EXISTS` · `CLI_VERSION_OUTDATED` · `SCAFFOLD_FAILED`
+**Error codes:** `MISSING_ARG` · `TEMPLATE_NOT_FOUND` · `TARGET_DIR_EXISTS` · `CLI_VERSION_OUTDATED` · `SCAFFOLD_FAILED` · `INVALID_MODE` · `WORKSPACE_MODE_UNSUPPORTED` · `WORKSPACE_NOT_MATCHED` · `WORKSPACE_STANDALONE_CONFLICT` · `WORKSPACE_CONFIG_INVALID` · `WORKSPACE_PACKAGE_MANAGER_INCOMPATIBLE` · `WORKSPACE_NODE_INCOMPATIBLE`
 
 ---
 
@@ -167,6 +182,10 @@ pnpm --filter @cogito.ai/cli build
 2. Add `package.json` with `"agentdock": { "minCliVersion": "x.y.z" }`.
 3. Run `pnpm --filter @cogito.ai/cli generate-registry`.
 4. Publish a new CLI version — templates are bundled inside the npm package.
+
+Single-package templates that should support embedding in a pnpm workspace can add `agentdock.workspaceMember.rootAllowBuilds`. Monorepo templates should remain standalone-only.
+
+Templates that support a pnpm range without an exact `packageManager` pin can set `agentdock.packageManagerEnforced: true` and declare `engines.pnpm`. This keeps init pnpm-only while avoiding automatic package-manager switching.
 
 ### Publishing a new version
 

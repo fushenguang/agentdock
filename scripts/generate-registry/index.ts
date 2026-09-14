@@ -17,13 +17,21 @@ interface PackageJson {
   description?: string
   private?: boolean
   packageManager?: string
+  engines?: {
+    node?: string
+    pnpm?: string
+  }
   dependencies?: Record<string, string>
   devDependencies?: Record<string, string>
   agentdock?: {
     minCliVersion?: string
+    packageManagerEnforced?: boolean
     dataLayers?: string[]
     defaultDataLayer?: string
     supportsSchema?: boolean
+    workspaceMember?: {
+      rootAllowBuilds?: Record<string, boolean>
+    }
   }
 }
 
@@ -34,7 +42,15 @@ interface RegistryTemplate {
   minCliVersion: string
   source: string
   packageManager: 'pnpm' | 'npm' | 'yarn' | 'bun'
+  packageManagerVersion: string | null
   packageManagerEnforced: boolean
+  engines?: {
+    node?: string
+    pnpm?: string
+  }
+  workspaceMember?: {
+    rootAllowBuilds: Record<string, boolean>
+  }
   dataLayers: string[]
   defaultDataLayer: string
   supportsSchema: boolean
@@ -104,6 +120,34 @@ function parsePackageManager(value: string | undefined): 'pnpm' | 'npm' | 'yarn'
   throw new Error(`Unsupported packageManager "${value}" in template package.json`)
 }
 
+function parsePackageManagerVersion(value: string | undefined): string | null {
+  if (!value) return null
+  const separator = value.indexOf('@')
+  if (separator === -1) return null
+  const version = value
+    .slice(separator + 1)
+    .split('+')[0]
+    ?.trim()
+  return version && /^\d+\.\d+\.\d+/.test(version) ? version : null
+}
+
+function resolveWorkspaceMember(
+  pkg: PackageJson,
+  packageManager: RegistryTemplate['packageManager'],
+) {
+  const configured = pkg.agentdock?.workspaceMember
+  if (!configured) return undefined
+  if (packageManager !== 'pnpm') {
+    throw new Error(
+      `workspaceMember in template "${pkg.name ?? 'unknown'}" is currently supported only for pnpm templates (found "${packageManager}")`,
+    )
+  }
+  const rootAllowBuilds = configured.rootAllowBuilds ?? {}
+  return {
+    rootAllowBuilds,
+  }
+}
+
 function resolveDataLayers(pkg: PackageJson): string[] {
   const configured = pkg.agentdock?.dataLayers
   return configured && configured.length > 0 ? configured : DEFAULT_DATA_LAYERS
@@ -151,14 +195,27 @@ function main(): void {
     const resolvedDependencies = resolveWorkspaceDeps(allDeps, versionMap)
     const dataLayers = resolveDataLayers(pkg)
 
+    const packageManager = parsePackageManager(pkg.packageManager)
+    const workspaceMember = resolveWorkspaceMember(pkg, packageManager)
+    const engines =
+      pkg.engines?.node || pkg.engines?.pnpm
+        ? {
+            ...(pkg.engines?.node ? { node: pkg.engines.node } : {}),
+            ...(pkg.engines?.pnpm ? { pnpm: pkg.engines.pnpm } : {}),
+          }
+        : undefined
+
     templates.push({
       id: dir,
       name: pkg.name ?? dir,
       description: pkg.description ?? '',
       minCliVersion: pkg.agentdock?.minCliVersion ?? '0.1.0',
       source: `templates/${dir}`,
-      packageManager: parsePackageManager(pkg.packageManager),
-      packageManagerEnforced: Boolean(pkg.packageManager),
+      packageManager,
+      packageManagerVersion: parsePackageManagerVersion(pkg.packageManager),
+      packageManagerEnforced: pkg.agentdock?.packageManagerEnforced ?? Boolean(pkg.packageManager),
+      ...(engines ? { engines } : {}),
+      ...(workspaceMember ? { workspaceMember } : {}),
       dataLayers,
       defaultDataLayer: resolveDefaultDataLayer(pkg, dataLayers),
       supportsSchema: pkg.agentdock?.supportsSchema ?? true,

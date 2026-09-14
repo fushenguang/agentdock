@@ -72,38 +72,102 @@ agentdock init \
 
 #### Flag 说明
 
-| Flag | 类型 | 默认值 | 说明 |
-| ---- | ---- | ------ | ---- |
-| `--name` | string | 必填 | 项目名称，也是目标目录名 |
-| `--template` | string | 必填 | 模板 ID，如 `web-nextjs` |
-| `--pm` | string | `pnpm` | 包管理器：`pnpm` / `npm` / `yarn` / `bun` |
-| `--dir` | string | `./<name>` | 目标目录（绝对路径或相对于 cwd） |
-| `--json` | boolean | `false` | 以 NDJSON 格式输出结果 |
-| `--silent` | boolean | `false` | 抑制所有输出（无声模式） |
+| Flag         | 类型    | 默认值     | 说明                                                |
+| ------------ | ------- | ---------- | --------------------------------------------------- |
+| `--name`     | string  | 必填       | 项目名称，也是目标目录名                            |
+| `--template` | string  | 必填       | 模板 ID，如 `web-nextjs`                            |
+| `--pm`       | string  | `pnpm`     | 包管理器：`pnpm` / `npm` / `yarn` / `bun`           |
+| `--dir`      | string  | `./<name>` | 目标目录（绝对路径或相对于 cwd）                    |
+| `--mode`     | string  | `auto`     | Placement mode: `auto` / `workspace` / `standalone` |
+| `--json`     | boolean | `false`    | 以 NDJSON 格式输出结果                              |
+| `--silent`   | boolean | `false`    | 抑制所有输出（无声模式）                            |
+
+#### Workspace placement
+
+`--mode auto` walks up from the target directory to the nearest pnpm workspace and evaluates `pnpm-workspace.yaml#packages`:
+
+- **Matched by the workspace globs**: render a workspace member without its own `pnpm-workspace.yaml`, `pnpm-lock.yaml`, or `.npmrc`; remove the member `packageManager` and `engines.pnpm` fields.
+- **Outside a workspace**: render the complete standalone template.
+- **Matched but forced to `standalone`**: fail before writing. A child workspace file cannot prevent the parent workspace from recognizing the directory as a member; move the project outside the workspace or add a negative glob first.
+
+Example workspace-member generation:
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-internal-app \
+  --template web-tanstackstart \
+  --dir apps/my-internal-app \
+  --mode workspace \
+  --json
+```
+
+The CLI does not modify root `allowBuilds` automatically. `requiredRootChanges` contains entries to review and merge. `rootConfigConflicts` reports existing `false` or invalid values that the CLI deliberately does not overwrite.
 
 #### JSON 输出格式
 
 成功时输出到 stdout（单行 JSON）：
 
 ```json
-{"ok":true,"targetDir":"/path/to/my-app","name":"my-app","template":"web-nextjs"}
+{
+  "ok": true,
+  "targetDir": "/path/to/my-app",
+  "name": "my-app",
+  "template": "web-nextjs",
+  "mode": "standalone",
+  "lockfileOwner": "/path/to/my-app/pnpm-lock.yaml",
+  "requiredRootChanges": [],
+  "rootConfigConflicts": []
+}
+```
+
+Workspace-member results also include `workspaceRoot`:
+
+```json
+{
+  "ok": true,
+  "targetDir": "/repo/apps/my-app",
+  "name": "my-app",
+  "template": "web-tanstackstart",
+  "mode": "workspace",
+  "workspaceRoot": "/repo",
+  "lockfileOwner": "/repo/pnpm-lock.yaml",
+  "requiredRootChanges": [
+    {
+      "file": "pnpm-workspace.yaml",
+      "operation": "mergeAllowBuilds",
+      "entries": { "better-sqlite3": false }
+    }
+  ],
+  "rootConfigConflicts": []
+}
 ```
 
 失败时输出到 stdout（非 TTY 模式下），同时以非零退出码退出：
 
 ```json
-{"ok":false,"error":"TARGET_DIR_EXISTS","message":"Directory already exists: /path/to/my-app"}
+{
+  "ok": false,
+  "error": "TARGET_DIR_EXISTS",
+  "message": "Directory already exists: /path/to/my-app"
+}
 ```
 
 #### 错误码
 
-| error | 含义 |
-| ----- | ---- |
-| `MISSING_ARG` | 必填参数缺失（`field` 字段指明哪个参数） |
-| `TEMPLATE_NOT_FOUND` | 模板 ID 不存在 |
-| `TARGET_DIR_EXISTS` | 目标目录已存在 |
-| `CLI_VERSION_OUTDATED` | CLI 版本低于模板的 `minCliVersion` 要求 |
-| `SCAFFOLD_FAILED` | 文件复制/写入失败 |
+| error                                    | 含义                                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------ |
+| `MISSING_ARG`                            | 必填参数缺失（`field` 字段指明哪个参数）                                 |
+| `TEMPLATE_NOT_FOUND`                     | 模板 ID 不存在                                                           |
+| `TARGET_DIR_EXISTS`                      | 目标目录已存在                                                           |
+| `CLI_VERSION_OUTDATED`                   | CLI 版本低于模板的 `minCliVersion` 要求                                  |
+| `SCAFFOLD_FAILED`                        | 文件复制/写入失败                                                        |
+| `INVALID_MODE`                           | Placement mode is not `auto`, `workspace`, or `standalone`               |
+| `WORKSPACE_MODE_UNSUPPORTED`             | The template did not opt in to workspace-member generation               |
+| `WORKSPACE_NOT_MATCHED`                  | Workspace mode was forced, but no parent package glob matches the target |
+| `WORKSPACE_STANDALONE_CONFLICT`          | Standalone mode was forced for a target matched by the parent workspace  |
+| `WORKSPACE_CONFIG_INVALID`               | A required parent workspace configuration could not be parsed            |
+| `WORKSPACE_PACKAGE_MANAGER_INCOMPATIBLE` | The root pnpm version does not satisfy the template requirement          |
+| `WORKSPACE_NODE_INCOMPATIBLE`            | The current Node version does not satisfy the template requirement       |
 
 ---
 
@@ -119,10 +183,10 @@ agentdock mcp
 
 ### 暴露的工具
 
-| 工具名 | 说明 |
-| ------ | ---- |
-| `list_templates` | 列出所有可用模板（id、name、description、minCliVersion） |
-| `scaffold_project` | 从指定模板创建项目到目标目录 |
+| 工具名             | 说明                                                     |
+| ------------------ | -------------------------------------------------------- |
+| `list_templates`   | 列出所有可用模板（id、name、description、minCliVersion） |
+| `scaffold_project` | 从指定模板创建项目到目标目录                             |
 
 #### `list_templates` 调用示例
 
@@ -137,7 +201,8 @@ agentdock mcp
       "id": "web-nextjs",
       "name": "web-nextjs",
       "description": "Full-stack Next.js 16 monorepo starter with Supabase, next-intl, Tailwind CSS, Vitest and built-in Fumadocs docs site",
-      "minCliVersion": "0.1.0"
+      "minCliVersion": "0.1.0",
+      "workspaceMember": false
     }
   ]
 }
@@ -152,14 +217,24 @@ agentdock mcp
   "name": "my-app",
   "template": "web-nextjs",
   "targetDir": "/Users/me/projects/my-app",
-  "packageManager": "pnpm"
+  "packageManager": "pnpm",
+  "mode": "auto"
 }
 ```
 
 成功输出：
 
 ```json
-{"ok":true,"targetDir":"/Users/me/projects/my-app","name":"my-app","template":"web-nextjs"}
+{
+  "ok": true,
+  "targetDir": "/Users/me/projects/my-app",
+  "name": "my-app",
+  "template": "web-nextjs",
+  "mode": "standalone",
+  "lockfileOwner": "/Users/me/projects/my-app/pnpm-lock.yaml",
+  "requiredRootChanges": [],
+  "rootConfigConflicts": []
+}
 ```
 
 ### 在 MCP 客户端中配置
@@ -182,8 +257,8 @@ agentdock mcp
 
 ## 可用模板
 
-| 模板 ID | 说明 |
-| ------- | ---- |
+| 模板 ID      | 说明                                                                                         |
+| ------------ | -------------------------------------------------------------------------------------------- |
 | `web-nextjs` | Next.js 16 + Supabase + next-intl + Tailwind CSS v4 + Vitest + Fumadocs 的全栈 monorepo 模板 |
 
 查看完整模板列表：

@@ -3,28 +3,43 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const templateRoot = process.cwd();
+const workspaceContextPath = join(templateRoot, ".agentdock", "workspace.json");
+const isWorkspaceMember = existsSync(workspaceContextPath);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
 describe("template package-manager configuration", () => {
-  it("keeps pnpm 12 as the declared package manager", () => {
+  it("supports pnpm 10.34.5 through 12 without an exact pin", () => {
     const parsed: unknown = JSON.parse(readFileSync(join(templateRoot, "package.json"), "utf8"));
     if (!isRecord(parsed)) {
       throw new Error("package.json did not parse to an object");
     }
     const engines = isRecord(parsed.engines) ? parsed.engines : {};
 
-    expect(parsed.packageManager).toBe("pnpm@12.4.1");
-    expect(engines.pnpm).toBe(">=12 <13");
+    if (isWorkspaceMember) {
+      expect(parsed.packageManager).toBeUndefined();
+      expect(engines.pnpm).toBeUndefined();
+    } else {
+      expect(parsed.packageManager).toBeUndefined();
+      expect(engines.pnpm).toBe(">=10.34.5 <13");
+    }
   });
 
-  it("disables pnpm self-management and enforces the engine range", () => {
-    const npmrc = readFileSync(join(templateRoot, ".npmrc"), "utf8");
+  it("keeps install policy in pnpm-workspace.yaml", () => {
+    if (isWorkspaceMember) {
+      expect(existsSync(join(templateRoot, ".npmrc"))).toBe(false);
+      expect(existsSync(join(templateRoot, "pnpm-workspace.yaml"))).toBe(false);
+      expect(existsSync(join(templateRoot, "pnpm-lock.yaml"))).toBe(false);
+      return;
+    }
 
-    expect(npmrc).toContain("manage-package-manager-versions=false");
-    expect(npmrc).toContain("engine-strict=true");
+    expect(existsSync(join(templateRoot, ".npmrc"))).toBe(false);
+    const workspaceYaml = readFileSync(join(templateRoot, "pnpm-workspace.yaml"), "utf8");
+
+    expect(workspaceYaml).toContain("engineStrict: true");
+    expect(workspaceYaml).toContain("allowBuilds:");
   });
 });
 

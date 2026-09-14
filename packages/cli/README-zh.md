@@ -17,6 +17,9 @@ npx @cogito.ai/cli init
 # 无头模式（CI / AI Agent）
 npx @cogito.ai/cli init --name my-app --template web-nextjs --pm pnpm --json
 
+# workspace-member 模式（已有 pnpm workspace）
+npx @cogito.ai/cli init --name my-app --template web-tanstackstart --dir apps/my-app --mode workspace --json
+
 # 启动 MCP Stdio 服务器（供 AI Agent 调用）
 npx @cogito.ai/cli mcp
 ```
@@ -43,19 +46,31 @@ pnpm add -g @cogito.ai/cli
 - **TTY 环境** → 交互模式（人类开发者）
 - **非 TTY 环境 / `--silent` / `--json`** → 无头模式（Agent/CI）
 
-| Flag         | 类型    | 默认值     | 说明                                      |
-| ------------ | ------- | ---------- | ----------------------------------------- |
-| `--name`     | string  | 必填       | 项目名称，也是目标目录名                  |
-| `--template` | string  | 必填       | 模板 ID，如 `web-nextjs`                  |
-| `--pm`       | string  | `pnpm`     | 包管理器：`pnpm` / `npm` / `yarn` / `bun` |
-| `--dir`      | string  | `./<name>` | 目标目录（绝对路径或相对 cwd）            |
-| `--json`     | boolean | `false`    | 以 NDJSON 格式输出结果                    |
-| `--silent`   | boolean | `false`    | 静默模式，抑制所有输出                    |
+| Flag         | 类型    | 默认值     | 说明                                          |
+| ------------ | ------- | ---------- | --------------------------------------------- |
+| `--name`     | string  | 必填       | 项目名称，也是目标目录名                      |
+| `--template` | string  | 必填       | 模板 ID，如 `web-nextjs`                      |
+| `--pm`       | string  | `pnpm`     | 包管理器：`pnpm` / `npm` / `yarn` / `bun`     |
+| `--dir`      | string  | `./<name>` | 目标目录（绝对路径或相对 cwd）                |
+| `--mode`     | string  | `auto`     | 放置模式：`auto` / `workspace` / `standalone` |
+| `--json`     | boolean | `false`    | 以 NDJSON 格式输出结果                        |
+| `--silent`   | boolean | `false`    | 静默模式，抑制所有输出                        |
+
+`--mode auto` 会向上探测最近的 pnpm workspace，并判断目标是否匹配其 `packages` glob。workspace member 不复制 `pnpm-workspace.yaml`、`pnpm-lock.yaml`、`.npmrc`，并移除子包 `packageManager` / `engines.pnpm`。根 `allowBuilds` 变更通过 `requiredRootChanges` 返回，CLI 不会自动修改根配置。
 
 **JSON 成功输出：**
 
 ```json
-{ "ok": true, "targetDir": "/path/to/my-app", "name": "my-app", "template": "web-nextjs" }
+{
+  "ok": true,
+  "targetDir": "/path/to/my-app",
+  "name": "my-app",
+  "template": "web-nextjs",
+  "mode": "standalone",
+  "lockfileOwner": "/path/to/my-app/pnpm-lock.yaml",
+  "requiredRootChanges": [],
+  "rootConfigConflicts": []
+}
 ```
 
 **JSON 失败输出：**
@@ -68,7 +83,7 @@ pnpm add -g @cogito.ai/cli
 }
 ```
 
-**错误码：** `MISSING_ARG` · `TEMPLATE_NOT_FOUND` · `TARGET_DIR_EXISTS` · `CLI_VERSION_OUTDATED` · `SCAFFOLD_FAILED`
+**错误码：** `MISSING_ARG` · `TEMPLATE_NOT_FOUND` · `TARGET_DIR_EXISTS` · `CLI_VERSION_OUTDATED` · `SCAFFOLD_FAILED` · `INVALID_MODE` · `WORKSPACE_MODE_UNSUPPORTED` · `WORKSPACE_NOT_MATCHED` · `WORKSPACE_STANDALONE_CONFLICT` · `WORKSPACE_CONFIG_INVALID` · `WORKSPACE_PACKAGE_MANAGER_INCOMPATIBLE` · `WORKSPACE_NODE_INCOMPATIBLE`
 
 ---
 
@@ -159,6 +174,10 @@ pnpm --filter @cogito.ai/cli build
 2. 添加 `package.json`，包含 `"agentdock": { "minCliVersion": "x.y.z" }`。
 3. 运行 `pnpm --filter @cogito.ai/cli generate-registry`。
 4. 发布新版本 CLI — 模板打包在 npm 包内，修改模板需要同步发布新版本。
+
+需要支持嵌入 pnpm workspace 的单包模板可在 `agentdock.workspaceMember.rootAllowBuilds` 中声明根构建授权。monorepo 模板应保持 standalone-only。
+
+不以精确 `packageManager` pin 约束、但需要限定 pnpm 范围的模板，可设置 `agentdock.packageManagerEnforced: true` 并声明 `engines.pnpm`。这样 init 仍会拒绝 npm/yarn/bun，同时避免自动版本切换。
 
 ### 发布流程
 

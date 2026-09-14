@@ -1,12 +1,14 @@
-# Standalone application configuration for pnpm 12.
+# Standalone application configuration shared by supported pnpm versions.
 #
 # `packages: []` is intentional: this is one application, not a monorepo.
-# pnpm 12 reads dependency build approval from this file rather than package.json.
+# pnpm 10.34.5+, 11 and 12 read engine/install policy from this file.
 packages: []
+
+engineStrict: true
 
 allowBuilds:
   "@astryxdesign/cli": true
   "@astryxdesign/core": true
-  better-sqlite3: true
+  better-sqlite3: false
   esbuild: true
   lightningcss: true

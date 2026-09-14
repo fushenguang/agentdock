@@ -1,10 +1,10 @@
 # {{PROJECT_NAME}}
 
-Standalone enterprise web starter built with TanStack Start, React, Astryx/StyleX and Drizzle.
+Enterprise web starter built with TanStack Start, React, Astryx/StyleX and Drizzle. It supports standalone generation and generation as a member of an existing pnpm workspace.
 
 ## Stack
 
-- pnpm 12, Node 22.13+
+- pnpm 10.34.5–12.x, Node 22.13+
 - TypeScript 7, Vite 8, TanStack Start/Router
 - React 19, Astryx 0.6 with prebuilt multi-theme support, StyleX 0.19
 - Drizzle ORM 0.45 with SQLite by default and Supabase Postgres as an alternate provider
@@ -12,12 +12,14 @@ Standalone enterprise web starter built with TanStack Start, React, Astryx/Style
 
 ## Start
 
-The project requires pnpm 12. If the local pnpm is older, use one of these recovery paths before installing:
+If `.agentdock/workspace.json` exists, this package is a workspace member. Install from the workspace root and validate with `pnpm --filter <package-name> check`. The section below describes standalone output, where this directory owns its `pnpm-workspace.yaml`, `pnpm-lock.yaml`, and supported pnpm range.
+
+The standalone project supports pnpm `>=10.34.5 <13` and recommends pnpm 12.4.1. The project intentionally does not pin `packageManager`, so pnpm 10 users do not trigger the unreliable pnpm auto-switch path. If the local pnpm is older than 10.34.5, update within the supported range before installing:
 
 ```bash
+npm_config_registry=https://registry.npmjs.org pnpm self-update 10.34.5
+# or, for the recommended version
 npm_config_registry=https://registry.npmjs.org pnpm self-update 12.4.1
-# or
-npx --yes --registry=https://registry.npmjs.org pnpm@12.4.1 install
 ```
 
 ```bash

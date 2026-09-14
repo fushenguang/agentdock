@@ -19,15 +19,33 @@ npx @cogito.ai/cli init \
 
 使用 `--data-layer supabase` 可生成 Supabase Postgres 的环境变量模板。选择结果会写入 `.env.example` 的 `DATA_PROVIDER`。
 
-生成项目会保留模板声明的 `packageManager: pnpm@12.4.1`，不会被执行 CLI 的本机旧版 pnpm 覆盖。
+模板支持 pnpm `>=10.34.5 <13`，推荐 12.4.1。生成项目不写精确 `packageManager` pin，因此不会触发 pnpm 自动版本切换；CLI 仍会强制模板只使用 pnpm。
+
+### 嵌入已有 pnpm workspace
+
+当目标目录匹配已有 `pnpm-workspace.yaml#packages` 时，CLI 默认使用 workspace mode：
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-internal-app \
+  --template web-tanstackstart \
+  --dir apps/my-internal-app \
+  --mode auto
+```
+
+workspace member 不保留自己的 `pnpm-workspace.yaml`、`pnpm-lock.yaml`、`.npmrc`、`packageManager` 或 `engines.pnpm`。依赖和 lockfile 由 workspace 根统一管理。CLI 会生成 `.agentdock/workspace.json`，并在 `AGENTS.md` 顶部说明应从根执行安装和 `pnpm --filter <package> check`。
+
+根 `allowBuilds` 不会自动改写。先应用 JSON 输出或 CLI 提示中的 `requiredRootChanges`，解决 `rootConfigConflicts` 后再从根执行 `pnpm install`。
 
 ## 安装与运行
 
-如果本机 pnpm 低于 12，先升级或使用 npx：
+standalone 项目支持 pnpm 10.34.5–12.x。本机版本低于 10.34.5 时先更新，或直接使用推荐的 npx 命令：
 
 ```bash
+pnpm self-update 10.34.5
+# 推荐版本
 pnpm self-update 12.4.1
-# 或
+# 不修改全局版本
 npx --yes --registry=https://registry.npmjs.org pnpm@12.4.1 install
 ```
 

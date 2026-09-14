@@ -1,6 +1,7 @@
 import { join, isAbsolute, resolve } from 'path'
 import { getTemplate, PACKAGE_MANAGERS, type PackageManager } from '../core/registry.js'
 import { scaffoldProject } from '../core/scaffold.js'
+import { INIT_MODES, isInitMode } from '../core/workspace.js'
 
 export interface AgentAdapterOptions {
   name: string
@@ -10,6 +11,8 @@ export interface AgentAdapterOptions {
   json?: boolean
   /** Explicit target directory. Absolute or relative to cwd. Defaults to ./<name>. */
   dir?: string
+  /** Placement mode. Defaults to auto detection. */
+  mode?: string
   /** Data layer selection. Defaults to the selected template's defaultDataLayer. */
   dataLayer?: string | undefined
   /** Supabase schema name. Defaults to 'public' when dataLayer is 'supabase'. */
@@ -49,6 +52,7 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
     silent = false,
     json = false,
     dir,
+    mode,
     dataLayer,
     schema,
     displayName,
@@ -101,6 +105,15 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
     return
   }
 
+  if (mode !== undefined && !isInitMode(mode)) {
+    failWith(
+      { ok: false, error: 'INVALID_MODE', mode, supportedModes: INIT_MODES },
+      `Error: unsupported mode "${mode}"`,
+      output,
+    )
+    return
+  }
+
   const effectivePackageManager = pm ?? template.packageManager
   if (template.packageManagerEnforced && effectivePackageManager !== template.packageManager) {
     const err = {
@@ -133,6 +146,7 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
     name,
     template,
     packageManager: effectivePackageManager,
+    mode: mode ?? 'auto',
     dataLayer: effectiveDataLayer,
     ...(effectiveDataLayer === 'supabase' && template.supportsSchema
       ? { schema: schema ?? 'public' }

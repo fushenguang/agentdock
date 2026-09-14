@@ -2,7 +2,7 @@
 
 > For AI coding agents working in a project generated from the AgentDock `web-tanstackstart` template.
 
-This is a standalone TanStack Start application. It keeps AgentDock's `core` / `features` / `infra` boundaries without introducing a monorepo.
+This is a TanStack Start application that keeps AgentDock's `core` / `features` / `infra` boundaries. Standalone output owns its pnpm files and package-manager declaration. Workspace-member output is detected by `.agentdock/workspace.json`; in that mode the parent workspace root owns installation, lockfile, pnpm version, and build approvals, and the notice at the top of this file overrides standalone installation instructions.
 
 ## Read First
 
@@ -65,7 +65,7 @@ pnpm check
 
 `pnpm check` is the acceptance command and runs the full local gate.
 
-The project requires pnpm 12. `engine-strict=true` intentionally stops older pnpm versions with `ERR_PNPM_UNSUPPORTED_ENGINE`. Recover with `pnpm self-update 12.4.1` or use `npx pnpm@12.4.1`.
+The standalone project supports pnpm `>=10.34.5 <13` and recommends 12.4.1. The template intentionally has no exact `packageManager` pin or automatic version switching; engine validation stops unsupported versions before install. Workspace members inherit the supported pnpm range from the workspace root.
 
 ## UI Rules
 

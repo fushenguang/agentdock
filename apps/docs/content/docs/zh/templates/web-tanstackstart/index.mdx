@@ -12,7 +12,7 @@ description: 基于 TanStack Start、Astryx/StyleX 与 Drizzle SQLite/Supabase �
 | 层级     | 技术                                             |
 | -------- | ------------------------------------------------ |
 | 运行时   | Node 22.13+                                      |
-| 包管理器 | pnpm 12                                          |
+| 包管理器 | pnpm 10.34.5–12.x（推荐 12.4.1）                 |
 | 语言     | TypeScript 7                                     |
 | 应用框架 | TanStack Start + TanStack Router                 |
 | 构建     | Vite 8                                           |
@@ -69,7 +69,7 @@ SUPABASE_DATABASE_URL=postgres://YOUR_USER:YOUR_PASSWORD@YOUR_HOST:6543/postgres
 
 Postgres client 使用 `prepare: false`，兼容 Supabase transaction pooler。首版面向企业内网中长期运行的 Node 服务，不提供无状态平台下的 SQLite 持久化方案。
 
-项目要求 pnpm 12。模板关闭了自动包管理器切换并启用严格 engine 校验，因此旧版 pnpm 会明确返回 `ERR_PNPM_UNSUPPORTED_ENGINE`，不会下载损坏的 native wrapper。可通过 `pnpm self-update 12.4.1` 或 `npx pnpm@12.4.1` 恢复。
+项目支持 pnpm `>=10.34.5 <13`，推荐 12.4.1。模板不写精确 `packageManager` pin，因此受支持的 pnpm 10/11/12 不会触发自动切换；`engineStrict` 会阻止范围外版本。低于 10.34.5 时可在同一 major 内更新到 10.34.5，或使用推荐的 `npx pnpm@12.4.1`。
 
 ## UI
 

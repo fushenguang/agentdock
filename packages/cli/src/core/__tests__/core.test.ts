@@ -93,6 +93,38 @@ describe('registry — web-tanstackstart template', () => {
     expect(template?.defaultDataLayer).toBe('sqlite')
     expect(template?.supportsSchema).toBe(false)
   })
+
+  it('exposes workspace-member runtime constraints and build approvals', () => {
+    const template = getTemplate('web-tanstackstart')
+
+    expect(template?.packageManagerVersion).toBeNull()
+    expect(template?.packageManagerEnforced).toBe(true)
+    expect(template?.engines).toEqual({ node: '>=22.13.0', pnpm: '>=10.34.5 <13' })
+    expect(template?.workspaceMember?.rootAllowBuilds).toEqual({
+      '@astryxdesign/cli': true,
+      '@astryxdesign/core': true,
+      'better-sqlite3': false,
+      esbuild: true,
+      lightningcss: true,
+    })
+  })
+
+  it('keeps workspace-member allowBuilds metadata aligned with the standalone template', () => {
+    const template = getTemplate('web-tanstackstart')
+    if (!template) throw new Error('web-tanstackstart template not found in registry')
+
+    const workspaceYaml = readFileSync(
+      join(process.cwd(), '..', '..', 'templates', 'web-tanstackstart', 'pnpm-workspace.yaml'),
+      'utf-8',
+    )
+    for (const [key, value] of Object.entries(template.workspaceMember?.rootAllowBuilds ?? {})) {
+      expect(workspaceYaml).toMatch(
+        new RegExp(
+          `(?:^|\\n)\\s*['"]?${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]?:\\s*${String(value)}`,
+        ),
+      )
+    }
+  })
 })
 
 // ─── scaffold.ts tests ────────────────────────────────────────────────────────
@@ -273,7 +305,7 @@ describe('scaffoldProject', () => {
     expect(pkg.scripts?.['preview']).toContain('8080')
   })
 
-  it('scaffolds web-tanstackstart with SQLite default and preserves pnpm 12', () => {
+  it('scaffolds web-tanstackstart with SQLite default and a pnpm 10-12 range', () => {
     const template = getTemplate('web-tanstackstart')
     expect(template).toBeDefined()
     if (!template) throw new Error('web-tanstackstart template not found in registry')
@@ -293,8 +325,10 @@ describe('scaffoldProject', () => {
 
     const pkg = JSON.parse(readFileSync(join(targetDir, 'package.json'), 'utf-8')) as {
       packageManager?: string
+      engines?: { pnpm?: string }
     }
-    expect(pkg.packageManager).toBe('pnpm@12.4.1')
+    expect(pkg.packageManager).toBeUndefined()
+    expect(pkg.engines?.pnpm).toBe('>=10.34.5 <13')
 
     const envExample = readFileSync(join(targetDir, '.env.example'), 'utf-8')
     expect(envExample).toContain('DATA_PROVIDER=sqlite')

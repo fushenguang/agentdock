@@ -19,15 +19,33 @@ npx @cogito.ai/cli init \
 
 Use `--data-layer supabase` to generate an environment template for Supabase Postgres. The selected provider appears in `.env.example` as `DATA_PROVIDER`.
 
-The generated project keeps the template's `packageManager: pnpm@12.4.1`; the host CLI's pnpm version does not overwrite it.
+The template supports pnpm `>=10.34.5 <13` and recommends 12.4.1. Generated projects do not write an exact `packageManager` pin, so supported versions do not trigger automatic version switching. The CLI still enforces pnpm-only generation.
+
+### Embed In An Existing pnpm Workspace
+
+When the target directory matches an existing `pnpm-workspace.yaml#packages`, the CLI uses workspace-member mode by default:
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-internal-app \
+  --template web-tanstackstart \
+  --dir apps/my-internal-app \
+  --mode auto
+```
+
+The workspace member has no local `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `.npmrc`, `packageManager`, or `engines.pnpm`. The workspace root owns dependency resolution and installation policy. The CLI writes `.agentdock/workspace.json` and prepends workspace instructions to `AGENTS.md`, including `pnpm install` from the root and `pnpm --filter <package> check` for project validation.
+
+Root `allowBuilds` is never modified automatically. Apply `requiredRootChanges` from the JSON result and resolve `rootConfigConflicts` before running root `pnpm install`.
 
 ## Install And Run
 
-If the local pnpm is older than 12, upgrade it or use npx before installing:
+Standalone projects support pnpm 10.34.5–12.x. If the local version is older than 10.34.5, update it or use the recommended npx command:
 
 ```bash
+pnpm self-update 10.34.5
+# Recommended
 pnpm self-update 12.4.1
-# or
+# Without changing the global version
 npx --yes --registry=https://registry.npmjs.org pnpm@12.4.1 install
 ```
 

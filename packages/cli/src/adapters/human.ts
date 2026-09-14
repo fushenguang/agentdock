@@ -7,13 +7,22 @@ import {
   type PackageManager,
 } from '../core/registry.js'
 import { scaffoldProject } from '../core/scaffold.js'
+import { INIT_MODES, isInitMode, type InitMode } from '../core/workspace.js'
 
 export interface HumanAdapterOptions {
   /** Explicit target directory. Absolute or relative to cwd. Defaults to ./<name>. */
   dir?: string
+  /** Placement mode. Defaults to auto detection. */
+  mode?: string
 }
 
 export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<void> {
+  const mode = opts.mode ?? 'auto'
+  if (!isInitMode(mode)) {
+    p.cancel(`Unsupported mode "${mode}". Use ${INIT_MODES.join(', ')}.`)
+    process.exit(1)
+  }
+
   p.intro('AgentDock CLI')
 
   const templates = getTemplates()
@@ -138,6 +147,7 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
     name: projectName as string,
     template,
     packageManager: pm,
+    mode: mode as InitMode,
     dataLayer: dataLayer as string,
     ...(schemaName !== undefined ? { schema: schemaName } : {}),
   })
@@ -149,6 +159,31 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
   }
 
   spinner.stop('Done!')
+
+  if (result.mode === 'workspace') {
+    const shellName = `'${result.name.replaceAll("'", "'\\''")}'`
+    if (result.requiredRootChanges.length > 0) {
+      const entries = result.requiredRootChanges.flatMap((change) =>
+        Object.entries(change.entries).map(([key, value]) => `  ${key}: ${String(value)}`),
+      )
+      p.log.warn(
+        `Add these allowBuilds entries to the workspace root pnpm-workspace.yaml before installation:\n${entries.join('\n')}`,
+      )
+    }
+    if (result.rootConfigConflicts.length > 0) {
+      const conflicts = result.rootConfigConflicts.map(
+        (conflict) =>
+          `  ${conflict.key}: expected ${String(conflict.expected)}, found ${JSON.stringify(conflict.actual)}`,
+      )
+      p.log.warn(
+        `The workspace root has allowBuilds conflicts; the CLI did not overwrite them:\n${conflicts.join('\n')}`,
+      )
+    }
+    p.outro(
+      `Project created at ${targetDir}\n\nWorkspace root: ${result.workspaceRoot}\nLockfile owner: ${result.lockfileOwner}\n\nFrom the workspace root:\n  pnpm install\n  pnpm --filter ${shellName} check`,
+    )
+    return
+  }
 
   p.outro(`Project created at ${targetDir}\n\n  cd ${targetDir}\n  ${pm} install\n  ${pm} run dev`)
 }

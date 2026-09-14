@@ -61,16 +61,25 @@
   },
   "engines": {
     "node": ">=22.13.0",
-    "pnpm": ">=12 <13"
+    "pnpm": ">=10.34.5 <13"
   },
-  "packageManager": "pnpm@12.4.1",
   "agentdock": {
     "minCliVersion": "0.21.0",
+    "packageManagerEnforced": true,
     "dataLayers": [
       "sqlite",
       "supabase"
     ],
     "defaultDataLayer": "sqlite",
-    "supportsSchema": false
+    "supportsSchema": false,
+    "workspaceMember": {
+      "rootAllowBuilds": {
+        "@astryxdesign/cli": true,
+        "@astryxdesign/core": true,
+        "better-sqlite3": false,
+        "esbuild": true,
+        "lightningcss": true
+      }
+    }
   }
 }

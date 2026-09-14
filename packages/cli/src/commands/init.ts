@@ -37,6 +37,11 @@ export const initCommand = defineCommand({
       type: 'string',
       description: 'Target directory (absolute or relative to cwd). Defaults to ./<name>',
     },
+    mode: {
+      type: 'string',
+      description:
+        'Placement mode: auto (default), workspace (existing pnpm workspace member), or standalone',
+    },
     'data-layer': {
       type: 'string',
       description: 'Data layer: template-dependent (e.g. supabase | drizzle | sqlite)',
@@ -59,13 +64,14 @@ export const initCommand = defineCommand({
         silent: args.silent,
         json: args.json,
         dir: args.dir,
+        mode: args.mode,
         dataLayer: args['data-layer'],
         schema: args.schema,
         displayName: args['display-name'],
       })
     } else {
       const { runHumanAdapter } = await import('../adapters/human.js')
-      await runHumanAdapter({ dir: args.dir })
+      await runHumanAdapter({ dir: args.dir, mode: args.mode })
     }
   },
 })

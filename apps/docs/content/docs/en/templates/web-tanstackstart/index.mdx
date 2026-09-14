@@ -12,7 +12,7 @@ description: Standalone TanStack Start template with Astryx/StyleX and Drizzle S
 | Layer           | Technology                                                  |
 | --------------- | ----------------------------------------------------------- |
 | Runtime         | Node 22.13+                                                 |
-| Package manager | pnpm 12                                                     |
+| Package manager | pnpm 10.34.5–12.x (12.4.1 recommended)                      |
 | Language        | TypeScript 7                                                |
 | Application     | TanStack Start + TanStack Router                            |
 | Build           | Vite 8                                                      |
@@ -69,7 +69,7 @@ SUPABASE_DATABASE_URL=postgres://YOUR_USER:YOUR_PASSWORD@YOUR_HOST:6543/postgres
 
 The Postgres client sets `prepare: false` for compatibility with Supabase transaction pooling. This template targets long-lived internal Node deployments; it does not provide a serverless SQLite strategy.
 
-The project requires pnpm 12. Automatic package-manager switching is disabled and engine validation is strict, so older pnpm versions fail with `ERR_PNPM_UNSUPPORTED_ENGINE` instead of downloading a broken native wrapper. Upgrade with `pnpm self-update 12.4.1`, or use `npx pnpm@12.4.1`.
+The project supports pnpm `>=10.34.5 <13` and recommends 12.4.1. No exact `packageManager` pin is written, so supported pnpm 10/11/12 users do not trigger automatic version switching; `engineStrict` rejects versions outside the range. If the local version is older than 10.34.5, update within the 10.x line or use `npx pnpm@12.4.1`.
 
 ## UI
 

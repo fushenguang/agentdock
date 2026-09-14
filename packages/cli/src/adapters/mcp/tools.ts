@@ -1,6 +1,7 @@
 import { join } from 'path'
 import { getTemplates, getTemplate } from '../../core/registry.js'
 import { scaffoldProject } from '../../core/scaffold.js'
+import { INIT_MODES, isInitMode, type InitMode } from '../../core/workspace.js'
 
 export interface McpTool {
   name: string
@@ -28,6 +29,7 @@ export const listTemplatesTool: McpTool = {
         name: t.name,
         description: t.description,
         minCliVersion: t.minCliVersion,
+        workspaceMember: Boolean(t.workspaceMember),
       })),
     }
   },
@@ -56,6 +58,12 @@ export const scaffoldProjectTool: McpTool = {
         enum: ['pnpm', 'npm', 'yarn', 'bun'],
         description: 'Package manager to suggest in README. Defaults to pnpm.',
       },
+      mode: {
+        type: 'string',
+        enum: INIT_MODES,
+        description:
+          'Placement mode: auto detects an existing pnpm workspace member, workspace forces member mode, standalone forces a self-contained project. Defaults to auto.',
+      },
     },
     required: ['name', 'template'],
   },
@@ -65,11 +73,13 @@ export const scaffoldProjectTool: McpTool = {
       template: templateId,
       targetDir,
       packageManager,
+      mode,
     } = input as {
       name: string
       template: string
       targetDir?: string
       packageManager?: 'pnpm' | 'npm' | 'yarn' | 'bun'
+      mode?: string
     }
 
     const template = getTemplate(templateId)
@@ -81,6 +91,15 @@ export const scaffoldProjectTool: McpTool = {
       }
     }
 
+    if (mode !== undefined && !isInitMode(mode)) {
+      return {
+        ok: false,
+        error: 'INVALID_MODE',
+        mode,
+        supportedModes: INIT_MODES,
+      }
+    }
+
     const resolvedTargetDir = targetDir ?? join(process.cwd(), name)
 
     return scaffoldProject({
@@ -88,6 +107,7 @@ export const scaffoldProjectTool: McpTool = {
       name,
       template,
       packageManager: packageManager ?? 'pnpm',
+      mode: (mode as InitMode | undefined) ?? 'auto',
     })
   },
 }

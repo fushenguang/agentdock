@@ -14,29 +14,29 @@ The project optimizes for:
 - SQLite as a zero-service default, with Supabase Postgres as an alternate repository implementation
 - a single long-lived Node process and persistent filesystem by default
 
-It is not a monorepo. Every application dependency, script, and source file lives at the repository root.
+In standalone mode it is not a monorepo: every application dependency, script, and source file lives at the repository root. When `.agentdock/workspace.json` exists, the project is a member of a larger pnpm workspace; the workspace root owns `packageManager`, `pnpm-lock.yaml`, and `allowBuilds`, while this directory remains the application package.
 
 The default application frame also includes user-selectable Astryx themes, light/dark/system modes, and route-prefixed localization. These capabilities are part of the template contract rather than optional demo code.
 
 ## 2. Technology Stack And Rationale
 
-| Technology              | Why it is here                                                                                               | Agent-facing consequence                                                                                                                          |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| pnpm 12                 | Content-addressed installs and workspace-ready dependency management; v12 uses the native implementation.    | Use pnpm only. The template disables automatic pnpm switching so incompatible pnpm versions fail cleanly instead of downloading a broken wrapper. |
-| TypeScript 7            | Native compiler and faster type checking keep type verification inside the edit loop.                        | `pnpm check-types` is mandatory after meaningful code changes. Do not use `any` or unexplained `@ts-ignore`.                                      |
-| Vite 8                  | Rolldown/Oxc-based development and production pipeline.                                                      | Use `pnpm dev` and `pnpm build`; do not add a second bundler.                                                                                     |
-| TanStack Start          | Full-stack React framework with file routing, server functions, SSR, and streaming.                          | Route files live under `src/routes`; server-only work must use server functions or server-only modules.                                           |
-| TanStack Router         | Type-safe route definitions, loaders, navigation, and invalidation.                                          | Route paths and parameters are part of the type contract. Use `router.invalidate()` after mutations when loader data must refresh.                |
-| React 19                | Mature component model with transitions and async action support.                                            | Keep state local unless there is a clear cross-page owner.                                                                                        |
-| Astryx                  | Meta design system with accessible components, prebuilt themes, i18n, templates, and a machine-readable CLI. | Prefer Astryx components, tokens, and shipped locale catalogs. Query the CLI before guessing APIs.                                                |
-| StyleX                  | Type-safe, composable styling with compile-time CSS extraction.                                              | First-party styling uses `stylex.create`; do not add Tailwind or a runtime CSS-in-JS library.                                                     |
-| Oxlint                  | Native static analysis with type-aware rules and fast feedback.                                              | `pnpm lint` is the architecture and static-analysis gate.                                                                                         |
-| Oxfmt                   | Native formatter for TypeScript, JavaScript, JSON, CSS, and Markdown.                                        | Run `pnpm format` after edits and `pnpm format:check` before completion.                                                                          |
-| Vitest                  | Vite-native unit test runner.                                                                                | Add tests next to the feature or infrastructure code they exercise.                                                                               |
-| Drizzle ORM             | Explicit TypeScript schemas and SQL-first query composition.                                                 | Database access belongs in `src/infra/db`; features consume repository interfaces.                                                                |
-| SQLite + better-sqlite3 | Zero external service by default and synchronous local persistence.                                          | Use `./data/app.db` unless `SQLITE_DATABASE_URL` is configured. Keep the filesystem persistent in production.                                     |
-| Supabase Postgres       | Optional managed Postgres backend for internal deployments that need a shared database.                      | The same repository interface must work across SQLite and Supabase. Update both dialects when domain persistence changes.                         |
-| srvx                    | Small production Node server adapter for the TanStack Start server bundle.                                   | `pnpm start` serves the built application; it is not a development command.                                                                       |
+| Technology              | Why it is here                                                                                                                      | Agent-facing consequence                                                                                                            |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| pnpm 10.34.5–12.x       | Content-addressed installs and workspace-ready dependency management; 10.34.5 is the compatibility floor and 12.4.1 is recommended. | Use pnpm only. The template has no exact `packageManager` pin, so supported pnpm majors do not trigger automatic version switching. |
+| TypeScript 7            | Native compiler and faster type checking keep type verification inside the edit loop.                                               | `pnpm check-types` is mandatory after meaningful code changes. Do not use `any` or unexplained `@ts-ignore`.                        |
+| Vite 8                  | Rolldown/Oxc-based development and production pipeline.                                                                             | Use `pnpm dev` and `pnpm build`; do not add a second bundler.                                                                       |
+| TanStack Start          | Full-stack React framework with file routing, server functions, SSR, and streaming.                                                 | Route files live under `src/routes`; server-only work must use server functions or server-only modules.                             |
+| TanStack Router         | Type-safe route definitions, loaders, navigation, and invalidation.                                                                 | Route paths and parameters are part of the type contract. Use `router.invalidate()` after mutations when loader data must refresh.  |
+| React 19                | Mature component model with transitions and async action support.                                                                   | Keep state local unless there is a clear cross-page owner.                                                                          |
+| Astryx                  | Meta design system with accessible components, prebuilt themes, i18n, templates, and a machine-readable CLI.                        | Prefer Astryx components, tokens, and shipped locale catalogs. Query the CLI before guessing APIs.                                  |
+| StyleX                  | Type-safe, composable styling with compile-time CSS extraction.                                                                     | First-party styling uses `stylex.create`; do not add Tailwind or a runtime CSS-in-JS library.                                       |
+| Oxlint                  | Native static analysis with type-aware rules and fast feedback.                                                                     | `pnpm lint` is the architecture and static-analysis gate.                                                                           |
+| Oxfmt                   | Native formatter for TypeScript, JavaScript, JSON, CSS, and Markdown.                                                               | Run `pnpm format` after edits and `pnpm format:check` before completion.                                                            |
+| Vitest                  | Vite-native unit test runner.                                                                                                       | Add tests next to the feature or infrastructure code they exercise.                                                                 |
+| Drizzle ORM             | Explicit TypeScript schemas and SQL-first query composition.                                                                        | Database access belongs in `src/infra/db`; features consume repository interfaces.                                                  |
+| SQLite + better-sqlite3 | Zero external service by default and synchronous local persistence.                                                                 | Use `./data/app.db` unless `SQLITE_DATABASE_URL` is configured. Keep the filesystem persistent in production.                       |
+| Supabase Postgres       | Optional managed Postgres backend for internal deployments that need a shared database.                                             | The same repository interface must work across SQLite and Supabase. Update both dialects when domain persistence changes.           |
+| srvx                    | Small production Node server adapter for the TanStack Start server bundle.                                                          | `pnpm start` serves the built application; it is not a development command.                                                         |
 
 ## 3. Architecture
 
@@ -109,30 +109,37 @@ Supabase uses the `postgres` driver with `prepare: false` for transaction-pooler
 
 ## 5. Package Manager Bootstrap
 
-The project requires pnpm 12.
+The standalone project supports pnpm `>=10.34.5 <13` and recommends 12.4.1. A workspace member inherits the supported range from the workspace root and intentionally has no local `packageManager`, `engines.pnpm`, `pnpm-workspace.yaml`, or lockfile.
 
-The template intentionally sets these values:
+The template keeps shared install policy in `pnpm-workspace.yaml`:
 
-```dotenv
-# .npmrc
-manage-package-manager-versions=false
-engine-strict=true
+```yaml
+engineStrict: true
+allowBuilds:
+  better-sqlite3: false
 ```
 
-This prevents old pnpm versions from attempting a broken self-update. If pnpm is older than 12, install fails with `ERR_PNPM_UNSUPPORTED_ENGINE`.
+There is intentionally no exact `packageManager` pin. Supported pnpm versions install directly, and versions outside `>=10.34.5 <13` fail the engine check.
 
-Recovery options:
+`better-sqlite3@13` ships platform prebuilds, so its source build is explicitly denied. This avoids requiring a local `node-gyp`/compiler toolchain while keeping the SQLite runtime functional.
+
+Recovery options when the local pnpm is outside the supported range:
 
 ```bash
-# Upgrade the active pnpm installation
-npm_config_registry=https://registry.npmjs.org pnpm self-update 12.4.1
+# Minimum supported version
+npm_config_registry=https://registry.npmjs.org pnpm self-update 10.34.5
 pnpm -v
+
+# Recommended version
+npm_config_registry=https://registry.npmjs.org pnpm self-update 12.4.1
 
 # Or run this project without changing the global pnpm
 npx --yes --registry=https://registry.npmjs.org pnpm@12.4.1 install
 ```
 
-Do not remove `packageManager` to make an old pnpm pass. That weakens the declared toolchain.
+Do not add an exact `packageManager` pin back to this template unless the project deliberately wants pnpm-managed automatic switching. For workspace-member output, root-ownership fields must remain absent.
+
+If `.agentdock/workspace.json` exists, run installation from the workspace root and validate this package with `pnpm --filter <package-name> check`.
 
 ## 6. Commands
 
@@ -371,7 +378,7 @@ Do not add dependencies without checking:
 
 ### pnpm engine error
 
-Use pnpm 12. Do not disable `engine-strict`.
+Use pnpm `>=10.34.5 <13`. Do not disable `engineStrict`.
 
 ### Server-only module imported into client code
 

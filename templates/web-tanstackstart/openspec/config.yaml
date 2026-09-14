@@ -9,7 +9,7 @@ context: |
     src/infra/      — Drizzle schemas, clients, repositories, provider wiring
     src/routes/     — TanStack Start file routes
 
-  Stack: pnpm 12, Node >=22.13, TypeScript 7, Vite 8, React 19,
+  Stack: pnpm >=10.34.5 <13, Node >=22.13, TypeScript 7, Vite 8, React 19,
   TanStack Start/Router, Astryx/StyleX, Drizzle ORM, SQLite by default,
   optional Supabase Postgres, Oxlint, Oxfmt, and Vitest.
 
