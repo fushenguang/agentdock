@@ -32,7 +32,7 @@ AgentDock needs a first-class web template for products built for children. The 
 
 ### Modified Capabilities
 
-<!-- None. This introduces a dedicated child template instead of changing the existing enterprise template's requirements. -->
+No existing capability requirements are modified. This introduces a dedicated child template instead of changing the existing enterprise template's requirements.
 
 ## Impact
 
