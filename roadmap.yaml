@@ -50,7 +50,15 @@ next:
   # web-tanstackstart 模板，并同步升级 CLI 的模板感知能力。
   - id: web-tanstackstart-template
     title: "Add standalone web-tanstackstart template (TanStack Start + Astryx/StyleX + Drizzle SQLite/Supabase)"
-    status: in-progress
+    status: done
+    owner: "@sunny"
+
+  # 由 @sunny 于 2026-09-28 明确授权 AI 代为添加。Mastra 是两条 TanStack Start
+  # 模板共用的可选 agent/workflow runtime；本条与 web-tanstackstart-template
+  # 完成后一起归档，届时两条 status 才一并改为 done。
+  - id: mastra-tanstackstart-integration
+    title: "Add opt-in Mastra agent/workflow integration to both TanStack Start templates"
+    status: done
     owner: "@sunny"
 
   - id: cli-mvp-scaffolder

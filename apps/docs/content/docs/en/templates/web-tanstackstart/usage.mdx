@@ -19,6 +19,18 @@ npx @cogito.ai/cli init \
 
 Use `--data-layer supabase` to generate an environment template for Supabase Postgres. The selected provider appears in `.env.example` as `DATA_PROVIDER`.
 
+Add the optional Mastra agent/workflow runtime with:
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-internal-app \
+  --template web-tanstackstart \
+  --data-layer sqlite \
+  --integrations mastra
+```
+
+The generated runtime mounts the Mastra API at `/api`, registers one agent and one deterministic workflow, and keeps Astryx as the UI kernel. It does not add Mastra Memory, LibSQL, DuckDB, or a second persistence layer.
+
 The template supports pnpm `>=10.34.5 <13` and recommends 12.4.1. Generated projects do not write an exact `packageManager` pin, so supported versions do not trigger automatic version switching. The CLI still enforces pnpm-only generation.
 
 ### Embed In An Existing pnpm Workspace
@@ -57,6 +69,8 @@ pnpm dev
 ```
 
 `pnpm dev` applies pending SQLite migrations automatically before Vite starts. The production `pnpm start` command does not migrate implicitly; run migrations explicitly during deployment.
+
+With the Mastra integration, `OPENAI_API_KEY` is required only for agent generation and streaming. `GET /api/agents` and `GET /api/workflows` work without a model key. The generated `src/mastra/auth.ts` is an allow-by-default development hook; replace it with a real authorization check before exposing `/api` in production. See the generated `docs/mastra.md` for extension and safety rules.
 
 Open `http://localhost:3000`. The root redirects to the default Simplified Chinese locale at `http://localhost:3000/zh-CN`. The reference feature is available at `/zh-CN/hello`.
 

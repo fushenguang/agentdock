@@ -44,15 +44,16 @@ Scaffold a new project from a template. Auto-detects the environment:
 - **TTY** → interactive prompts (human mode)
 - **Non-TTY / `--silent` / `--json`** → headless execution (agent/CI mode)
 
-| Flag         | Type    | Default    | Description                                         |
-| ------------ | ------- | ---------- | --------------------------------------------------- |
-| `--name`     | string  | required   | Project name and target directory name              |
-| `--template` | string  | required   | Template ID (e.g. `web-nextjs`)                     |
-| `--pm`       | string  | `pnpm`     | Package manager: `pnpm` / `npm` / `yarn` / `bun`    |
-| `--dir`      | string  | `./<name>` | Target directory (absolute or relative to cwd)      |
-| `--mode`     | string  | `auto`     | Placement mode: `auto` / `workspace` / `standalone` |
-| `--json`     | boolean | `false`    | Output NDJSON result to stdout                      |
-| `--silent`   | boolean | `false`    | Suppress all output                                 |
+| Flag             | Type    | Default    | Description                                                                    |
+| ---------------- | ------- | ---------- | ------------------------------------------------------------------------------ |
+| `--name`         | string  | required   | Project name and target directory name                                         |
+| `--template`     | string  | required   | Template ID (e.g. `web-nextjs`)                                                |
+| `--pm`           | string  | `pnpm`     | Package manager: `pnpm` / `npm` / `yarn` / `bun`                               |
+| `--dir`          | string  | `./<name>` | Target directory (absolute or relative to cwd)                                 |
+| `--mode`         | string  | `auto`     | Placement mode: `auto` / `workspace` / `standalone`                            |
+| `--integrations` | string  | empty      | Optional integration ID; repeat or comma-separate. Currently supports `mastra` |
+| `--json`         | boolean | `false`    | Output NDJSON result to stdout                                                 |
+| `--silent`       | boolean | `false`    | Suppress all output                                                            |
 
 `--mode auto` detects the nearest pnpm workspace and checks whether the target matches its `packages` globs. Workspace-member output does not copy `pnpm-workspace.yaml`, `pnpm-lock.yaml`, or `.npmrc`, and removes the member `packageManager` / `engines.pnpm` fields. Root `allowBuilds` changes are returned in `requiredRootChanges`; the CLI does not modify the root configuration.
 
@@ -65,6 +66,7 @@ Scaffold a new project from a template. Auto-detects the environment:
   "name": "my-app",
   "template": "web-nextjs",
   "mode": "standalone",
+  "integrations": ["mastra"],
   "lockfileOwner": "/path/to/my-app/pnpm-lock.yaml",
   "requiredRootChanges": [],
   "rootConfigConflicts": []
@@ -81,7 +83,7 @@ Scaffold a new project from a template. Auto-detects the environment:
 }
 ```
 
-**Error codes:** `MISSING_ARG` · `TEMPLATE_NOT_FOUND` · `TARGET_DIR_EXISTS` · `CLI_VERSION_OUTDATED` · `SCAFFOLD_FAILED` · `INVALID_MODE` · `WORKSPACE_MODE_UNSUPPORTED` · `WORKSPACE_NOT_MATCHED` · `WORKSPACE_STANDALONE_CONFLICT` · `WORKSPACE_CONFIG_INVALID` · `WORKSPACE_PACKAGE_MANAGER_INCOMPATIBLE` · `WORKSPACE_NODE_INCOMPATIBLE`
+**Error codes:** `MISSING_ARG` · `TEMPLATE_NOT_FOUND` · `TARGET_DIR_EXISTS` · `CLI_VERSION_OUTDATED` · `SCAFFOLD_FAILED` · `INVALID_MODE` · `WORKSPACE_MODE_UNSUPPORTED` · `WORKSPACE_NOT_MATCHED` · `WORKSPACE_STANDALONE_CONFLICT` · `WORKSPACE_CONFIG_INVALID` · `WORKSPACE_PACKAGE_MANAGER_INCOMPATIBLE` · `WORKSPACE_NODE_INCOMPATIBLE` · `INVALID_INTEGRATION` · `INTEGRATION_NOT_SUPPORTED` · `INTEGRATION_CONFLICT`
 
 ---
 
@@ -95,10 +97,10 @@ agentdock mcp
 
 **Available tools:**
 
-| Tool               | Description                                |
-| ------------------ | ------------------------------------------ |
-| `list_templates`   | List all available project templates       |
-| `scaffold_project` | Scaffold a project into a target directory |
+| Tool               | Description                                          |
+| ------------------ | ---------------------------------------------------- |
+| `list_templates`   | List project templates and supported integration IDs |
+| `scaffold_project` | Scaffold with the same inputs as headless init       |
 
 **VS Code Copilot MCP config (`.vscode/mcp.json`):**
 

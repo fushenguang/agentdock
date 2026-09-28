@@ -11,6 +11,12 @@ import { basename, join, dirname, extname, relative } from 'path'
 import { fileURLToPath } from 'url'
 import { execSync } from 'child_process'
 import type { PackageManager, RegistryTemplate } from './registry.js'
+import {
+  applyIntegrations,
+  normalizeIntegrations,
+  resolveIntegrations,
+  validateIntegrations,
+} from './integrations.js'
 import { checkVersion } from './version.js'
 import {
   resolveWorkspacePlacement,
@@ -154,6 +160,8 @@ export interface ScaffoldOptions {
   dataLayer?: string | undefined
   /** Placement mode. `auto` detects whether the target is an existing pnpm workspace member. */
   mode?: InitMode | undefined
+  /** Optional integration IDs to compose onto the selected template. */
+  integrations?: string[] | undefined
 }
 
 export interface ScaffoldResult {
@@ -166,6 +174,7 @@ export interface ScaffoldResult {
   lockfileOwner: string
   requiredRootChanges: RequiredRootChange[]
   rootConfigConflicts: RootConfigConflict[]
+  integrations?: string[]
 }
 
 export interface ScaffoldError {
@@ -176,6 +185,9 @@ export interface ScaffoldError {
     | 'SCAFFOLD_FAILED'
     | 'INVALID_NAME'
     | 'INVALID_DATA_LAYER'
+    | 'INVALID_INTEGRATION'
+    | 'INTEGRATION_NOT_SUPPORTED'
+    | 'INTEGRATION_CONFLICT'
     | 'INVALID_PACKAGE_MANAGER'
     | 'INVALID_MODE'
     | 'WORKSPACE_MODE_UNSUPPORTED'
@@ -185,6 +197,24 @@ export interface ScaffoldError {
     | 'WORKSPACE_PACKAGE_MANAGER_INCOMPATIBLE'
     | 'WORKSPACE_NODE_INCOMPATIBLE'
   message: string
+  integration?: string
+  template?: string
+  supportedIntegrations?: string[]
+}
+
+function integrationResolutionFailure(
+  integrationError: ReturnType<typeof validateIntegrations> & object,
+): ScaffoldError {
+  return {
+    ok: false,
+    error: integrationError.error,
+    message: integrationError.message,
+    ...(integrationError.integration ? { integration: integrationError.integration } : {}),
+    ...(integrationError.template ? { template: integrationError.template } : {}),
+    ...(integrationError.supportedIntegrations
+      ? { supportedIntegrations: integrationError.supportedIntegrations }
+      : {}),
+  }
 }
 
 function getTemplateSourceDir(templateSource: string): string {
@@ -389,6 +419,7 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
     displayName,
     dataLayer,
     mode = 'auto',
+    integrations: requestedIntegrations,
   } = options
 
   // Reject names that would break out of the HTML/JS/JSON contexts the name
@@ -422,6 +453,12 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
       error: 'INVALID_DATA_LAYER',
       message: `Data layer "${dataLayer}" is not supported by template "${template.id}".`,
     }
+  }
+
+  const integrationIds = normalizeIntegrations(requestedIntegrations)
+  const resolvedIntegrations = resolveIntegrations(integrationIds, template)
+  if (!Array.isArray(resolvedIntegrations)) {
+    return integrationResolutionFailure(resolvedIntegrations)
   }
 
   if (template.packageManagerEnforced && pm !== undefined && pm !== template.packageManager) {
@@ -473,11 +510,32 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
 
   try {
     const sourceDir = getTemplateSourceDir(template.source)
+    const integrationValidationError = validateIntegrations({
+      templateSourceDir: sourceDir,
+      template,
+      integrations: resolvedIntegrations,
+      mode: placement.mode,
+    })
+    if (integrationValidationError) {
+      return integrationResolutionFailure(integrationValidationError)
+    }
     mkdirSync(targetDir, { recursive: true })
     cpSync(sourceDir, targetDir, {
       recursive: true,
       filter: (source) => shouldCopyTemplatePathForMode(source, sourceDir, placement.mode),
     })
+
+    if (resolvedIntegrations.length > 0) {
+      const integrationError = applyIntegrations({
+        targetDir,
+        template,
+        integrations: resolvedIntegrations,
+        mode: placement.mode,
+      })
+      if (integrationError) {
+        return integrationResolutionFailure(integrationError)
+      }
+    }
 
     // Restore dotfiles that were renamed to survive npm publish
     restoreDotfiles(targetDir)
@@ -534,6 +592,7 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
       lockfileOwner: placement.lockfileOwner,
       requiredRootChanges: placement.requiredRootChanges,
       rootConfigConflicts: placement.rootConfigConflicts,
+      ...(integrationIds.length > 0 ? { integrations: integrationIds } : {}),
     }
   } catch (err) {
     return {

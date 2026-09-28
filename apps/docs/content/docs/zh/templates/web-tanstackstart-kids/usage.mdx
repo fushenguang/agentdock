@@ -20,6 +20,18 @@ npx --yes pnpm@12.4.1 install
 npx --yes pnpm@12.4.1 dev
 ```
 
+可追加可选的 Mastra runtime，同时保持儿童 UI 内核不变：
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-kids-app \
+  --template web-tanstackstart-kids \
+  --data-layer sqlite \
+  --integrations mastra
+```
+
+Mastra API 仅运行在服务端并挂载于 `/api`，不会引入 `animal-island-ui`、`naive-icons`、儿童档案存储或默认 memory。生产暴露前必须把生成的 auth hook 替换为明确的授权判断。
+
 模板支持 pnpm `>=10.34.5 <13`，推荐 `12.4.1`。生成项目不会写入精确 `packageManager` pin。
 
 ## 儿童体验
@@ -63,6 +75,8 @@ pnpm theme:check
 ## 安全与隐私
 
 模板默认不包含广告、第三方行为追踪、社交信息流、公开儿童档案、精确年龄、连续签到压力或随机奖励循环。外部链接、购买、敏感请求或重要设置应使用 `GuardianGate`。
+
+启用 Mastra 后，默认不得把精确年龄、出生日期、儿童 profile 或其他可识别儿童的数据发送给 agent 或 tool。由 UI 触发的外部或重要 agent 动作仍必须经过儿童模板的 guardian 边界。
 
 生成后请阅读模板内的 `docs/child-safety.md` 与 `docs/reference/animal-island-ui.md`。
 

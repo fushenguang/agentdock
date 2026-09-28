@@ -20,6 +20,18 @@ npx --yes pnpm@12.4.1 install
 npx --yes pnpm@12.4.1 dev
 ```
 
+Add the optional Mastra runtime without changing the child UI kernel:
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-kids-app \
+  --template web-tanstackstart-kids \
+  --data-layer sqlite \
+  --integrations mastra
+```
+
+The Mastra API is server-only and mounted at `/api`. It adds no `animal-island-ui`, `naive-icons`, child profile storage, or automatic memory. The generated auth hook must be replaced with an explicit authorization decision before production exposure.
+
 The project supports pnpm `>=10.34.5 <13` and recommends `12.4.1`. Generated projects do not write an exact `packageManager` pin.
 
 ## Child Experience
@@ -63,6 +75,8 @@ For everything else, use Astryx components and semantic tokens first.
 ## Safety And Privacy
 
 The default template contains no advertising, third-party behavioral tracking, social feed, public child profile, exact age, streak pressure, or random reward loop. Use `GuardianGate` for external links, purchases, sensitive requests, or consequential settings.
+
+When Mastra is enabled, do not send precise age, birth dates, child profiles, or other identifying child data through agent prompts or tools by default. UI-triggered external or consequential agent actions must still pass through the child template's guardian boundary.
 
 See the template's `docs/child-safety.md` and `docs/reference/animal-island-ui.md` after generation.
 

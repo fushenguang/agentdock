@@ -3,8 +3,8 @@
 // Scans templates/[name]/package.json, resolves workspace:* deps to actual versions
 // from packages/[name]/package.json, and writes packages/cli/src/registry.json.
 
-import { readFileSync, writeFileSync, mkdirSync } from 'fs'
-import { join, dirname } from 'path'
+import { existsSync, readFileSync, realpathSync, writeFileSync, mkdirSync } from 'fs'
+import { isAbsolute, join, dirname, relative, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { readdirSync, statSync } from 'fs'
 
@@ -57,9 +57,45 @@ interface RegistryTemplate {
   resolvedDependencies: Record<string, string>
 }
 
+interface IntegrationManifest {
+  id?: string
+  name?: string
+  description?: string
+  compatibleTemplates?: string[]
+  filesRoot?: string
+  dependencies?: Record<string, string>
+  devDependencies?: Record<string, string>
+  scripts?: Record<string, string>
+  textAppends?: Array<{
+    path?: string
+    marker?: string
+    content?: string
+  }>
+  standaloneLockfiles?: Record<string, string>
+}
+
+interface RegistryIntegration {
+  id: string
+  name: string
+  description: string
+  source: string
+  compatibleTemplates: string[]
+  filesRoot: string
+  dependencies: Record<string, string>
+  devDependencies: Record<string, string>
+  scripts: Record<string, string>
+  textAppends: Array<{
+    path: string
+    marker: string
+    content: string
+  }>
+  standaloneLockfiles: Record<string, string>
+}
+
 interface Registry {
   version: '1'
   templates: RegistryTemplate[]
+  integrations: RegistryIntegration[]
 }
 
 function readJson<T>(filePath: string): T {
@@ -164,10 +200,146 @@ function resolveDefaultDataLayer(pkg: PackageJson, dataLayers: string[]): string
   return dataLayers[0] ?? DEFAULT_DATA_LAYERS[0]
 }
 
+function resolveContainedPath(baseDir: string, relativePath: string, label: string): string {
+  const resolved = resolve(baseDir, relativePath)
+  const lexicalRelativePath = relative(baseDir, resolved)
+  if (
+    lexicalRelativePath === '' ||
+    lexicalRelativePath.startsWith('..') ||
+    isAbsolute(lexicalRelativePath)
+  ) {
+    throw new Error(`${label} escapes its integration directory: ${relativePath}`)
+  }
+  if (!existsSync(resolved)) {
+    return resolved
+  }
+
+  const realBaseDir = realpathSync(baseDir)
+  const realResolved = realpathSync(resolved)
+  const relativePathFromBase = relative(realBaseDir, realResolved)
+  if (
+    relativePathFromBase === '' ||
+    relativePathFromBase.startsWith('..') ||
+    isAbsolute(relativePathFromBase)
+  ) {
+    throw new Error(`${label} escapes its integration directory: ${relativePath}`)
+  }
+  return resolved
+}
+
+function readIntegrationManifests(templates: RegistryTemplate[]): RegistryIntegration[] {
+  const integrationsDir = join(repoRoot, 'templates', '_integrations')
+  if (!existsSync(integrationsDir)) return []
+
+  const templateIds = new Set(templates.map((template) => template.id))
+  const integrations: RegistryIntegration[] = []
+
+  for (const dir of readdirSync(integrationsDir).sort()) {
+    const integrationDirPath = join(integrationsDir, dir)
+    const manifestPath = join(integrationsDir, dir, 'integration.json')
+    if (!existsSync(manifestPath)) {
+      continue
+    }
+    let isDirectory = false
+    try {
+      isDirectory = statSync(integrationDirPath).isDirectory()
+    } catch {
+      continue
+    }
+    if (!isDirectory) {
+      continue
+    }
+
+    const manifest = readJson<IntegrationManifest>(manifestPath)
+    const id = manifest.id?.trim()
+    if (!id || id !== dir) {
+      throw new Error(`Integration "${dir}" must declare matching id "${dir}" in integration.json`)
+    }
+    if (!manifest.name?.trim() || !manifest.description?.trim()) {
+      throw new Error(`Integration "${id}" must declare name and description`)
+    }
+
+    const compatibleTemplates = manifest.compatibleTemplates ?? []
+    if (compatibleTemplates.length === 0) {
+      throw new Error(`Integration "${id}" must declare at least one compatible template`)
+    }
+    for (const templateId of compatibleTemplates) {
+      if (!templateIds.has(templateId)) {
+        throw new Error(
+          `Integration "${id}" references unknown compatible template "${templateId}"`,
+        )
+      }
+    }
+
+    const filesRoot = manifest.filesRoot?.trim() || 'files'
+    const filesPath = resolveContainedPath(
+      integrationDirPath,
+      filesRoot,
+      `Integration "${id}" filesRoot`,
+    )
+    if (!existsSync(filesPath) || !statSync(filesPath).isDirectory()) {
+      throw new Error(`Integration "${id}" filesRoot is missing: ${filesRoot}`)
+    }
+
+    const textAppends = (manifest.textAppends ?? []).map((append, index) => {
+      const path = append.path?.trim()
+      const marker = append.marker?.trim()
+      const content = append.content
+      if (!path || !marker || !content) {
+        throw new Error(`Integration "${id}" textAppends[${index}] is incomplete`)
+      }
+      const resolvedAppendPath = resolve('/template-root', path)
+      const appendRelativePath = relative('/template-root', resolvedAppendPath)
+      if (
+        isAbsolute(path) ||
+        appendRelativePath === '' ||
+        appendRelativePath.startsWith('..') ||
+        isAbsolute(appendRelativePath)
+      ) {
+        throw new Error(`Integration "${id}" textAppends[${index}] escapes the template root`)
+      }
+      return { path, marker, content }
+    })
+
+    const standaloneLockfiles = manifest.standaloneLockfiles ?? {}
+    for (const templateId of compatibleTemplates) {
+      const relativePath = standaloneLockfiles[templateId]
+      if (!relativePath) {
+        throw new Error(`Integration "${id}" is missing standaloneLockfiles.${templateId}`)
+      }
+      const lockfilePath = resolveContainedPath(
+        integrationDirPath,
+        relativePath,
+        `Integration "${id}" lockfile`,
+      )
+      if (!existsSync(lockfilePath) || !statSync(lockfilePath).isFile()) {
+        throw new Error(`Integration "${id}" lockfile is missing: ${relativePath}`)
+      }
+    }
+
+    integrations.push({
+      id,
+      name: manifest.name.trim(),
+      description: manifest.description.trim(),
+      source: `templates/_integrations/${dir}`,
+      compatibleTemplates,
+      filesRoot,
+      dependencies: manifest.dependencies ?? {},
+      devDependencies: manifest.devDependencies ?? {},
+      scripts: manifest.scripts ?? {},
+      textAppends,
+      standaloneLockfiles,
+    })
+  }
+
+  return integrations
+}
+
 function main(): void {
   const versionMap = buildPackageVersionMap()
   const templatesDir = join(repoRoot, 'templates')
   const templateDirs = readdirSync(templatesDir).filter((d) => {
+    if (d.startsWith('_')) return false
     try {
       return statSync(join(templatesDir, d)).isDirectory()
     } catch {
@@ -226,6 +398,7 @@ function main(): void {
   const registry: Registry = {
     version: '1',
     templates,
+    integrations: readIntegrationManifests(templates),
   }
 
   const outputDir = join(repoRoot, 'packages/cli/src')

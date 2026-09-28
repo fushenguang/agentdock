@@ -50,6 +50,11 @@ export const initCommand = defineCommand({
       type: 'string',
       description: 'Supabase schema name (default: public). Only used when data-layer is supabase.',
     },
+    integrations: {
+      type: 'string',
+      description:
+        'Optional integration ID. Repeat the flag or use a comma-separated list (e.g. mastra).',
+    },
   },
   async run({ args }) {
     const isTTY = Boolean(process.stdout.isTTY)
@@ -68,10 +73,11 @@ export const initCommand = defineCommand({
         dataLayer: args['data-layer'],
         schema: args.schema,
         displayName: args['display-name'],
+        integrations: args.integrations,
       })
     } else {
       const { runHumanAdapter } = await import('../adapters/human.js')
-      await runHumanAdapter({ dir: args.dir, mode: args.mode })
+      await runHumanAdapter({ dir: args.dir, mode: args.mode, integrations: args.integrations })
     }
   },
 })
