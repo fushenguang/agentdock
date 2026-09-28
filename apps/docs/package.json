@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "prebuild": "pnpm --filter @cogito.ai/openspec-docs-sync build && node ../../packages/openspec-docs-sync/dist/index.js",
+    "prebuild": "pnpm --dir ../.. docs:check-template-parity && pnpm --filter @cogito.ai/openspec-docs-sync build && node ../../packages/openspec-docs-sync/dist/index.js",
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",

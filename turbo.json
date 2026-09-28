@@ -14,7 +14,8 @@
         "tsconfig.json",
         "../../tsconfig.json",
         "../../turbo.json",
-        "../../eslint.config.js"
+        "../../eslint.config.js",
+        "../../templates/**"
       ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },

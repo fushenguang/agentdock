@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    "src/routeTree.gen.ts",
+    "pnpm-lock.yaml",
+    ".github/skills/**",
+    ".output/**",
+    "dist/**",
+    "drizzle/**/meta/**",
+    "src/components/appearance/themes/*.css",
+    "src/components/appearance/themes/*.js",
+    "src/components/appearance/themes/*.d.ts",
+    "src/components/appearance/themes/*.variants.d.ts",
+    "test-results/**",
+    "playwright-report/**"
+  ]
+}

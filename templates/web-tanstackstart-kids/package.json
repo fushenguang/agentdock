@@ -1,0 +1,100 @@
+{
+  "name": "@cogito.ai/template-web-tanstackstart-kids",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone child-oriented TanStack Start + Astryx/StyleX template with age-sensitive experience profiles, Drizzle SQLite, and optional Supabase Postgres.",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm dev:prepare && vite dev --host --port 3000 --strictPort",
+    "dev:prepare": "node scripts/prepare-dev-db.mjs",
+    "start": "node --env-file-if-exists=.env server.mjs",
+    "build": "pnpm generate-routes && vite build",
+    "preview": "vite preview --host --port 3000 --strictPort",
+    "generate-routes": "tsr generate",
+    "check-types": "pnpm generate-routes && tsc --noEmit",
+    "lint": "pnpm generate-routes && oxlint --type-aware .",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "test": "vitest run",
+    "check": "pnpm format:check && pnpm lint && pnpm check-types && pnpm test && pnpm test:a11y && pnpm theme:check && pnpm contrast:check && pnpm assets:check && pnpm boundaries:check && pnpm build",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:generate:supabase": "drizzle-kit generate --config=drizzle.supabase.config.ts",
+    "db:migrate:supabase": "drizzle-kit migrate --config=drizzle.supabase.config.ts",
+    "theme:build": "astryx theme build src/components/appearance/themes/kids-sprout.ts src/components/appearance/themes/kids-explorer.ts src/components/appearance/themes/kids-creator.ts",
+    "theme:check": "astryx theme build --check src/components/appearance/themes/kids-sprout.ts src/components/appearance/themes/kids-explorer.ts src/components/appearance/themes/kids-creator.ts",
+    "test:a11y": "vitest run --config vitest.a11y.config.ts",
+    "test:visual": "playwright test",
+    "assets:check": "node scripts/check-assets.mjs",
+    "boundaries:check": "node scripts/check-astryx-boundaries.mjs",
+    "budgets:check": "node scripts/check-budgets.mjs",
+    "check:full": "pnpm check && pnpm test:visual && pnpm budgets:check",
+    "contrast:check": "node scripts/check-contrast.mjs"
+  },
+  "dependencies": {
+    "@astryxdesign/core": "^0.6.0",
+    "@astryxdesign/theme-neutral": "^0.6.0",
+    "@fontsource-variable/noto-sans-sc": "^5.3.0",
+    "@fontsource-variable/nunito": "^5.3.0",
+    "@stylexjs/stylex": "^0.19.0",
+    "@tanstack/react-router": "^1.170.35",
+    "@tanstack/react-start": "^1.168.52",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "srvx": "^1.0.4"
+  },
+  "devDependencies": {
+    "@astryxdesign/build": "^0.6.0",
+    "@astryxdesign/cli": "^0.6.0",
+    "@axe-core/playwright": "^4.13.0",
+    "@babel/core": "^7.29.0",
+    "@playwright/test": "^1.63.0",
+    "@stylexjs/babel-plugin": "^0.19.0",
+    "@stylexjs/unplugin": "^0.19.0",
+    "@tanstack/router-cli": "^1.167.35",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.13.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "axe-core": "^4.13.0",
+    "drizzle-kit": "^0.31.10",
+    "jsdom": "^30.1.1",
+    "oxfmt": "^0.67.0",
+    "oxlint": "^1.82.0",
+    "oxlint-tsgolint": "^7.0.2001",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^4.1.8",
+    "vitest-axe": "^0.1.0"
+  },
+  "engines": {
+    "node": ">=22.13.0",
+    "pnpm": ">=10.34.5 <13"
+  },
+  "agentdock": {
+    "minCliVersion": "0.21.0",
+    "packageManagerEnforced": true,
+    "dataLayers": [
+      "sqlite",
+      "supabase"
+    ],
+    "defaultDataLayer": "sqlite",
+    "supportsSchema": false,
+    "workspaceMember": {
+      "rootAllowBuilds": {
+        "@astryxdesign/cli": true,
+        "@astryxdesign/core": true,
+        "better-sqlite3": false,
+        "esbuild": true,
+        "lightningcss": true
+      }
+    }
+  }
+}

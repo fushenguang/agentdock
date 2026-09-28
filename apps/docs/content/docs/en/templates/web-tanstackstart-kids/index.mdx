@@ -1,0 +1,51 @@
+---
+title: web-tanstackstart-kids Template
+description: Child-oriented TanStack Start template with Astryx, age-sensitive experience profiles, and Drizzle.
+---
+
+# web-tanstackstart-kids Template
+
+`web-tanstackstart-kids` is a standalone child-oriented web template. It keeps the TanStack Start, React, Astryx, StyleX, Drizzle, i18n, and SSR foundations of `web-tanstackstart`, but replaces the enterprise presentation and interaction defaults with a Child Experience System.
+
+It is not a reskin of `animal-island-ui`. Astryx remains the component and interaction kernel, while the template independently defines themes, age profiles, child-facing components, content tone, safety boundaries, and verification.
+
+## Capabilities
+
+| Layer           | Capability                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------- |
+| Visual language | Warm, safe, encouraging, playful, calm, original child theme family                               |
+| Age profiles    | `sprout`, `explorer`, `creator` presets resolved to semantic capabilities                         |
+| Interaction     | Target size, density, choice count, navigation depth, confirmation, undo, timeout, guidance       |
+| Accessibility   | Astryx keyboard/focus/ARIA behavior, reduced motion, text alternatives, axe checks                |
+| Components      | Child shell, states, read-along, guardian gate, phase-one form/feedback/navigation visuals        |
+| Safety          | Coarse age only, no default tracking/ads/social feed, guardian boundary for consequential actions |
+| Data            | Drizzle SQLite by default, optional Supabase Postgres                                             |
+| Verification    | Theme freshness, unit, axe, SSR/build, visual matrix, asset provenance, bundle budgets            |
+
+## Age Profiles
+
+| Profile    | Intended age | Default posture                                                           |
+| ---------- | -----------: | ------------------------------------------------------------------------- |
+| `sprout`   |          3–5 | Large targets, airy layout, audio-first guidance, one navigation level    |
+| `explorer` |          6–8 | Mixed text/audio/icon guidance, two navigation levels, guided exploration |
+| `creator`  |         9–12 | Text-first, more autonomy, focused density, audio on demand               |
+
+The template stores only a coarse profile such as `explorer.system`, never a birth date. Feature components consume capabilities rather than raw age.
+
+## Astryx Boundary
+
+Astryx owns component behavior, focus, keyboard interaction, ARIA, selections, dialogs, validation, progress announcements, and SSR themes. The child template adds themes, semantic wrappers, illustrations, content policy, and experience capabilities. It does not fork, swizzle, or patch Astryx core.
+
+## Start
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-kids-app \
+  --template web-tanstackstart-kids \
+  --data-layer sqlite \
+  --pm pnpm
+```
+
+See [Usage](./usage) for development, theme regeneration, verification, and extension rules.
+
+See [Component Visuals](./component-visuals) for the phase-one Astryx ownership map, wrapper boundaries, and verification matrix.

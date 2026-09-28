@@ -1,0 +1,33 @@
+schema: spec-driven
+
+context: |
+  This project was generated from the AgentDock web-tanstackstart-kids template.
+
+  Architecture: standalone child-oriented TanStack Start application with:
+    src/components/appearance/ — age profiles, child themes, SSR profile resolution
+    src/components/kids/       — first-party child-facing semantic components
+    src/core/                  — domain types and repository contracts
+    src/features/              — feature behavior behind __contract__.ts and index.ts
+    src/infra/                 — Drizzle schemas, clients, repositories, provider wiring
+    src/routes/                — TanStack Start file routes
+
+  Stack: pnpm >=10.34.5 <13, Node >=22.13, TypeScript 7, Vite 8, React 19,
+  TanStack Start/Router, Astryx/StyleX, Drizzle ORM, SQLite by default,
+  optional Supabase Postgres, Oxlint, Oxfmt, Vitest, axe, and Playwright.
+
+  Rules:
+    - Astryx owns component behavior, focus, keyboard, ARIA, dialogs, validation, and SSR themes.
+    - Never fork, swizzle, patch, or copy Astryx core.
+    - Features use repositories; they do not import infra/db directly.
+    - Every feature has __contract__.ts and a public index.ts.
+    - Core never imports features or infra.
+    - Feature behavior uses semantic child capabilities, not raw age/profile branches.
+    - Persist only a coarse age band; never a birth date or exact age by default.
+    - Use pnpm only.
+    - Keep SQLite and Supabase repository behavior aligned.
+    - UI follows DESIGN.md and uses Astryx tokens and StyleX.
+    - Keep child privacy, safety, accessibility, reduced motion, and non-manipulative engagement as product defaults.
+
+rules:
+  proposal:
+    - "Proposal MUST contain a Non-goals section listing what this change will NOT implement."

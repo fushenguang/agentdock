@@ -1,0 +1,11 @@
+schema: spec-driven
+created: 2026-09-28
+goal: 'Extend the existing web-tanstackstart-kids component visual layer with
+  phase 2 coverage: Card/Progress, Form/Field composition,
+  DateInput/TimeInput/Timestamp, Table/Pagination, FileInput/Thumbnail/Lightbox,
+  BottomSheet/Drawer, and optional CodeBlock. Keep Astryx as the component,
+  interaction, keyboard, focus, ARIA, SSR, and theme kernel; do not fork,
+  swizzle, patch, copy, or add animal-island-ui/naive-icons at runtime. Maintain
+  sprout/explorer/creator, light/dusk, bilingual copy, demos, unit tests, a11y
+  tests, and visual snapshots. Finish with pnpm check:full and openspec validate
+  --strict; do not push or auto-archive.'

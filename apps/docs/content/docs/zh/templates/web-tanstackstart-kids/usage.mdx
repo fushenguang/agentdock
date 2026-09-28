@@ -1,0 +1,99 @@
+---
+title: web-tanstackstart-kids 使用指南
+description: 创建、运行、验证、定制主题并扩展儿童向 TanStack Start 模板。
+---
+
+# 使用指南
+
+## 创建与运行
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-kids-app \
+  --template web-tanstackstart-kids \
+  --data-layer sqlite \
+  --pm pnpm
+
+cd my-kids-app
+cp .env.example .env
+npx --yes pnpm@12.4.1 install
+npx --yes pnpm@12.4.1 dev
+```
+
+模板支持 pnpm `>=10.34.5 <13`，推荐 `12.4.1`。生成项目不会写入精确 `packageManager` pin。
+
+## 儿童体验
+
+视觉主题和年龄档案是两个独立契约。
+
+- `kids-sprout`、`kids-explorer`、`kids-creator` 是预编译 Astryx 主题。
+- `sprout`、`explorer`、`creator` 解析为语义能力。
+- `ChildExperienceProvider` 选择主题，并通过 `useChildExperience()` 暴露能力。
+- profile cookie 只保存 `ageBand.mode`，例如 `explorer.system`。
+
+不要在 Feature 中按真实年龄分支。应使用目标尺寸、选项数、阅读支持、动效、引导、确认和超时等能力。
+
+## 主题开发
+
+主题源码位于 `src/components/appearance/themes/`。
+
+```bash
+pnpm theme:build
+pnpm theme:check
+```
+
+生成后的 `.js`、`.css`、`.d.ts` 和 `.variants.d.ts` 需要提交并与源码保持一致。不要手工修改生成文件。
+
+## 组件
+
+对重复出现的儿童语义使用第一方组件：
+
+- `KidShell`
+- `KidPageHeader`
+- `KidActionCard`
+- `KidChoice`
+- `KidProgress`
+- `KidState`
+- `KidIllustration`
+- `KidReadAlong`
+- `GuardianGate`
+
+其他 UI 优先使用 Astryx 组件和语义 token。
+
+## 安全与隐私
+
+模板默认不包含广告、第三方行为追踪、社交信息流、公开儿童档案、精确年龄、连续签到压力或随机奖励循环。外部链接、购买、敏感请求或重要设置应使用 `GuardianGate`。
+
+生成后请阅读模板内的 `docs/child-safety.md` 与 `docs/reference/animal-island-ui.md`。
+
+## 验证
+
+```bash
+pnpm test
+pnpm test:a11y
+pnpm theme:check
+pnpm assets:check
+pnpm boundaries:check
+pnpm check-types
+pnpm lint
+pnpm format:check
+pnpm build
+pnpm check
+pnpm check:full
+```
+
+`pnpm check` 是标准验收门。`pnpm check:full` 额外执行视觉回归和包体预算。
+
+## 添加 Feature
+
+1. 在 `src/core` 添加共享类型或仓储契约。
+2. 创建 `src/features/<name>/__contract__.ts`。
+3. 通过 `src/features/<name>/index.ts` 暴露公共 API。
+4. 数据访问必须位于仓储 provider 之后。
+5. 在 `src/routes/$locale/` 添加路由。
+6. 使用 Astryx 原生组件和共享儿童组件组合页面。
+7. 将用户可见文案加入所有语言 catalog。
+8. 为年龄能力、可访问性和状态添加测试。
+9. 完成前运行 `pnpm check`。
+
+不得 fork Astryx，也不得把 `animal-island-ui` / `naive-icons` 作为运行时依赖。

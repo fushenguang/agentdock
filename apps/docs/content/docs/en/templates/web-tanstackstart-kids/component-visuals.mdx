@@ -1,0 +1,53 @@
+---
+title: Component Visuals
+description: Phase-one and phase-two child component visual layers with Astryx ownership and verification.
+---
+
+# Component Visuals
+
+The child template ships phase-one and phase-two visual layers for its common controls, form surfaces, data views, media states, and feedback. It extends Astryx through semantic themes, supported component targets, `xstyle`, slots, and two non-interactive wrappers.
+
+The showcase is available in a generated app at `/{locale}/components`.
+
+## Ownership Map
+
+| Child category      | Astryx owner                            | Boundary                                              |
+| ------------------- | --------------------------------------- | ----------------------------------------------------- |
+| Button              | `Button`                                | Theme shape and preserved hard-bottom primary shadow  |
+| Checkbox            | `CheckboxInput`, `CheckboxList`         | Indicator and list targets                            |
+| Radio               | `RadioList`                             | Indicator, row, orientation, and selection targets    |
+| Switch              | `Switch`                                | Track, thumb, label, checked, and disabled targets    |
+| Input               | `TextInput`                             | Field styling; validation and focus stay in Astryx    |
+| Select              | `Selector`                              | Trigger, popup, option, and state targets             |
+| Tabs                | `TabList`, `Tab`                        | Strip, tab, selected indicator, and overflow targets  |
+| Collapse            | `Collapsible`                           | Trigger, content, density, and disclosure targets     |
+| Tag                 | `Token`                                 | Shape, size, and color targets                        |
+| Badge               | `Badge`                                 | Variant and label treatment                           |
+| Tooltip             | `Tooltip`                               | Surface styling only                                  |
+| Toast               | `Toast`, `ToastViewport`, `useToast`    | Card styling and localized content                    |
+| Skeleton/Loading    | `Skeleton`, `Spinner`, `ProgressBar`    | Visual targets and reduced motion                     |
+| Empty/Error/Success | `EmptyState`, `FieldStatus`, `KidState` | Semantics plus localized state copy                   |
+| Title ribbon/cloud  | `KidTitleRibbon`                        | Non-interactive wrapper around Astryx typography      |
+| Background/Pattern  | `KidBackground`                         | Non-interactive decorative surface                    |
+| Divider             | `Divider`                               | Line and label targets                                |
+| Modal/Dialog        | `Dialog`, `DialogHeader`                | Surface styling; modal behavior stays in Astryx       |
+| Carousel            | `Carousel`                              | Surface styling; scroll and navigation stay in Astryx |
+
+## Phase Two
+
+The second phase adds Card, Progress, FormLayout and Field-based form composition, DateInput, TimeInput, Timestamp, Table, Pagination, FileInput, Thumbnail, Lightbox, BottomSheet, and CodeBlock. These remain Astryx-owned components and are shown at `/{locale}/advanced-components`.
+
+The template deliberately does not add global cursor replacement, countdown pressure, or typewriter animation as defaults. File and image examples remain local-only and explain the guardian boundary for sharing or uploading.
+
+## Rules
+
+- Prefer theme tokens and supported component targets before adding a wrapper.
+- Never fork, swizzle, patch, or copy Astryx source.
+- Do not import `animal-island-ui`, `naive-icons`, or historical third-party assets.
+- Keep user-facing text in every locale catalog.
+- Preserve keyboard, focus, ARIA, validation, dialog, toast, and carousel behavior.
+- Do not edit generated theme artifacts by hand.
+
+## Verification
+
+Each phase-one and phase-two category has a demo, unit coverage, axe coverage, and Playwright snapshots across Sprout, Explorer, Creator, and light/dusk modes. The full template gate also checks generated theme freshness, assets, Astryx boundaries, reduced motion, SSR, and bundle budgets.
