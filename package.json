@@ -16,7 +16,8 @@
     "docs:sync": "pnpm --filter @cogito.ai/openspec-docs-sync build && node packages/openspec-docs-sync/dist/index.js",
     "changeset": "changeset",
     "changeset:version": "changeset version",
-    "changeset:publish": "changeset publish"
+    "changeset:publish": "changeset publish",
+    "docs:check-template-parity": "node scripts/check-template-docs-parity.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",

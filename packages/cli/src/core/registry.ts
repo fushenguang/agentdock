@@ -31,9 +31,30 @@ export interface RegistryTemplate {
   resolvedDependencies: Record<string, string>
 }
 
+export interface RegistryTextAppend {
+  path: string
+  marker: string
+  content: string
+}
+
+export interface RegistryIntegration {
+  id: string
+  name: string
+  description: string
+  source: string
+  compatibleTemplates: string[]
+  filesRoot: string
+  dependencies: Record<string, string>
+  devDependencies: Record<string, string>
+  scripts: Record<string, string>
+  textAppends: RegistryTextAppend[]
+  standaloneLockfiles: Record<string, string>
+}
+
 export interface Registry {
   version: '1'
   templates: RegistryTemplate[]
+  integrations: RegistryIntegration[]
 }
 
 function loadRegistry(): Registry {
@@ -69,4 +90,12 @@ export function getTemplates(): RegistryTemplate[] {
 
 export function getTemplate(id: string): RegistryTemplate | undefined {
   return getRegistry().templates.find((t) => t.id === id)
+}
+
+export function getIntegrations(): RegistryIntegration[] {
+  return getRegistry().integrations ?? []
+}
+
+export function getIntegration(id: string): RegistryIntegration | undefined {
+  return getIntegrations().find((integration) => integration.id === id)
 }

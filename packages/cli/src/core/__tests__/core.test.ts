@@ -335,6 +335,45 @@ describe('scaffoldProject', () => {
     expect(envExample).not.toContain('{{DATA_LAYER}}')
   })
 
+  it('scaffolds the child-oriented TanStack Start template', () => {
+    const template = getTemplate('web-tanstackstart-kids')
+    expect(template).toBeDefined()
+    if (!template) throw new Error('web-tanstackstart-kids template not found in registry')
+
+    const targetDir = join(tmpDir, 'my-kids-app')
+    const result = scaffoldProject({
+      targetDir,
+      name: 'my-kids-app',
+      template,
+      packageManager: 'pnpm',
+      dataLayer: 'sqlite',
+    })
+
+    expect(result.ok).toBe(true)
+    expect(existsSync(join(targetDir, 'src', 'components', 'kids', 'KidShell.tsx'))).toBe(true)
+    expect(
+      existsSync(join(targetDir, 'src', 'components', 'appearance', 'themes', 'kids-sprout.css')),
+    ).toBe(true)
+    expect(
+      existsSync(join(targetDir, 'src', 'features', 'activity-progress', '__contract__.ts')),
+    ).toBe(true)
+    expect(existsSync(join(targetDir, 'src', 'features', 'hello'))).toBe(false)
+    expect(existsSync(join(targetDir, 'docs', 'child-safety.md'))).toBe(true)
+    expect(existsSync(join(targetDir, 'docs', 'reference', 'animal-island-ui.md'))).toBe(true)
+
+    const pkg = JSON.parse(readFileSync(join(targetDir, 'package.json'), 'utf-8')) as {
+      dependencies?: Record<string, string>
+      devDependencies?: Record<string, string>
+      engines?: { pnpm?: string }
+    }
+
+    expect(pkg.engines?.pnpm).toBe('>=10.34.5 <13')
+    expect(pkg.dependencies?.['animal-island-ui']).toBeUndefined()
+    expect(pkg.dependencies?.['naive-icons']).toBeUndefined()
+    expect(pkg.devDependencies?.['animal-island-ui']).toBeUndefined()
+    expect(pkg.devDependencies?.['naive-icons']).toBeUndefined()
+  })
+
   it('rejects a data layer not declared by the template before writing files', () => {
     const template = getTemplate('web-tanstackstart')
     if (!template) throw new Error('web-tanstackstart template not found in registry')

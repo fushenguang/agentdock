@@ -2,6 +2,7 @@ import { join, isAbsolute, resolve } from 'path'
 import { getTemplate, PACKAGE_MANAGERS, type PackageManager } from '../core/registry.js'
 import { scaffoldProject } from '../core/scaffold.js'
 import { INIT_MODES, isInitMode } from '../core/workspace.js'
+import { normalizeIntegrations } from '../core/integrations.js'
 
 export interface AgentAdapterOptions {
   name: string
@@ -23,6 +24,8 @@ export interface AgentAdapterOptions {
    * package name) is unaffected either way. Omitted => falls back to `name`.
    */
   displayName?: string
+  /** Optional integration IDs to compose onto the selected template. */
+  integrations?: string | string[]
 }
 
 function emit(obj: unknown, json: boolean): void {
@@ -56,6 +59,7 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
     dataLayer,
     schema,
     displayName,
+    integrations: requestedIntegrations,
   } = opts
 
   const output = json || silent
@@ -131,6 +135,8 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
     return
   }
 
+  const integrations = normalizeIntegrations(requestedIntegrations)
+
   const targetDir = dir
     ? isAbsolute(dir)
       ? dir
@@ -152,6 +158,7 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
       ? { schema: schema ?? 'public' }
       : {}),
     ...(displayName !== undefined ? { displayName } : {}),
+    ...(integrations.length > 0 ? { integrations } : {}),
   })
 
   if (output) {

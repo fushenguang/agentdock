@@ -1,0 +1,12 @@
+schema: spec-driven
+created: 2026-09-28
+goal: "Expand the existing web-tanstackstart-kids template with a child-oriented
+  component visual layer while keeping Astryx as the component, interaction,
+  keyboard, focus, ARIA, SSR, and theme kernel. Analyze animal-island-ui,
+  naive-icons, and Astryx source before implementation; use references for
+  design direction only and never add them as runtime dependencies. Deliver the
+  phase-one component set across sprout/explorer/creator and light/dusk with
+  demos, unit tests, a11y tests, and visual snapshots. Preserve existing Button
+  hard shadow, ProgressBar track/fill fixes, and original KidIcon direction.
+  Final gates: pnpm check:full and openspec validate --strict. Do not push or
+  auto-archive."

@@ -19,6 +19,18 @@ npx @cogito.ai/cli init \
 
 使用 `--data-layer supabase` 可生成 Supabase Postgres 的环境变量模板。选择结果会写入 `.env.example` 的 `DATA_PROVIDER`。
 
+可通过以下参数追加可选的 Mastra agent/workflow runtime：
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-internal-app \
+  --template web-tanstackstart \
+  --data-layer sqlite \
+  --integrations mastra
+```
+
+生成后的 Mastra API 挂载在 `/api`，包含一个 agent 和一个确定性 workflow；UI 与交互内核仍然是 Astryx。默认不加入 Mastra Memory、LibSQL、DuckDB 或第二套持久化层。
+
 模板支持 pnpm `>=10.34.5 <13`，推荐 12.4.1。生成项目不写精确 `packageManager` pin，因此不会触发 pnpm 自动版本切换；CLI 仍会强制模板只使用 pnpm。
 
 ### 嵌入已有 pnpm workspace
@@ -57,6 +69,8 @@ pnpm dev
 ```
 
 `pnpm dev` 会在启动 Vite 前自动执行待应用的 SQLite migration。生产环境执行 `pnpm start` 时不会隐式迁移，应在部署流程中显式执行 migration。
+
+启用 Mastra 后，只有 agent generate/stream 需要 `OPENAI_API_KEY`；`GET /api/agents` 与 `GET /api/workflows` 无需模型密钥即可工作。生成的 `src/mastra/auth.ts` 是开发态默认放行 hook，生产暴露 `/api` 前必须替换为真实授权检查。扩展和安全边界见生成项目内的 `docs/mastra.md`。
 
 访问 `http://localhost:3000`，根路径会跳转到默认的简体中文页面 `http://localhost:3000/zh-CN`；参考 feature 位于 `/zh-CN/hello`。
 

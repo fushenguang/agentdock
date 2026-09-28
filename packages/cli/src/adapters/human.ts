@@ -8,12 +8,14 @@ import {
 } from '../core/registry.js'
 import { scaffoldProject } from '../core/scaffold.js'
 import { INIT_MODES, isInitMode, type InitMode } from '../core/workspace.js'
+import { normalizeIntegrations } from '../core/integrations.js'
 
 export interface HumanAdapterOptions {
   /** Explicit target directory. Absolute or relative to cwd. Defaults to ./<name>. */
   dir?: string
   /** Placement mode. Defaults to auto detection. */
   mode?: string
+  integrations?: string | string[]
 }
 
 export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<void> {
@@ -142,6 +144,7 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
   const spinner = p.spinner()
   spinner.start('Scaffolding project...')
 
+  const integrations = normalizeIntegrations(opts.integrations)
   const result = scaffoldProject({
     targetDir,
     name: projectName as string,
@@ -150,6 +153,7 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
     mode: mode as InitMode,
     dataLayer: dataLayer as string,
     ...(schemaName !== undefined ? { schema: schemaName } : {}),
+    ...(integrations.length > 0 ? { integrations } : {}),
   })
 
   if (!result.ok) {

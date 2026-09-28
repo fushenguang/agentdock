@@ -1,0 +1,113 @@
+---
+title: web-tanstackstart-kids Usage
+description: Create, run, verify, theme, and extend the child-oriented TanStack Start template.
+---
+
+# Usage
+
+## Create And Run
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-kids-app \
+  --template web-tanstackstart-kids \
+  --data-layer sqlite \
+  --pm pnpm
+
+cd my-kids-app
+cp .env.example .env
+npx --yes pnpm@12.4.1 install
+npx --yes pnpm@12.4.1 dev
+```
+
+Add the optional Mastra runtime without changing the child UI kernel:
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-kids-app \
+  --template web-tanstackstart-kids \
+  --data-layer sqlite \
+  --integrations mastra
+```
+
+The Mastra API is server-only and mounted at `/api`. It adds no `animal-island-ui`, `naive-icons`, child profile storage, or automatic memory. The generated auth hook must be replaced with an explicit authorization decision before production exposure.
+
+The project supports pnpm `>=10.34.5 <13` and recommends `12.4.1`. Generated projects do not write an exact `packageManager` pin.
+
+## Child Experience
+
+The visual theme and the age profile are separate contracts.
+
+- `kids-sprout`, `kids-explorer`, and `kids-creator` are prebuilt Astryx themes.
+- `sprout`, `explorer`, and `creator` resolve to semantic capabilities.
+- `ChildExperienceProvider` selects the theme and exposes `useChildExperience()`.
+- The profile cookie stores only `ageBand.mode`, for example `explorer.system`.
+
+Do not branch feature behavior on raw age. Use capabilities such as target size, choice count, reading support, motion, guidance, confirmation, and timeout policy.
+
+## Theme Development
+
+Theme source lives in `src/components/appearance/themes/`.
+
+```bash
+pnpm theme:build
+pnpm theme:check
+```
+
+The generated `.js`, `.css`, `.d.ts`, and `.variants.d.ts` files are committed and must stay in sync with source. Do not edit them by hand.
+
+## Components
+
+Use the first-party child wrappers for repeated child semantics:
+
+- `KidShell`
+- `KidPageHeader`
+- `KidActionCard`
+- `KidChoice`
+- `KidProgress`
+- `KidState`
+- `KidIllustration`
+- `KidReadAlong`
+- `GuardianGate`
+
+For everything else, use Astryx components and semantic tokens first.
+
+## Safety And Privacy
+
+The default template contains no advertising, third-party behavioral tracking, social feed, public child profile, exact age, streak pressure, or random reward loop. Use `GuardianGate` for external links, purchases, sensitive requests, or consequential settings.
+
+When Mastra is enabled, do not send precise age, birth dates, child profiles, or other identifying child data through agent prompts or tools by default. UI-triggered external or consequential agent actions must still pass through the child template's guardian boundary.
+
+See the template's `docs/child-safety.md` and `docs/reference/animal-island-ui.md` after generation.
+
+## Verification
+
+```bash
+pnpm test
+pnpm test:a11y
+pnpm theme:check
+pnpm assets:check
+pnpm boundaries:check
+pnpm check-types
+pnpm lint
+pnpm format:check
+pnpm build
+pnpm check
+pnpm check:full
+```
+
+`pnpm check` is the standard acceptance gate. `pnpm check:full` adds visual regression and bundle budgets.
+
+## Adding A Feature
+
+1. Add shared types or repository contracts under `src/core`.
+2. Create `src/features/<name>/__contract__.ts`.
+3. Keep the public API in `src/features/<name>/index.ts`.
+4. Keep data access behind the repository provider.
+5. Add the route under `src/routes/$locale/`.
+6. Compose Astryx primitives and the shared child components.
+7. Add user-facing copy to every locale catalog.
+8. Add tests for age capability behavior, accessibility, and state handling.
+9. Run `pnpm check` before finishing.
+
+Do not fork Astryx or import `animal-island-ui`/`naive-icons` as runtime dependencies.

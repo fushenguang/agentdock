@@ -1,0 +1,38 @@
+{
+  "id": "mastra",
+  "name": "Mastra",
+  "description": "Opt-in Mastra agent and deterministic workflow runtime for the TanStack Start templates.",
+  "compatibleTemplates": [
+    "web-tanstackstart",
+    "web-tanstackstart-kids"
+  ],
+  "filesRoot": "files",
+  "dependencies": {
+    "@mastra/core": "^1.71.0",
+    "@mastra/tanstack-start": "^0.2.29",
+    "hono": "^4.13.10",
+    "zod": "^4.6.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "dev": "pnpm dev:prepare && vite dev --config vite.config.mastra.ts --host --port 3000 --strictPort",
+    "build": "pnpm generate-routes && vite build --config vite.config.mastra.ts",
+    "preview": "vite preview --config vite.config.mastra.ts --host --port 3000 --strictPort"
+  },
+  "textAppends": [
+    {
+      "path": ".env.example",
+      "marker": "# AgentDock Mastra integration",
+      "content": "\n# AgentDock Mastra integration\n# Required for agent generation and streaming; not needed to start or list resources.\nOPENAI_API_KEY=\nMASTRA_MODEL=openai/gpt-5-mini\n"
+    },
+    {
+      "path": "README.md",
+      "marker": "<!-- agentdock:mastra -->",
+      "content": "\n<!-- agentdock:mastra -->\n\n## Mastra Integration\n\nThis project was generated with `--integrations mastra`. The Mastra API is mounted at `/api`,\nand the runtime source lives in `src/mastra`. See `docs/mastra.md` for endpoints,\nauthentication hardening, and extension rules.\n"
+    }
+  ],
+  "standaloneLockfiles": {
+    "web-tanstackstart": "lockfiles/web-tanstackstart/pnpm-lock.yaml",
+    "web-tanstackstart-kids": "lockfiles/web-tanstackstart-kids/pnpm-lock.yaml"
+  }
+}

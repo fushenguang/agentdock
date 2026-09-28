@@ -46,15 +46,16 @@ pnpm add -g @cogito.ai/cli
 - **TTY 环境** → 交互模式（人类开发者）
 - **非 TTY 环境 / `--silent` / `--json`** → 无头模式（Agent/CI）
 
-| Flag         | 类型    | 默认值     | 说明                                          |
-| ------------ | ------- | ---------- | --------------------------------------------- |
-| `--name`     | string  | 必填       | 项目名称，也是目标目录名                      |
-| `--template` | string  | 必填       | 模板 ID，如 `web-nextjs`                      |
-| `--pm`       | string  | `pnpm`     | 包管理器：`pnpm` / `npm` / `yarn` / `bun`     |
-| `--dir`      | string  | `./<name>` | 目标目录（绝对路径或相对 cwd）                |
-| `--mode`     | string  | `auto`     | 放置模式：`auto` / `workspace` / `standalone` |
-| `--json`     | boolean | `false`    | 以 NDJSON 格式输出结果                        |
-| `--silent`   | boolean | `false`    | 静默模式，抑制所有输出                        |
+| Flag             | 类型    | 默认值     | 说明                                                       |
+| ---------------- | ------- | ---------- | ---------------------------------------------------------- |
+| `--name`         | string  | 必填       | 项目名称，也是目标目录名                                   |
+| `--template`     | string  | 必填       | 模板 ID，如 `web-nextjs`                                   |
+| `--pm`           | string  | `pnpm`     | 包管理器：`pnpm` / `npm` / `yarn` / `bun`                  |
+| `--dir`          | string  | `./<name>` | 目标目录（绝对路径或相对 cwd）                             |
+| `--mode`         | string  | `auto`     | 放置模式：`auto` / `workspace` / `standalone`              |
+| `--integrations` | string  | 空         | 可选 integration ID，可重复或用逗号分隔；当前支持 `mastra` |
+| `--json`         | boolean | `false`    | 以 NDJSON 格式输出结果                                     |
+| `--silent`       | boolean | `false`    | 静默模式，抑制所有输出                                     |
 
 `--mode auto` 会向上探测最近的 pnpm workspace，并判断目标是否匹配其 `packages` glob。workspace member 不复制 `pnpm-workspace.yaml`、`pnpm-lock.yaml`、`.npmrc`，并移除子包 `packageManager` / `engines.pnpm`。根 `allowBuilds` 变更通过 `requiredRootChanges` 返回，CLI 不会自动修改根配置。
 
@@ -67,6 +68,7 @@ pnpm add -g @cogito.ai/cli
   "name": "my-app",
   "template": "web-nextjs",
   "mode": "standalone",
+  "integrations": ["mastra"],
   "lockfileOwner": "/path/to/my-app/pnpm-lock.yaml",
   "requiredRootChanges": [],
   "rootConfigConflicts": []
@@ -83,7 +85,7 @@ pnpm add -g @cogito.ai/cli
 }
 ```
 
-**错误码：** `MISSING_ARG` · `TEMPLATE_NOT_FOUND` · `TARGET_DIR_EXISTS` · `CLI_VERSION_OUTDATED` · `SCAFFOLD_FAILED` · `INVALID_MODE` · `WORKSPACE_MODE_UNSUPPORTED` · `WORKSPACE_NOT_MATCHED` · `WORKSPACE_STANDALONE_CONFLICT` · `WORKSPACE_CONFIG_INVALID` · `WORKSPACE_PACKAGE_MANAGER_INCOMPATIBLE` · `WORKSPACE_NODE_INCOMPATIBLE`
+**错误码：** `MISSING_ARG` · `TEMPLATE_NOT_FOUND` · `TARGET_DIR_EXISTS` · `CLI_VERSION_OUTDATED` · `SCAFFOLD_FAILED` · `INVALID_MODE` · `WORKSPACE_MODE_UNSUPPORTED` · `WORKSPACE_NOT_MATCHED` · `WORKSPACE_STANDALONE_CONFLICT` · `WORKSPACE_CONFIG_INVALID` · `WORKSPACE_PACKAGE_MANAGER_INCOMPATIBLE` · `WORKSPACE_NODE_INCOMPATIBLE` · `INVALID_INTEGRATION` · `INTEGRATION_NOT_SUPPORTED` · `INTEGRATION_CONFLICT`
 
 ---
 
@@ -97,10 +99,10 @@ agentdock mcp
 
 **工具列表：**
 
-| 工具               | 说明                 |
-| ------------------ | -------------------- |
-| `list_templates`   | 列出所有可用模板     |
-| `scaffold_project` | 脚手架项目到目标目录 |
+| 工具               | 说明                                    |
+| ------------------ | --------------------------------------- |
+| `list_templates`   | 列出模板及兼容的 integration ID         |
+| `scaffold_project` | 使用与 headless init 相同的输入生成项目 |
 
 **VS Code Copilot MCP 配置（`.vscode/mcp.json`）：**
 

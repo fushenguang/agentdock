@@ -1,0 +1,49 @@
+---
+title: web-tanstackstart-kids 模板
+description: 基于 Astryx、年龄体验档案与 Drizzle 的儿童向 TanStack Start 模板。
+---
+
+# web-tanstackstart-kids 模板
+
+`web-tanstackstart-kids` 是独立儿童向 Web 模板。它保留 `web-tanstackstart` 的 TanStack Start、React、Astryx、StyleX、Drizzle、i18n 和 SSR 基础，但把企业后台式的表现和交互默认值替换为 Child Experience System。
+
+它不是 `animal-island-ui` 的换皮。Astryx 仍然是组件与交互内核；模板独立定义主题、年龄档案、儿童组件、内容语气、安全边界和验证体系。
+
+## 能力
+
+| 层级     | 能力                                                                 |
+| -------- | -------------------------------------------------------------------- |
+| 视觉语言 | 温暖、安全、鼓励、活泼、平静的原创儿童主题族                         |
+| 年龄档案 | `sprout`、`explorer`、`creator` 预设，解析为语义能力                 |
+| 交互     | 目标尺寸、密度、选项数、导航深度、确认、撤销、超时、引导             |
+| 可访问性 | Astryx 键盘 / 焦点 / ARIA、reduced motion、文本替代、axe 检查        |
+| 组件     | 儿童 Shell、页面头、操作卡片、选择、进度、状态、读伴、家长确认       |
+| 安全     | 只保存粗略年龄；默认无追踪、广告、社交信息流；重要操作走家长边界     |
+| 数据     | 默认 Drizzle SQLite，可选 Supabase Postgres                          |
+| 验证     | 主题新鲜度、单元、axe、SSR/构建、视觉矩阵、资产 provenance、包体预算 |
+
+## 年龄档案
+
+| 档案       | 大致年龄 | 默认姿态                               |
+| ---------- | -------: | -------------------------------------- |
+| `sprout`   |      3–5 | 大控件、宽松布局、音频优先、一级导航   |
+| `explorer` |      6–8 | 图文音结合、两级导航、适度探索         |
+| `creator`  |     9–12 | 文字优先、更多自主性、更聚焦、音频按需 |
+
+模板只保存粗略档案，例如 `explorer.system`，不保存生日。Feature 组件读取能力，而不是直接读取年龄。
+
+## Astryx 边界
+
+Astryx 负责组件行为、焦点、键盘交互、ARIA、选择、弹层、校验、进度播报和 SSR 主题。儿童模板只增加主题、语义包装、插画、内容政策和体验能力。不得 fork、swizzle 或 patch Astryx 核心。
+
+## 创建项目
+
+```bash
+npx @cogito.ai/cli init \
+  --name my-kids-app \
+  --template web-tanstackstart-kids \
+  --data-layer sqlite \
+  --pm pnpm
+```
+
+开发、主题重建、验证和扩展规则见 [使用指南](./usage)。

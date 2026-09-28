@@ -1,0 +1,53 @@
+---
+title: 组件视觉层
+description: 第一、二阶段儿童组件视觉层、Astryx 所有权边界与验证方式。
+---
+
+# 组件视觉层
+
+儿童模板为常用控件、表单表面、数据视图、媒体状态和反馈提供第一、二阶段视觉层。它通过语义主题、Astryx 支持的组件 target、`xstyle`、slot，以及两个非交互 wrapper 扩展 Astryx。
+
+生成后的应用中，可在 `/{locale}/components` 查看组件展示页。
+
+## 所有权映射
+
+| 儿童类别            | Astryx 所有者                           | 边界                                    |
+| ------------------- | --------------------------------------- | --------------------------------------- |
+| Button              | `Button`                                | 主题形状，并保留主要按钮硬底阴影        |
+| Checkbox            | `CheckboxInput`、`CheckboxList`         | 指示器与列表 target                     |
+| Radio               | `RadioList`                             | 指示器、行、方向与选中状态 target       |
+| Switch              | `Switch`                                | 轨道、滑块、标签、选中与禁用状态 target |
+| Input               | `TextInput`                             | 字段视觉；验证与焦点仍由 Astryx 负责    |
+| Select              | `Selector`                              | 触发器、弹层、选项与状态 target         |
+| Tabs                | `TabList`、`Tab`                        | 标签条、标签、选中指示器与溢出 target   |
+| Collapse            | `Collapsible`                           | 触发器、内容、密度与展开 target         |
+| Tag                 | `Token`                                 | 形状、尺寸与颜色 target                 |
+| Badge               | `Badge`                                 | 变体与标签样式                          |
+| Tooltip             | `Tooltip`                               | 只调整表面视觉                          |
+| Toast               | `Toast`、`ToastViewport`、`useToast`    | 卡片视觉与本地化内容                    |
+| Skeleton/Loading    | `Skeleton`、`Spinner`、`ProgressBar`    | 视觉 target 与 reduced motion           |
+| Empty/Error/Success | `EmptyState`、`FieldStatus`、`KidState` | Astryx 语义加本地化状态文案             |
+| Title ribbon/cloud  | `KidTitleRibbon`                        | 围绕 Astryx 排版的非交互 wrapper        |
+| Background/Pattern  | `KidBackground`                         | 非交互装饰表面                          |
+| Divider             | `Divider`                               | 线条与标签 target                       |
+| Modal/Dialog        | `Dialog`、`DialogHeader`                | 只调整表面视觉；模态行为仍归 Astryx     |
+| Carousel            | `Carousel`                              | 只调整表面视觉；滚动与导航仍归 Astryx   |
+
+## 第二阶段
+
+第二阶段增加 Card、Progress、FormLayout 与基于 Field 的表单组合、DateInput、TimeInput、Timestamp、Table、Pagination、FileInput、Thumbnail、Lightbox、BottomSheet 和 CodeBlock。它们仍然由 Astryx 负责行为，展示页位于 `/{locale}/advanced-components`。
+
+模板默认不加入全局光标替换、倒计时压力或打字机动画。文件和图片示例只在本地演示，并说明分享或上传时需要家长边界。
+
+## 规则
+
+- 优先使用主题 token 和 Astryx 支持的组件 target，再考虑 wrapper。
+- 不得 fork、swizzle、patch 或复制 Astryx 源码。
+- 不得引入 `animal-island-ui`、`naive-icons` 或历史第三方资产。
+- 所有面向用户的文字都必须进入完整语言目录。
+- 必须保留键盘、焦点、ARIA、验证、对话框、通知和轮播行为。
+- 不得手改生成的 theme 产物。
+
+## 验证
+
+每个第一、二阶段组件都有 demo、单元测试、axe 覆盖，以及覆盖萌芽、探索、创造和明暗模式的 Playwright 快照。完整模板 gate 还会检查主题新鲜度、资产、Astryx 边界、reduced motion、SSR 和包体预算。

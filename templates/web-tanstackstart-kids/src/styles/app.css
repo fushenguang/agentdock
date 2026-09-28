@@ -1,0 +1,44 @@
+@layer reset, astryx-base, astryx-theme, product;
+
+@import "../../node_modules/@fontsource-variable/nunito/index.css";
+@import "../../node_modules/@fontsource-variable/noto-sans-sc/index.css";
+@import "../../node_modules/@astryxdesign/core/src/reset.css";
+@import "../../node_modules/@astryxdesign/core/dist/astryx.css";
+@import "../components/appearance/themes/kids-sprout.css";
+@import "../components/appearance/themes/kids-explorer.css";
+@import "../components/appearance/themes/kids-creator.css";
+
+:root {
+  font-family: var(--font-family-body);
+  background: var(--color-background-body);
+  color: var(--color-text-primary);
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-width: 320px;
+  background: var(--color-background-body);
+  color: var(--color-text-primary);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
