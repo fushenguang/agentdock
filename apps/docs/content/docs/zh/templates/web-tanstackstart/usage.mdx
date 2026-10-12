@@ -72,9 +72,9 @@ pnpm dev
 
 启用 Mastra 后，只有 agent generate/stream 需要 `OPENAI_API_KEY`；`GET /api/agents` 与 `GET /api/workflows` 无需模型密钥即可工作。生成的 `src/mastra/auth.ts` 是开发态默认放行 hook，生产暴露 `/api` 前必须替换为真实授权检查。扩展和安全边界见生成项目内的 `docs/mastra.md`。
 
-访问 `http://localhost:3000`，根路径会跳转到默认的简体中文页面 `http://localhost:3000/zh-CN`；参考 feature 位于 `/zh-CN/hello`。
+访问 `http://localhost:3000`，根路径会跳转到默认的简体中文页面 `http://localhost:3000/zh-CN`；一级落地页是 `/zh-CN`，二级参考页是 `/zh-CN/hello`，全局偏好位于 `/zh-CN/settings`。
 
-Shell 内置外观与语言切换器。外观偏好通过同源 Cookie 持久化，使 SSR 能直接输出已选主题、避免闪烁；语言由 URL 前缀表示（`/zh-CN` 为默认，`/en` 为备选）。
+壳层没有顶部栏：导航是底部 pill，外观与语言控件位于 `/{locale}/settings` 路由。外观偏好通过同源 Cookie 持久化，使 SSR 能直接输出已选主题、避免闪烁；语言由 URL 前缀表示（`/zh-CN` 为默认，`/en` 为备选）。
 
 ## 数据库命令
 
@@ -112,7 +112,7 @@ pnpm build
 6. 在 `src/routes/$locale/` 添加路由。
 7. 所有用户可见文案同步加入 `src/i18n/messages.ts` 的全部语言目录。
 8. UI 与主题工作遵循 `DESIGN.md`，并加载对应 Agent Skill。
-9. 页面使用共享的 `TemplateShell`、`PageContainer` 和 `PageHeader`。
+9. 页面组合共享布局原语：一级路由用落地页形态（`PageContainer` + 模块入口），二级页用 `PageShell`，配置与表单放进 `SideDrawer`。
 
 Feature 不得直接 import `infra/db`，必须通过 provider 和仓储契约访问数据。
 
