@@ -38,14 +38,19 @@ The `/{locale}/hello` reference feature demonstrates:
 4. A SQLite implementation by default.
 5. A Supabase Postgres implementation with the same contract.
 
-The default UI is an Astryx `AppShell` with top navigation. Shared layout primitives provide a consistent page container, page header, and route frame for new business features.
+The default UI targets the **App's right-hand panel**, where this Web runs as the auxiliary workbench of the App's coding agent (default ~380px, hard minimum 360px). It is a container-query shell with bottom navigation and no top bar, so no page spends a row repeating the shell:
 
-The shell includes:
+- a **first-level route is a landing**: a visually hidden `h1`, one line of orientation, and module entries that lead one route deeper;
+- a **second-level page uses the one-screen `PageShell` skeleton**: the page itself does not scroll and only its content frame does, so the way back never scrolls away;
+- configuration and forms go into a right-hand `SideDrawer` (no scrim, it does not close on an outside click), and rare actions go into one end-aligned `MoreMenu`;
+- **cards are the exception**: a page is sections and rows, and card chrome is never nested.
+
+Shared layout primitives live in `src/components/layout`: `TemplateShell`, `BottomNav`, `PageContainer`, `PageTopBar`, `PageShell`, `SideDrawer`, and `HorizontalFields`. The shell includes:
 
 - prebuilt Astryx Neutral, Butter, Matcha, and Stone themes;
 - system, light, and dark color modes;
 - locale-prefixed routes for Simplified Chinese (`/zh-CN`, default) and English (`/en`);
-- cookie-backed appearance preferences and a locale switcher that preserves the current page.
+- a `/{locale}/settings` route (the Settings Surface: section navigation plus one scrolling panel) hosting the appearance and language controls, with preferences persisted in a first-party cookie and language switches preserving the current page.
 
 ## Agent Guide
 

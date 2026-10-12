@@ -75,7 +75,8 @@ The standalone project supports pnpm `>=10.34.5 <13` and recommends 12.4.1. The 
 - Change themes through `AppearanceProvider`; use prebuilt Astryx themes and their compiled CSS rather than creating route-local theme stores.
 - Add every user-facing string to all catalogs in `src/i18n/messages.ts` and resolve it with `useTranslator()`.
 - Keep application pages under the `/$locale` route layout unless a route is intentionally global.
-- Keep the interface usable from 320px upward.
+- **Width is the scarcest resource.** This Web is embedded in the App's right-hand panel (~380px, hard minimum 360px), so branch on container queries rather than viewport width and never introduce horizontal scrolling.
+- Build a second-level page on `PageShell` (the one-screen skeleton); put configuration, forms and secondary detail in a `SideDrawer`, rare actions in one end-aligned `MoreMenu`, and keep cards to single, independently enterable units — a page is `Section` + `Divider` + rows, not a wall of boxes.
 - Do not add Tailwind, CSS-in-JS runtimes, or a second component library without approval.
 - Apply the `impeccable` skill before declaring a UI change complete.
 

@@ -38,14 +38,19 @@ src/infra/        Drizzle schema、client、仓储实现与 provider 装配
 4. 默认 SQLite 实现
 5. 使用相同契约的 Supabase Postgres 实现
 
-默认界面使用 Astryx `AppShell` + 顶部导航。共享布局组件统一提供页面容器、页面标题和路由框架，便于快速开发新的业务页面。
+默认界面面向 **App 右侧面板**：Web 嵌入其中，充当 App 内 AI agent 的辅助工作台（默认约 380px，硬下限 360px）。壳层是容器查询（container query）驱动、底部导航、无顶部栏，因此没有页面会再花一行重复壳层：
 
-Shell 默认包含：
+- **一级路由是落地页（index）**：视觉隐藏的 `h1`、一行说明，以及指向下一级路由的模块入口；
+- **二级页使用整屏 `PageShell` 骨架**：页面自身不滚动，只有内容框滚动，返回入口永远不会被滚走；
+- 配置与表单进右侧 `SideDrawer`（不铺蒙版、点外部不关闭），罕见操作收进一个 end 对齐的 `MoreMenu`；
+- **卡片是例外**：页面由分区与行构成，卡片外框永不嵌套。
+
+共享布局原语位于 `src/components/layout`：`TemplateShell`、`BottomNav`、`PageContainer`、`PageTopBar`、`PageShell`、`SideDrawer`、`HorizontalFields`。Shell 默认包含：
 
 - Astryx 预编译 Neutral、Butter、Matcha、Stone 主题；
 - 跟随系统、浅色、深色三种颜色模式；
 - 简体中文（`/zh-CN`，默认）与英文（`/en`）URL 前缀路由；
-- Cookie 持久化外观偏好，以及保留当前页面的语言切换器。
+- `/{locale}/settings` 路由（Settings Surface：分区导航 + 单一滚动面板）承载外观与语言控件，外观偏好用第一方 Cookie 持久化，切换语言保留当前页面。
 
 ## Agent 开发指南
 
