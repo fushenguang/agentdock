@@ -17,6 +17,11 @@ import type { ReactNode } from "react";
  *
  * It is wider than the navigation default (420 rather than 320) so forms are not cramped, and it is
  * capped to the viewport, which makes it panel-wide on the narrow panel that is the normal case.
+ *
+ * Both guarantees are load-bearing, so they were checked with **real input events** (a synthesized
+ * CDP mouse click outside the drawer left it open; Escape closed it): `xstyle` really does land on the
+ * native `<dialog>` (that is why the `::backdrop` rule matches), and `MobileNav` really does dismiss
+ * on `click` and skip it when the event's default is prevented.
  */
 const styles = stylex.create({
   /** Cancel `MobileNav` content's 8px padding and use the same 16px step as the page container. */

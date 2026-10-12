@@ -47,7 +47,13 @@ const styles = stylex.create({
   },
 });
 
-type SortOrder = "newest" | "oldest";
+const SORT_ORDERS = ["newest", "oldest"] as const;
+type SortOrder = (typeof SORT_ORDERS)[number];
+
+/** Narrow a raw control value with a membership check rather than a blind assertion. */
+function isSortOrder(value: string): value is SortOrder {
+  return SORT_ORDERS.some((order) => order === value);
+}
 
 interface HelloWorkspaceProps {
   readonly greetings: readonly Greeting[];
@@ -156,7 +162,9 @@ export function HelloWorkspace({ greetings, onCreate }: HelloWorkspaceProps) {
                   <Selector
                     label={t("agentdock.hello.sort")}
                     value={sort}
-                    onChange={(value) => setSort(value as SortOrder)}
+                    onChange={(value) => {
+                      if (isSortOrder(value)) setSort(value);
+                    }}
                     options={[
                       { value: "newest", label: t("agentdock.hello.sort.newest") },
                       { value: "oldest", label: t("agentdock.hello.sort.oldest") },

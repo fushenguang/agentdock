@@ -75,6 +75,8 @@ export function PageShell({
   isFramed = true,
   children,
 }: PageShellProps) {
+  const body = <div {...stylex.props(styles.body)}>{children}</div>;
+
   return (
     <PageContainer isFullHeight>
       <VisuallyHidden>
@@ -84,13 +86,8 @@ export function PageShell({
         <PageTopBar backHref={backHref} backLabel={backLabel}>
           {actions}
         </PageTopBar>
-        {isFramed ? (
-          <div {...stylex.props(styles.frame)}>
-            <div {...stylex.props(styles.body)}>{children}</div>
-          </div>
-        ) : (
-          <div {...stylex.props(styles.body)}>{children}</div>
-        )}
+        {/* One body definition for both branches, so the scrolling wrapper cannot drift. */}
+        {isFramed ? <div {...stylex.props(styles.frame)}>{body}</div> : body}
       </div>
     </PageContainer>
   );

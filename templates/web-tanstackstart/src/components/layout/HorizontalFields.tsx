@@ -13,8 +13,10 @@ import type { ReactNode } from "react";
  *
  * The grid is `auto` for the label column and `minmax(0, 1fr)` for the control column: a bare `1fr`
  * lets the control's min-content push the label column into wrapping. Astryx collapses the layout
- * below a 480px **viewport**, which is the panel's normal width, so the same grid is re-applied there.
- * Grouped fields share one grid, so their labels line up.
+ * below a 480px **viewport**, and the panel is narrower than that most of the time, so the same grid
+ * is re-applied below 480px of **container** — keyed to the panel like every other breakpoint here,
+ * which also covers a narrow panel inside a wide desktop window. Grouped fields share one grid, so
+ * their labels line up.
  */
 const styles = stylex.create({
   group: {
@@ -23,7 +25,8 @@ const styles = stylex.create({
     gridTemplateColumns: "auto minmax(0, 1fr)",
     gap: "0.75rem 1rem",
     alignItems: "start",
-    "@media (max-width: 480px)": {
+    /** Astryx collapses at a 480px viewport; re-apply the grid at a 480px container. */
+    "@container (max-width: 480px)": {
       display: "grid",
       gridTemplateColumns: "auto minmax(0, 1fr)",
       gap: "0.75rem 1rem",

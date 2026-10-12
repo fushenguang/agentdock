@@ -13,6 +13,12 @@
  * 3. **Vertical first, density follows the width.** Narrow containers use 12px inline padding with a
  *    16px section gap, ≥420px uses 20px/24px; the bottom reserves only the real height of the
  *    floating navigation.
+ *
+ * Height stays viewport-relative (`100dvh`, not a container query) because the host gives this Web its
+ * own viewport — the panel *is* the viewport of the embedded view, so `100dvh` is the panel height.
+ * Two numbers follow from that and must move together: the `4.5rem` reserved below for the floating
+ * navigation, and `PageContainer`'s `isFullHeight` cap `calc(100dvh - 5.75rem)` (this reservation plus
+ * the larger block-start step). Start a comment in the other file before changing either.
  */
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
@@ -40,6 +46,7 @@ const styles = stylex.create({
     paddingInline: "0.75rem",
     paddingBlockStart: "0.75rem",
     // Bottom navigation ≈44px + safe area + gap: reserve that much rather than a fixed 6rem.
+    // Coupled with PageContainer's isFullHeight cap — see the doc comment above before changing it.
     paddingBlockEnd: "4.5rem",
     "@container (min-width: 420px)": {
       paddingInline: "1.25rem",

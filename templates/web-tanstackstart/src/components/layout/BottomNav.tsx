@@ -8,12 +8,14 @@
  * is a slide-out drawer, not a bottom pill, so this is written in StyleX.
  *
  * `items` is the component's only variable surface — add a first-level destination by adding an entry
- * (and a message key) here. First-level routes are landings, so their labels are the destination
- * names, not page headings.
+ * (and a message key) here. Links use the router's **typed** route patterns with `params`, and the
+ * active state comes from `useMatchRoute`, so a route rename is a compile error and a sibling route
+ * that merely shares a prefix (`/hello-admin` next to `/hello`) is never mistaken for the active one.
+ * First-level routes are landings, so their labels are the destination names, not page headings.
  */
 import { useTranslator } from "@astryxdesign/core/i18n";
 import * as stylex from "@stylexjs/stylex";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useMatchRoute } from "@tanstack/react-router";
 import { useCurrentLocale } from "@/i18n";
 
 const styles = stylex.create({
@@ -53,42 +55,35 @@ const styles = stylex.create({
 
 interface NavItem {
   readonly key: string;
-  readonly href: string;
-  /** Active match: the pathname equals `href` (ignoring a trailing slash) or starts with it. */
-  readonly match: (pathname: string) => boolean;
+  readonly to: "/$locale" | "/$locale/hello" | "/$locale/settings";
+  /** The landing is only active on itself; a sub-page stays active on its own children. */
+  readonly isExact: boolean;
 }
 
 export function BottomNav() {
   const locale = useCurrentLocale();
-  const pathname = useLocation({ select: (location) => location.pathname });
   const t = useTranslator();
+  const matchRoute = useMatchRoute();
 
   const items: readonly NavItem[] = [
-    {
-      key: "agentdock.nav.overview",
-      href: `/${locale}`,
-      match: (p) => p === `/${locale}` || p === `/${locale}/`,
-    },
-    {
-      key: "agentdock.nav.hello",
-      href: `/${locale}/hello`,
-      match: (p) => p.startsWith(`/${locale}/hello`),
-    },
-    {
-      key: "agentdock.nav.settings",
-      href: `/${locale}/settings`,
-      match: (p) => p.startsWith(`/${locale}/settings`),
-    },
+    { key: "agentdock.nav.overview", to: "/$locale", isExact: true },
+    { key: "agentdock.nav.hello", to: "/$locale/hello", isExact: false },
+    { key: "agentdock.nav.settings", to: "/$locale/settings", isExact: false },
   ];
 
   return (
     <nav {...stylex.props(styles.nav)} aria-label={t("agentdock.nav.label")}>
       {items.map((item) => {
-        const active = item.match(pathname);
+        // `fuzzy` matches the route and its children by path segment, so `/hello` never matches
+        // `/hello-admin`. The landing is exact so it is not highlighted from a sub-page.
+        const active = Boolean(
+          matchRoute({ to: item.to, params: { locale }, fuzzy: !item.isExact }),
+        );
         return (
           <Link
             key={item.key}
-            to={item.href}
+            to={item.to}
+            params={{ locale }}
             aria-current={active ? "page" : undefined}
             {...stylex.props(styles.item, active && styles.itemActive)}
           >

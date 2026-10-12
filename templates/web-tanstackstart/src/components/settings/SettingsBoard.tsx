@@ -45,6 +45,11 @@ const SECTIONS = [
 
 type SectionId = (typeof SECTIONS)[number]["id"];
 
+/** Narrow a raw control value with a membership check rather than a blind assertion. */
+function isSectionId(value: string): value is SectionId {
+  return SECTIONS.some((candidate) => candidate.id === value);
+}
+
 const styles = stylex.create({
   /** Whole-page column: it does not scroll, so the navigation stays put. */
   pageColumn: {
@@ -155,7 +160,9 @@ export function SettingsBoard() {
           <TabList
             aria-label={t("agentdock.settings.sections")}
             value={section}
-            onChange={(value) => setSection(value as SectionId)}
+            onChange={(value) => {
+              if (isSectionId(value)) setSection(value);
+            }}
             size="sm"
             hasDivider
             xstyle={styles.narrowNav}

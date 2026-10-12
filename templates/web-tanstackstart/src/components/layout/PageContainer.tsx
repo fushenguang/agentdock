@@ -40,6 +40,9 @@ const styles = stylex.create({
      * `4.5rem` for the bottom navigation plus `1.25rem` of `main` block-start padding (the larger
      * of the two density steps), so the cap is `100dvh - 5.75rem`. The narrow step is 8px taller
      * than the cap accounts for, which is acceptable.
+     *
+     * This number is coupled to `TemplateShell` (its `4.5rem` bottom reservation and its density
+     * steps) — change them together.
      */
     maxHeight: "calc(100dvh - 5.75rem)",
   },
