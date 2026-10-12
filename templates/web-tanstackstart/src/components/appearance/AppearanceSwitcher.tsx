@@ -38,7 +38,10 @@ export function AppearanceSwitcher() {
   return (
     <DropdownMenu
       button={{
-        label: t("agentdock.nav.appearance"),
+        // The trigger reports the current value rather than the section name: this control sits
+        // beside a settings row that already carries the visible label, so repeating it would print
+        // the same word twice.
+        label: THEME_OPTIONS[themeName].label,
         variant: "ghost",
         size: "sm",
       }}

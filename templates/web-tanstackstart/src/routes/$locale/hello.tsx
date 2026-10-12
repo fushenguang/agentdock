@@ -1,4 +1,4 @@
-import { GreetingPanel } from "@/components/GreetingPanel";
+import { HelloWorkspace } from "@/components/HelloWorkspace";
 import { createGreeting, listGreetings } from "@/features/hello";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 
@@ -12,7 +12,7 @@ function HelloPage() {
   const router = useRouter();
 
   return (
-    <GreetingPanel
+    <HelloWorkspace
       greetings={greetings}
       onCreate={async (message) => {
         await createGreeting({ data: { message } });
