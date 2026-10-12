@@ -210,7 +210,7 @@ Use `createServerFn` in `server.ts` for browser-callable server behavior.
 
 ### Step 6: add the route
 
-Create `src/routes/$locale/<feature>.tsx`, use a loader or server function, and compose `PageContainer` and `PageHeader`.
+Create `src/routes/$locale/<feature>.tsx`, use a loader or server function, then compose the matching page shape: a landing (`PageContainer` + module entries) for a first-level route, or `PageShell` for a second-level page.
 
 ### Step 7: verify
 
@@ -247,11 +247,15 @@ export const Route = createFileRoute("/$locale/customers")({
 });
 ```
 
+Decide which level the route is, because the two levels have different shapes:
+
+- **A first-level route is a landing (an index).** It carries a `VisuallyHidden` `h1` (the bottom navigation already names it), at most one line of orientation in a `Blockquote`, and the module entries that lead one route deeper. `src/components/OverviewLanding.tsx` is the sample; `BottomNav` owns the destination list.
+- **A second-level route is a one-screen workbench.** Compose `PageShell` (`src/components/layout/PageShell.tsx`): it renders the way back plus this page's action in a `PageTopBar`, and the page itself does not scroll — only the content frame does. `src/components/HelloWorkspace.tsx` is the sample.
+
 1. Keep loaders thin. Put behavior behind the feature boundary.
-2. Render content inside `PageContainer`.
-3. Use `PageHeader` for the page title and description.
-4. Add every visible string to `enCatalog` and `zhCNCatalog` in `src/i18n/messages.ts`.
-5. If the route mutates data and loader output must refresh, call `router.invalidate()`.
+2. Add every visible string to `enCatalog` and `zhCNCatalog` in `src/i18n/messages.ts`.
+3. If the route mutates data and loader output must refresh, call `router.invalidate()`.
+4. If you add a first-level destination, add it to `BottomNav`'s `items` as well.
 
 The `/$locale` layout validates the locale, provides `InternationalizationProvider`, and wraps pages in `TemplateShell`. Global routes outside that layout must provide their own suitable document/i18n handling.
 
@@ -278,16 +282,30 @@ Rules:
 - Do not add Tailwind.
 - Do not write hard-coded theme colors unless the value is intentionally outside the design system.
 - Preserve CSS layer order: `reset < astryx-base < astryx-theme < product`.
-- Support a minimum viewport width of 320px.
-- Keep touch targets at least 44px in touch contexts.
+- **Width is the scarcest resource.** This Web lives in the App's right-hand panel (~380px, hard minimum 360px): branch on **container queries**, never on viewport width, and never introduce horizontal scrolling.
+- **Cards are the exception.** A page is `Section` + `Divider` + `List`/rows. Card chrome stays one level deep and is used only for a discrete, independently enterable unit (a module entry, a record awaiting a decision) — never for a whole form, list or page section, and never nested.
+- **No repeated titles or standing copy.** A first-level route names itself only through a `VisuallyHidden` `h1`; delete the paragraph that merely introduces a section.
 - Include loading, empty, error, disabled, and success states where relevant.
 - Resolve user-facing copy with `useTranslator()` and message keys instead of embedding literals in components.
 
-The layout primitives are:
+The layout primitives live in `src/components/layout/`:
 
-- `TemplateShell`: Astryx `AppShell` + `TopNav`
-- `PageContainer`: standard max width and vertical rhythm
-- `PageHeader`: page title, description, and actions
+- `TemplateShell`: the container-query shell (`container-type: inline-size`) with the bottom navigation.
+- `BottomNav`: the fixed bottom destination pill; its `items` array is the component's only variable surface.
+- `PageContainer`: content width and rhythm; pass `isFullHeight` for a page that must not scroll.
+- `PageTopBar`: the way back plus the page's actions, one row, never scrolls.
+- `PageShell`: the whole one-screen skeleton — `PageTopBar` + one content frame with a fixed `2rem` gap.
+- `SideDrawer`: the right-hand drawer (`MobileNav side="end"`, transparent backdrop, an outside click does not close it).
+- `HorizontalFields`: label-left / control-right group for labels ≤4 characters with plain inputs, selects or switches.
+
+Interaction judgement calls (the full contract is in `DESIGN.md`):
+
+- The page holds the thing itself; configuration, forms and secondary detail go into a `SideDrawer` or a trigger-anchored `Popover`.
+- Rarely used or destructive actions go into one `MoreMenu` with `alignment="end"` and icon + text items — not a row of buttons.
+- Grouped, rarely edited content is a `Collapsible` with `chevronPosition="start"` and an explicit `defaultIsOpen` (Astryx's default is `true`, so collapsing has to be stated).
+- A named choice set is a `Selector`, a binary is a `Switch`, a multi-pick is a `CheckboxList`.
+- Key a list on a stable id, never on editable content — a content-derived key remounts the row on the first keystroke and drops input focus.
+- Icons the Astryx set does not ship are registered with `registerIcons` under the `appdock:*` namespace; do not add an icon dependency.
 
 ## 11. Themes And Localization
 
@@ -320,8 +338,10 @@ Locales use a URL prefix. Simplified Chinese is the default:
 ```text
 /zh-CN
 /zh-CN/hello
+/zh-CN/settings
 /en
 /en/hello
+/en/settings
 ```
 
 `src/routes/$locale.tsx` is the localized layout boundary. It validates the locale, provides Astryx `InternationalizationProvider`, and renders `TemplateShell`. `src/routes/index.tsx` redirects `/` to `DEFAULT_LOCALE`, which is `zh-CN`.
