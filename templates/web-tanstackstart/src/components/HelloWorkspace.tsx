@@ -29,7 +29,8 @@ import { HorizontalFields, PageShell, SideDrawer } from "./layout";
  *   Its row ends in an end-aligned `MoreMenu` (`alignment="end"`, icon + text items) instead of a row
  *   of buttons.
  * - Short labels with plain controls read across in `HorizontalFields`; the message stays a stacked
- *   `TextArea` because it is multi-line.
+ *   `TextArea` because it is multi-line, and the switch stays on its own line because its label
+ *   travels with the track.
  * - The list keys on `greeting.id`. A content-derived key would remount the row as you type and drop
  *   the input's focus.
  */
@@ -65,7 +66,7 @@ export function HelloWorkspace({ greetings, onCreate }: HelloWorkspaceProps) {
 
   // The board's view options are session state: they change what this page shows, and that is all
   // they are for, so they never claim to be stored.
-  const ordered = sort === "newest" ? [...greetings] : [...greetings].reverse();
+  const ordered = sort === "newest" ? greetings : greetings.toReversed();
 
   function resetOptions() {
     setSort("newest");
@@ -161,12 +162,14 @@ export function HelloWorkspace({ greetings, onCreate }: HelloWorkspaceProps) {
                       { value: "oldest", label: t("agentdock.hello.sort.oldest") },
                     ]}
                   />
-                  <Switch
-                    label={t("agentdock.hello.showTime")}
-                    value={showTime}
-                    onChange={setShowTime}
-                  />
                 </HorizontalFields>
+                {/* A switch stays on its own line: its label travels with the track, so it does not
+                    join the label column and would break the group's shared alignment. */}
+                <Switch
+                  label={t("agentdock.hello.showTime")}
+                  value={showTime}
+                  onChange={setShowTime}
+                />
               </Stack>
             </Collapsible>
             <MoreMenu

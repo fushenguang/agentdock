@@ -296,7 +296,7 @@ The layout primitives live in `src/components/layout/`:
 - `PageTopBar`: the way back plus the page's actions, one row, never scrolls.
 - `PageShell`: the whole one-screen skeleton — `PageTopBar` + one content frame with a fixed `2rem` gap.
 - `SideDrawer`: the right-hand drawer (`MobileNav side="end"`, transparent backdrop, an outside click does not close it).
-- `HorizontalFields`: label-left / control-right group for labels ≤4 characters with plain inputs, selects or switches.
+- `HorizontalFields`: label-left / control-right group for labels ≤4 characters with plain inputs or selects. A `Switch` stays on its own line — its label travels with the track and cannot join the label column.
 
 Interaction judgement calls (the full contract is in `DESIGN.md`):
 

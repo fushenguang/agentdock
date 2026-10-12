@@ -21,8 +21,9 @@ import { useCurrentLocale } from "@/i18n";
  * place card chrome is allowed. Nothing is nested inside them, and they hold a title plus one line,
  * no cover art: a template has no business shipping licensed imagery.
  *
- * The column is a container-query grid: one column, then three from a 600px container, **never two**
- * (a 2 + 1 orphan row reads worse than stacking).
+ * The column is a container-query grid: one column in the panel, then one row from a 600px container.
+ * This landing has two entries, so the row is two wide; a **three**-card set would be three wide from
+ * the same breakpoint, because a 2 + 1 orphan row reads worse than stacking.
  */
 const styles = stylex.create({
   entries: {
@@ -30,7 +31,7 @@ const styles = stylex.create({
     gridTemplateColumns: "minmax(0, 1fr)",
     gap: "0.75rem",
     "@container (min-width: 600px)": {
-      gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
       gap: "1rem",
     },
   },

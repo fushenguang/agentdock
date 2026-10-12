@@ -14,8 +14,9 @@
  * - the section's group heading is an `aria-labelledby` for assistive technology, so it is passed to
  *   `SideNavSection` as `isHeaderHidden` rather than dropped (dropping it would lose the group name);
  * - a row is icon + name + description on the left and its control on the right, and the icon is
- *   required on every row so the titles share one vertical line. The control reports the current
- *   value (the theme, the language) rather than repeating the row's name, so nothing is printed twice;
+ *   required on every row so the titles share one vertical line. The row's name is more specific
+ *   than the section's, and the control reports the current value (the theme, the language) rather
+ *   than repeating it, so no word is printed twice;
  * - when the panel narrows, **the whole row** collapses to a single column at one shared width
  *   (`@container (max-width: 480px)`) — rows that wrap on their own contents read as a bug.
  */
@@ -163,7 +164,7 @@ export function SettingsBoard() {
               <Tab
                 key={candidate.id}
                 value={candidate.id}
-                label={t(`agentdock.settings.${candidate.id}.title`)}
+                label={t(`agentdock.settings.section.${candidate.id}`)}
                 icon={<Icon icon={candidate.icon} size="sm" />}
               />
             ))}
@@ -175,7 +176,7 @@ export function SettingsBoard() {
                 {SECTIONS.map((candidate) => (
                   <SideNavItem
                     key={candidate.id}
-                    label={t(`agentdock.settings.${candidate.id}.title`)}
+                    label={t(`agentdock.settings.section.${candidate.id}`)}
                     icon={<Icon icon={candidate.icon} size="sm" color="primary" />}
                     isSelected={candidate.id === section}
                     onClick={() => setSection(candidate.id)}
@@ -185,8 +186,11 @@ export function SettingsBoard() {
             </SideNav>
           </div>
 
+          {/*
+            The panel does not repeat the section name: the navigation directly above already
+            says it, and a second copy is pure noise in a panel this narrow.
+          */}
           <div {...stylex.props(styles.panel)}>
-            <Heading level={2}>{t(`agentdock.settings.${section}.title`)}</Heading>
             {section === "appearance" ? (
               <SettingsRow
                 icon="appdock:appearance"
