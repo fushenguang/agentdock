@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.27.1
+
+### Patch Changes
+
+- d75835c: Pre-approve the `web-tanstackstart` workspace-member build scripts in the `domain-packages` template so the first package creation can install without an interactive `pnpm approve-builds` step.
+
 ## 0.27.0
 
 ### Minor Changes
