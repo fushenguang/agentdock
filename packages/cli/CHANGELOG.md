@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.27.0
+
+### Minor Changes
+
+- f71f871: Add a `domain-packages` standalone template that initializes an empty standards-driven workspace and includes deterministic package creation, agent practice skills, machine-readable package/Web surfaces, and ignored package Web build staging.
+
 ## 0.26.0
 
 ### Minor Changes
