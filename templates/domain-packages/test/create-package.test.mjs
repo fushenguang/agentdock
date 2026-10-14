@@ -89,6 +89,15 @@ test('empty workspace has no business package and passes check', () => {
   }
 })
 
+test('empty workspace pre-approves web-tanstackstart build scripts', () => {
+  const workspaceYaml = readFileSync(join(templateRoot, 'pnpm-workspace.yaml'), 'utf8')
+  assert.match(workspaceYaml, /['"]?@astryxdesign\/cli['"]?:\s*true/)
+  assert.match(workspaceYaml, /['"]?@astryxdesign\/core['"]?:\s*true/)
+  assert.match(workspaceYaml, /better-sqlite3:\s*false/)
+  assert.match(workspaceYaml, /esbuild:\s*true/)
+  assert.match(workspaceYaml, /lightningcss:\s*true/)
+})
+
 test('generator creates a formal Web package with pinned AgentDock CLI', () => {
   const root = workspace()
   try {

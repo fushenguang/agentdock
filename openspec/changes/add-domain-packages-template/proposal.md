@@ -31,9 +31,11 @@ an agent create a conforming package through a deterministic, non-interactive ge
    - adds package-specific dev/check/build commands.
 3. Make formal packages default to `hasWeb: true`; no-Web requires an approved exception.
 4. Add a generic package build staging script that builds Web output into ignored `<id>/web/`.
-5. Register the template in the CLI registry and test standalone scaffolding.
-6. Add bilingual template documentation.
-7. Add a minor changeset so the CLI releases as 0.27.0.
+5. Pre-approve the workspace build scripts required by `web-tanstackstart`.
+6. Register the template in the CLI registry and test standalone scaffolding.
+7. Add bilingual template documentation.
+8. Add a minor changeset so the CLI releases as 0.27.0, followed by a patch release for first-
+   package install reliability.
 
 ## Capabilities
 

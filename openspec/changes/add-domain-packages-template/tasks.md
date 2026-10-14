@@ -7,6 +7,8 @@
 - [x] 1.3 Add the agent practice pack and six golden-path skills.
 - [x] 1.4 Add workspace check and generic package build staging tools.
 - [x] 1.5 Ignore generated package Web output and generated seed databases.
+- [x] 1.6 Pre-approve the `web-tanstackstart` workspace-member build scripts required by the first
+      generated package.
 
 ## 2. Package generator
 
