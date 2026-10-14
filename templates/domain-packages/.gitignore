@@ -1,0 +1,13 @@
+node_modules/
+.pnpm-store/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.turbo/
+dist/
+*/web/
+*/seed/*.db
+package-spec.json
+

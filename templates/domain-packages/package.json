@@ -1,0 +1,26 @@
+{
+  "name": "@cogito.ai/template-domain-packages",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Empty standards-driven domain-packages workspace with a deterministic package generator, agent practice pack, and optional package Web scaffolding.",
+  "type": "module",
+  "packageManager": "pnpm@12.4.1",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9 <13"
+  },
+  "scripts": {
+    "create:package": "node tools/create-package.mjs",
+    "check": "node tools/check-workspace.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "agentdock": {
+    "minCliVersion": "0.26.0",
+    "packageManagerEnforced": true,
+    "dataLayers": [
+      "none"
+    ],
+    "defaultDataLayer": "none",
+    "supportsSchema": false
+  }
+}

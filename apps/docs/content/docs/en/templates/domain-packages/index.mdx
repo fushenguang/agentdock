@@ -1,0 +1,67 @@
+---
+title: Domain Packages Workspace
+description: Create an empty standards-driven workspace for domain packages and generate a conforming package with a default Web workbench.
+---
+
+# Domain Packages Workspace
+
+The `domain-packages` template initializes a repository that deliberately contains no business package.
+It carries the deterministic package generator, machine-readable schemas, practice pack, and agent
+skills needed to create a formal domain package without reconstructing paths from model memory.
+
+## Create a workspace
+
+```bash
+npx @cogito.ai/cli@0.27.0 init \
+  --name my-domain-packages \
+  --template domain-packages \
+  --dir my-domain-packages \
+  --pm pnpm
+```
+
+## Create the first package
+
+```bash
+cat > package-spec.json <<'JSON'
+{
+  "id": "example-domain",
+  "displayName": "Example Domain",
+  "intent": "Help the user complete one concrete domain outcome with a reviewable artifact.",
+  "owner": "@team",
+  "lifecycle": "active",
+  "repositoryClass": "product",
+  "hasWeb": true
+}
+JSON
+
+pnpm create:package --spec package-spec.json
+pnpm install
+pnpm check
+```
+
+The generator creates:
+
+- package `contract.json`, declarations, truth, upgrade metadata, and system prompt;
+- package-local `AGENTS.md` and `roadmap.yaml`;
+- `agent/surface.json` and `agent/web-surface.json`;
+- a capability catalog;
+- a `web-tanstackstart` package Web project;
+- root `dev`, `check`, and package build commands.
+
+Formal packages default to Web. A no-Web package requires an explicit approved exception.
+
+## Source and artifact boundary
+
+`<package-id>/web/` and generated seed databases are ignored build staging. A release pipeline must
+build them from a clean source clone and include them in an immutable artifact with checksum and
+build metadata.
+
+## Agent boundaries
+
+The template is designed for AI coding agents, but intelligence remains external to the package:
+
+- no package-owned LLM calls;
+- no second agent loop or conversation memory;
+- intent-level Web actions and capabilities, never DOM-selector automation;
+- package-local roadmaps and context;
+- no copying business implementations between packages.

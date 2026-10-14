@@ -1,0 +1,66 @@
+---
+title: Domain Packages 工作区
+description: 初始化一个空的标准化 domain packages 工作区，并通过确定性流程生成带默认 Web 工作台的正式领域包。
+---
+
+# Domain Packages 工作区
+
+`domain-packages` 模板初始化的仓库刻意不包含任何业务 package。它内置确定性建包生成器、
+机器可读 schema、实践包和 agent skills，让 AI Coding Agent 不依赖模型记忆也能创建规范的
+domain package。
+
+## 创建工作区
+
+```bash
+npx @cogito.ai/cli@0.27.0 init \
+  --name my-domain-packages \
+  --template domain-packages \
+  --dir my-domain-packages \
+  --pm pnpm
+```
+
+## 创建第一个 package
+
+```bash
+cat > package-spec.json <<'JSON'
+{
+  "id": "example-domain",
+  "displayName": "Example Domain",
+  "intent": "Help the user complete one concrete domain outcome with a reviewable artifact.",
+  "owner": "@team",
+  "lifecycle": "active",
+  "repositoryClass": "product",
+  "hasWeb": true
+}
+JSON
+
+pnpm create:package --spec package-spec.json
+pnpm install
+pnpm check
+```
+
+生成器会创建：
+
+- package `contract.json`、declarations、truth、upgrade 元数据和 system prompt；
+- package-local `AGENTS.md` 与 `roadmap.yaml`；
+- `agent/surface.json` 与 `agent/web-surface.json`；
+- capability catalog；
+- `web-tanstackstart` 包 Web 项目；
+- 根目录的 `dev`、`check` 和 package build 命令。
+
+正式 package 默认带 Web。无 Web 的正式 package 必须提供明确批准的例外说明。
+
+## 源码与产物边界
+
+`<package-id>/web/` 和生成的 seed database 是被 Git 忽略的构建 staging。发布流水线必须从干净
+源码克隆构建它们，并连同 checksum 与构建元数据放入不可变 artifact。
+
+## Agent 边界
+
+模板面向 AI Coding Agent，但智能仍留在 package 外部：
+
+- 不允许 package 自行调用 LLM；
+- 不允许第二套 agent loop 或对话记忆；
+- Web 交互使用意图级 action 与 capability，禁止 DOM selector 自动化；
+- roadmap 与上下文保持 package-local；
+- 禁止跨 package 复制业务实现。

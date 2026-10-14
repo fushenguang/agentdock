@@ -3,7 +3,7 @@ import { isVersionCompatible, checkVersion } from '../version.js'
 import { scaffoldProject } from '../scaffold.js'
 import { getTemplate, getTemplates } from '../registry.js'
 import type { RegistryTemplate } from '../registry.js'
-import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from 'fs'
+import { mkdirSync, readdirSync, rmSync, writeFileSync, readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
@@ -80,6 +80,28 @@ describe('registry — game-web-phaser template', () => {
     for (const ver of Object.values(template?.resolvedDependencies ?? {})) {
       expect(ver).not.toBe('workspace:*')
     }
+  })
+})
+
+describe('registry — domain-packages template', () => {
+  it('is discoverable with standalone workspace metadata', () => {
+    const template = getTemplate('domain-packages')
+
+    expect(template).toBeDefined()
+    expect(template?.source).toBe('templates/domain-packages')
+    expect(template?.minCliVersion).toBe('0.26.0')
+    expect(template?.packageManager).toBe('pnpm')
+    expect(template?.packageManagerVersion).toBe('12.4.1')
+    expect(template?.packageManagerEnforced).toBe(true)
+    expect(template?.dataLayers).toEqual(['none'])
+    expect(template?.defaultDataLayer).toBe('none')
+    expect(template?.workspaceMember).toBeUndefined()
+    expect(template?.resolvedDependencies).toEqual({})
+  })
+
+  it('is listed among getTemplates()', () => {
+    const ids = getTemplates().map((t) => t.id)
+    expect(ids).toContain('domain-packages')
   })
 })
 
@@ -333,6 +355,43 @@ describe('scaffoldProject', () => {
     const envExample = readFileSync(join(targetDir, '.env.example'), 'utf-8')
     expect(envExample).toContain('DATA_PROVIDER=sqlite')
     expect(envExample).not.toContain('{{DATA_LAYER}}')
+  })
+
+  it('scaffolds an empty domain-packages workspace', () => {
+    const template = getTemplate('domain-packages')
+    expect(template).toBeDefined()
+    if (!template) throw new Error('domain-packages template not found in registry')
+
+    const targetDir = join(tmpDir, 'my-domain-packages')
+    const result = scaffoldProject({
+      targetDir,
+      name: 'my-domain-packages',
+      template,
+      packageManager: 'pnpm',
+      dataLayer: 'none',
+    })
+
+    expect(result.ok).toBe(true)
+    expect(existsSync(join(targetDir, 'tools', 'create-package.mjs'))).toBe(true)
+    expect(existsSync(join(targetDir, 'tools', 'check-workspace.mjs'))).toBe(true)
+    expect(existsSync(join(targetDir, 'tools', 'build-package.mjs'))).toBe(true)
+    expect(existsSync(join(targetDir, 'schemas', 'package-spec.schema.json'))).toBe(true)
+    expect(existsSync(join(targetDir, '.agent', 'practice', 'checks.json'))).toBe(true)
+    expect(existsSync(join(targetDir, 'AGENTS.md'))).toBe(true)
+    const directories = readdirSync(targetDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+      .map((entry) => entry.name)
+      .filter((entry) => !['apps', 'schemas', 'test', 'tools'].includes(entry))
+    expect(directories).toEqual([])
+
+    const pkg = JSON.parse(readFileSync(join(targetDir, 'package.json'), 'utf-8')) as {
+      name?: string
+      private?: boolean
+      agentdock?: unknown
+    }
+    expect(pkg.name).toBe('my-domain-packages')
+    expect(pkg.private).toBeUndefined()
+    expect(pkg.agentdock).toBeUndefined()
   })
 
   it('scaffolds the child-oriented TanStack Start template', () => {
