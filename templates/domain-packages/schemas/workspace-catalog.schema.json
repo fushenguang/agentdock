@@ -74,7 +74,7 @@
           },
           "contextEntry": {
             "type": "string",
-            "minLength": 1
+            "pattern": "^apps/[a-z0-9]+(?:-[a-z0-9]+)*/AGENTS\\.md$"
           },
           "noWebException": {
             "type": "object"

@@ -29,6 +29,7 @@ interface PackageJson {
     dataLayers?: string[]
     defaultDataLayer?: string
     supportsSchema?: boolean
+    supportsDomainPackageOnboarding?: boolean
     workspaceMember?: {
       rootAllowBuilds?: Record<string, boolean>
     }
@@ -51,6 +52,7 @@ interface RegistryTemplate {
   workspaceMember?: {
     rootAllowBuilds: Record<string, boolean>
   }
+  supportsDomainPackageOnboarding?: boolean
   dataLayers: string[]
   defaultDataLayer: string
   supportsSchema: boolean
@@ -388,6 +390,9 @@ function main(): void {
       packageManagerEnforced: pkg.agentdock?.packageManagerEnforced ?? Boolean(pkg.packageManager),
       ...(engines ? { engines } : {}),
       ...(workspaceMember ? { workspaceMember } : {}),
+      ...(pkg.agentdock?.supportsDomainPackageOnboarding
+        ? { supportsDomainPackageOnboarding: true }
+        : {}),
       dataLayers,
       defaultDataLayer: resolveDefaultDataLayer(pkg, dataLayers),
       supportsSchema: pkg.agentdock?.supportsSchema ?? true,

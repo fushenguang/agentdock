@@ -130,6 +130,40 @@ describe('scaffoldProject — workspace placement', () => {
     expect(agents).toContain('Do not run `pnpm install` in this directory')
   })
 
+  it('renders the fixed apps/web target as a standard workspace member', () => {
+    const template = getTemplate('web-tanstackstart')
+    if (!template) throw new Error('web-tanstackstart template not found in registry')
+
+    writeWorkspaceRoot(tmpDir, {
+      allowBuilds:
+        'allowBuilds:\n  @astryxdesign/cli: true\n  @astryxdesign/core: true\n  better-sqlite3: false\n  esbuild: true\n  lightningcss: true\n',
+    })
+    const targetDir = join(tmpDir, 'apps', 'web')
+    const result = scaffoldProject({
+      targetDir,
+      name: 'web',
+      template,
+      packageManager: 'pnpm',
+      mode: 'workspace',
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.mode).toBe('workspace')
+    expect(result.requiredRootChanges).toEqual([])
+    expect(result.rootConfigConflicts).toEqual([])
+
+    const pkg = JSON.parse(readFileSync(join(targetDir, 'package.json'), 'utf8')) as {
+      name?: string
+    }
+    expect(pkg.name).toBe('web')
+
+    const context = JSON.parse(
+      readFileSync(join(targetDir, '.agentdock', 'workspace.json'), 'utf8'),
+    ) as { recommendedCommands: { check: string } }
+    expect(context.recommendedCommands.check).toBe("pnpm --filter 'web' check")
+  })
+
   it('keeps standalone output unchanged outside a workspace', () => {
     const template = getTemplate('web-tanstackstart')
     if (!template) throw new Error('web-tanstackstart template not found in registry')

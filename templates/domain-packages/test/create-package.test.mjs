@@ -52,13 +52,19 @@ function mockNpx(root) {
     file,
     [
       '#!/bin/sh',
-      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.27.0"; then',
+      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.27.1"; then',
       '  echo "expected pinned AgentDock CLI" >&2',
       '  exit 2',
       'fi',
-      'app="apps/new-domain-web"',
+      'for required in "--name web" "--dir apps/web" "--mode workspace"; do',
+      '  if ! printf "%s\\n" "$*" | grep -q -- "$required"; then',
+      '    echo "expected AgentDock workspace target $required" >&2',
+      '    exit 2',
+      '  fi',
+      'done',
+      'app="apps/web"',
       'mkdir -p "$app/src" "$app/scripts"',
-      'printf \'{"name":"new-domain-web","private":true,"scripts":{"dev":"echo dev","check":"node --test","build":"echo build"}}\\n\' > "$app/package.json"',
+      'printf \'{"name":"web","private":true,"scripts":{"dev":"echo dev","check":"node --test","build":"echo build"}}\\n\' > "$app/package.json"',
       'printf "export {}\\n" > "$app/src/placeholder.ts"',
       '',
     ].join('\n'),
@@ -83,7 +89,10 @@ test('empty workspace has no business package and passes check', () => {
       encoding: 'utf8',
     })
     assert.equal(check.status, 0, check.stderr)
-    assert.equal(existsSync(join(root, 'new-domain')), false)
+    assert.equal(existsSync(join(root, 'apps', 'new-domain')), false)
+    assert.equal(existsSync(join(root, 'openspec', 'config.yaml')), true)
+    assert.equal(existsSync(join(root, 'apps', 'docs', 'package.json')), true)
+    assert.equal(existsSync(join(root, 'apps', 'web', '.gitkeep')), true)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
@@ -103,22 +112,75 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
   try {
     const result = createPackage(root, packageSpec(), mockNpx(root))
     assert.equal(result.status, 0, result.stderr)
-    assert.equal(existsSync(join(root, 'new-domain', 'contract.json')), true)
-    assert.equal(existsSync(join(root, 'new-domain', 'agent', 'web-surface.json')), true)
-    assert.equal(existsSync(join(root, 'apps', 'new-domain-web', 'package.json')), true)
-    assert.equal(existsSync(join(root, 'new-domain', 'web')), false)
+    assert.equal(existsSync(join(root, 'apps', 'new-domain', 'contract.json')), true)
+    assert.equal(existsSync(join(root, 'apps', 'new-domain', 'agent', 'web-surface.json')), true)
+    assert.equal(existsSync(join(root, 'apps', 'web', 'package.json')), true)
+    assert.equal(existsSync(join(root, 'apps', 'web', '.gitkeep')), false)
+    assert.equal(existsSync(join(root, 'new-domain')), false)
+    assert.equal(existsSync(join(root, 'apps', 'new-domain', 'web')), false)
 
     const rootPackage = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
-    assert.equal(rootPackage.scripts['dev:new-domain'], 'pnpm --filter new-domain-web dev')
+    assert.equal(rootPackage.scripts['dev:new-domain'], 'pnpm --filter web dev')
     assert.equal(
       rootPackage.scripts['build:new-domain-package'],
       'node tools/build-package.mjs new-domain',
     )
 
+    const catalog = JSON.parse(readFileSync(join(root, 'catalog.json'), 'utf8'))
+    assert.equal(catalog.packages[0].contextEntry, 'apps/new-domain/AGENTS.md')
+
     const check = spawnSync(process.execPath, [checker, '--repo-root', root], {
       encoding: 'utf8',
     })
     assert.equal(check.status, 0, check.stderr)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('explicit generator fields work without a spec file', () => {
+  const root = workspace()
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [
+        generator,
+        '--id',
+        'new-domain',
+        '--intent',
+        'Help the user complete one concrete domain outcome with a reviewable artifact.',
+        '--repo-root',
+        root,
+      ],
+      { encoding: 'utf8', env: mockNpx(root) },
+    )
+    assert.equal(result.status, 0, result.stderr)
+    assert.equal(existsSync(join(root, 'apps', 'new-domain', 'contract.json')), true)
+    assert.equal(existsSync(join(root, 'package-spec.json')), false)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('missing or absent spec input fails with friendly errors', () => {
+  const root = workspace()
+  try {
+    const missing = spawnSync(
+      process.execPath,
+      [generator, '--spec', join(root, 'package-spec.json'), '--repo-root', root],
+      { encoding: 'utf8' },
+    )
+    assert.equal(missing.status, 1)
+    assert.match(missing.stderr, /package spec file not found/)
+    assert.doesNotMatch(missing.stderr, /ENOENT/)
+    assert.equal(existsSync(join(root, 'apps', 'new-domain')), false)
+
+    const noSpec = spawnSync(process.execPath, [generator, '--repo-root', root], {
+      encoding: 'utf8',
+    })
+    assert.equal(noSpec.status, 1)
+    assert.match(noSpec.stderr, /--spec is required in non-interactive mode/)
+    assert.equal(existsSync(join(root, 'apps', 'new-domain')), false)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
@@ -130,7 +192,10 @@ test('formal no-Web package requires an approved exception', () => {
     const result = createPackage(root, packageSpec({ hasWeb: false }))
     assert.equal(result.status, 1)
     assert.match(result.stderr, /noWebException/)
-    assert.equal(existsSync(join(root, 'new-domain')), false)
+    assert.equal(existsSync(join(root, 'apps', 'new-domain')), false)
+    assert.equal(existsSync(join(root, 'openspec', 'config.yaml')), true)
+    assert.equal(existsSync(join(root, 'apps', 'docs', 'package.json')), true)
+    assert.equal(existsSync(join(root, 'apps', 'web', '.gitkeep')), true)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
@@ -141,11 +206,11 @@ test('duplicate package creation fails without overwriting', () => {
   try {
     const env = mockNpx(root)
     assert.equal(createPackage(root, packageSpec(), env).status, 0)
-    const before = readFileSync(join(root, 'new-domain', 'contract.json'), 'utf8')
+    const before = readFileSync(join(root, 'apps', 'new-domain', 'contract.json'), 'utf8')
     const second = createPackage(root, packageSpec(), env)
     assert.equal(second.status, 1)
     assert.match(second.stderr, /already exists/)
-    assert.equal(readFileSync(join(root, 'new-domain', 'contract.json'), 'utf8'), before)
+    assert.equal(readFileSync(join(root, 'apps', 'new-domain', 'contract.json'), 'utf8'), before)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

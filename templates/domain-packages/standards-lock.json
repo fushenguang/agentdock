@@ -1,8 +1,8 @@
 {
   "$schema": "./schemas/standards-lock.schema.json",
-  "templateVersion": "0.1.0",
-  "agentdockCliVersion": "0.27.0",
+  "templateVersion": "0.2.0",
+  "agentdockCliVersion": "0.27.1",
   "standards": {
-    "domain-package-workspace": "0.1.0"
+    "domain-package-workspace": "0.2.0"
   }
 }

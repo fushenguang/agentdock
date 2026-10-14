@@ -30,17 +30,32 @@ function error(message) {
   errors.push(message)
 }
 
-function localPackageRoots() {
-  return readdirSync(workspaceRoot, { withFileTypes: true })
+function packageRoots(directory) {
+  return readdirSync(directory, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
     .map((entry) => entry.name)
-    .filter((id) => existsSync(join(workspaceRoot, id, 'contract.json')))
+    .filter((id) => existsSync(join(directory, id, 'contract.json')))
+}
+
+function localPackageRoots() {
+  const appsRoot = join(workspaceRoot, 'apps')
+  return existsSync(appsRoot) ? packageRoots(appsRoot) : []
 }
 
 const catalogFile = join(workspaceRoot, 'catalog.json')
 const lockFile = join(workspaceRoot, 'standards-lock.json')
 for (const file of [catalogFile, lockFile]) {
   if (!existsSync(file)) error(`missing ${file}`)
+}
+for (const file of [
+  join(workspaceRoot, 'openspec', 'config.yaml'),
+  join(workspaceRoot, 'apps', 'docs', 'package.json'),
+  join(workspaceRoot, 'apps', 'docs', 'README.md'),
+]) {
+  if (!existsSync(file)) error(`missing ${file}`)
+}
+if (!existsSync(join(workspaceRoot, 'apps', 'web'))) {
+  error('missing apps/web directory reservation or Web source project')
 }
 const catalog = existsSync(catalogFile) ? readJson(catalogFile) : { packages: [] }
 const lock = existsSync(lockFile) ? readJson(lockFile) : { standards: {} }
@@ -49,13 +64,13 @@ const ids = new Set()
 for (const entry of catalog.packages) {
   if (ids.has(entry.id)) error(`duplicate catalog id: ${entry.id}`)
   ids.add(entry.id)
-  const packageRoot = join(workspaceRoot, entry.id)
+  const packageRoot = join(workspaceRoot, 'apps', entry.id)
   if (!existsSync(packageRoot)) {
-    error(`missing package root: ${entry.id}`)
+    error(`missing package root: apps/${entry.id}`)
     continue
   }
   for (const file of ['package.json', 'contract.json', 'agent/surface.json', 'roadmap.yaml']) {
-    if (!existsSync(join(packageRoot, file))) error(`${entry.id}/${file} is missing`)
+    if (!existsSync(join(packageRoot, file))) error(`apps/${entry.id}/${file} is missing`)
   }
   try {
     const packageJson = readJson(join(packageRoot, 'package.json'))
@@ -66,8 +81,8 @@ for (const entry of catalog.packages) {
     if (contract.id !== entry.id) error(`${entry.id}: catalog/contract id mismatch`)
     if (contract.hasWeb !== entry.hasWeb) error(`${entry.id}: catalog/contract hasWeb mismatch`)
     if (surface.identity?.packageId !== entry.id) error(`${entry.id}: surface package id mismatch`)
-    if (entry.contextEntry !== `${entry.id}/AGENTS.md`)
-      error(`${entry.id}: context entry must be package-local AGENTS.md`)
+    if (entry.contextEntry !== `apps/${entry.id}/AGENTS.md`)
+      error(`${entry.id}: context entry must be apps/<package-id>/AGENTS.md`)
     if (entry.hasWeb) {
       const webSurfaceFile = join(packageRoot, 'agent', 'web-surface.json')
       if (!existsSync(webSurfaceFile)) {
@@ -85,8 +100,8 @@ for (const entry of catalog.packages) {
           }
         }
       }
-      if (!existsSync(join(workspaceRoot, 'apps', `${entry.id}-web`, 'package.json'))) {
-        error(`${entry.id}: Web source project is missing`)
+      if (!existsSync(join(workspaceRoot, 'apps', 'web', 'package.json'))) {
+        error(`${entry.id}: apps/web source project is missing`)
       }
     } else if (!entry.noWebException) {
       error(`${entry.id}: formal no-Web package lacks exception`)
@@ -113,6 +128,12 @@ for (const entry of catalog.packages) {
 
 for (const id of localPackageRoots()) {
   if (!ids.has(id)) error(`local package missing from catalog: ${id}`)
+}
+
+const webGenerated = existsSync(join(workspaceRoot, 'apps', 'web', 'package.json'))
+const catalogWebPackages = catalog.packages.filter((entry) => entry.hasWeb)
+if (webGenerated && catalogWebPackages.length === 0) {
+  error('apps/web is generated but no catalog package declares hasWeb')
 }
 
 if (!lock.standards?.['domain-package-workspace']) {

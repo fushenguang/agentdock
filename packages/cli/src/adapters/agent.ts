@@ -1,8 +1,10 @@
+import { existsSync } from 'fs'
 import { join, isAbsolute, resolve } from 'path'
 import { getTemplate, PACKAGE_MANAGERS, type PackageManager } from '../core/registry.js'
 import { scaffoldProject } from '../core/scaffold.js'
 import { INIT_MODES, isInitMode } from '../core/workspace.js'
 import { normalizeIntegrations } from '../core/integrations.js'
+import { createDomainPackage, type DomainPackageOnboardingInput } from '../core/domainPackages.js'
 
 export interface AgentAdapterOptions {
   name: string
@@ -26,6 +28,16 @@ export interface AgentAdapterOptions {
   displayName?: string
   /** Optional integration IDs to compose onto the selected template. */
   integrations?: string | string[]
+  /** domain-packages template: explicit first-package id. */
+  domainPackageId?: string
+  /** domain-packages template: explicit first-package intent. */
+  domainPackageIntent?: string
+  /** domain-packages template: optional first-package display name. */
+  domainPackageDisplayName?: string
+  /** domain-packages template: optional first-package owner. */
+  domainPackageOwner?: string
+  /** domain-packages template: package spec path for non-interactive creation. */
+  domainPackageSpec?: string
 }
 
 function emit(obj: unknown, json: boolean): void {
@@ -60,6 +72,11 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
     schema,
     displayName,
     integrations: requestedIntegrations,
+    domainPackageId,
+    domainPackageIntent,
+    domainPackageDisplayName,
+    domainPackageOwner,
+    domainPackageSpec,
   } = opts
 
   const output = json || silent
@@ -80,6 +97,59 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
   if (!template) {
     const err = { ok: false, error: 'TEMPLATE_NOT_FOUND', template: templateId }
     failWith(err, `Error: template "${templateId}" not found`, output)
+    return
+  }
+
+  const hasExplicitDomainFields = Boolean(
+    domainPackageId ?? domainPackageIntent ?? domainPackageDisplayName ?? domainPackageOwner,
+  )
+  const hasDomainPackageInput = Boolean(domainPackageSpec ?? hasExplicitDomainFields)
+
+  if (hasDomainPackageInput && !template.supportsDomainPackageOnboarding) {
+    failWith(
+      {
+        ok: false,
+        error: 'DOMAIN_PACKAGE_INPUT_UNSUPPORTED',
+        template: templateId,
+      },
+      `Error: template "${templateId}" does not support domain-package onboarding input`,
+      output,
+    )
+    return
+  }
+
+  if (template.supportsDomainPackageOnboarding) {
+    if (domainPackageSpec && hasExplicitDomainFields) {
+      failWith(
+        { ok: false, error: 'INVALID_DOMAIN_PACKAGE_INPUT', template: templateId },
+        'Error: use either --domain-package-spec or explicit domain-package fields, not both',
+        output,
+      )
+      return
+    }
+    if (hasExplicitDomainFields && (!domainPackageId || !domainPackageIntent)) {
+      failWith(
+        { ok: false, error: 'INVALID_DOMAIN_PACKAGE_INPUT', template: templateId },
+        'Error: --domain-package-id and --domain-package-intent are required together',
+        output,
+      )
+      return
+    }
+  }
+
+  const domainPackageSpecPath = domainPackageSpec
+    ? resolve(process.cwd(), domainPackageSpec)
+    : undefined
+  if (domainPackageSpecPath && !existsSync(domainPackageSpecPath)) {
+    failWith(
+      {
+        ok: false,
+        error: 'DOMAIN_PACKAGE_SPEC_NOT_FOUND',
+        path: domainPackageSpecPath,
+      },
+      `Error: domain package spec not found: ${domainPackageSpecPath}`,
+      output,
+    )
     return
   }
 
@@ -161,15 +231,48 @@ export async function runAgentAdapter(opts: AgentAdapterOptions): Promise<void> 
     ...(integrations.length > 0 ? { integrations } : {}),
   })
 
-  if (output) {
-    emit(result, true)
-  } else if (result.ok) {
-    console.log(`✓ Project created at ${targetDir}`)
-  } else {
-    console.error(`✗ ${result.message}`)
+  if (!result.ok) {
+    if (output) emit(result, true)
+    else console.error(`✗ ${result.message}`)
+    process.exitCode = 1
+    return
   }
 
-  if (!result.ok) {
-    process.exitCode = 1
+  if (hasDomainPackageInput) {
+    const domainInput: DomainPackageOnboardingInput = {
+      ...(domainPackageSpecPath ? { spec: domainPackageSpecPath } : {}),
+      ...(domainPackageId ? { id: domainPackageId } : {}),
+      ...(domainPackageIntent ? { intent: domainPackageIntent } : {}),
+      ...(domainPackageDisplayName ? { displayName: domainPackageDisplayName } : {}),
+      ...(domainPackageOwner ? { owner: domainPackageOwner } : {}),
+    }
+    const domainResult = createDomainPackage({
+      targetDir,
+      input: domainInput,
+      quiet: output,
+    })
+
+    if (!domainResult.ok) {
+      failWith(
+        { ...domainResult, scaffoldResult: result },
+        `✗ ${domainResult.message}${domainResult.stderr ? `\n${domainResult.stderr}` : ''}`,
+        output,
+      )
+      return
+    }
+
+    if (output) {
+      emit({ ...result, domainPackage: domainResult }, true)
+    } else {
+      console.log(`✓ Project created at ${targetDir}`)
+      console.log(`✓ Domain package created at ${domainResult.packagePath}`)
+    }
+    return
+  }
+
+  if (output) {
+    emit(result, true)
+  } else {
+    console.log(`✓ Project created at ${targetDir}`)
   }
 }

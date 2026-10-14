@@ -11,8 +11,8 @@ if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(packageId ?? '')) {
   process.exit(1)
 }
 
-const appRoot = join(repositoryRoot, 'apps', `${packageId}-web`)
-const packageRoot = join(repositoryRoot, packageId)
+const appRoot = join(repositoryRoot, 'apps', 'web')
+const packageRoot = join(repositoryRoot, 'apps', packageId)
 const outputRoot = join(packageRoot, 'web')
 
 for (const requiredPath of [
@@ -27,7 +27,7 @@ for (const requiredPath of [
 }
 
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
-const build = spawnSync(pnpm, ['--filter', `${packageId}-web`, 'build'], {
+const build = spawnSync(pnpm, ['--filter', 'web', 'build'], {
   cwd: appRoot,
   stdio: 'inherit',
 })
@@ -56,7 +56,7 @@ writeFileSync(
     {
       packageId,
       packageVersion: packageJson.version,
-      source: `apps/${packageId}-web`,
+      source: 'apps/web',
       specVersion: contract.constraints?.specVersion ?? null,
       protocolVersion: contract.constraints?.protocolVersion ?? null,
       contentVersion: contract.constraints?.contentVersion ?? null,

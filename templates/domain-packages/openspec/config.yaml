@@ -1,0 +1,13 @@
+schema: spec-driven
+
+context: |
+  This repository is a standards-driven domain-packages workspace.
+
+  Directory contract:
+    openspec/ — planning and capability specifications
+    apps/<package-id>/ — one formal domain package
+    apps/docs/ — documentation workspace
+    apps/web/ — the package Web workspace member
+    tools/ — deterministic workspace generators and checks
+
+  Package creation is generator-first. Do not reconstruct package directories manually.
