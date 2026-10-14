@@ -132,5 +132,12 @@ MAY create local staging, but immutable release artifacts SHALL be produced by a
 #### Scenario: Package Web is built locally
 
 - **WHEN** `pnpm build:<package-id>-package` completes
-- **THEN** ignored `<package-id>/web/` staging is created or refreshed
+- **THEN** ignored `apps/<package-id>/web/` staging is created or refreshed
+- **AND** the package `start:web` command launches the fixed `apps/web` workspace member
+- **AND** packaged text output contains no build-machine absolute paths
 - **AND** the source commit remains free of generated output.
+
+#### Scenario: The generated workspace check runs package Web checks
+
+- **WHEN** a package with Web has been generated and `pnpm check` runs
+- **THEN** workspace structure checks and the `web` workspace member checks both execute.

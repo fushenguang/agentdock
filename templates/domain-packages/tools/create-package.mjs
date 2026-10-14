@@ -259,7 +259,7 @@ function packageFiles(spec, standards) {
       version: spec.version,
       description: spec.intent,
       type: 'module',
-      scripts: spec.hasWeb ? { 'start:web': 'node web/server.mjs' } : {},
+      scripts: spec.hasWeb ? { 'start:web': 'pnpm --dir ../.. --filter web start' } : {},
       license: 'Apache-2.0',
     },
     'contract.json': {
@@ -557,6 +557,7 @@ function updateWorkspace(workspaceRoot, spec, standards) {
   rootPackage.scripts ??= {}
   if (spec.hasWeb) {
     rootPackage.scripts[`dev:${spec.id}`] = 'pnpm --filter web dev'
+    rootPackage.scripts.check = 'node tools/check-workspace.mjs && pnpm --filter web check'
     rootPackage.scripts[`check:${spec.id}`] = 'pnpm --filter web check'
     rootPackage.scripts[`build:${spec.id}-package`] = `node tools/build-package.mjs ${spec.id}`
   } else {
