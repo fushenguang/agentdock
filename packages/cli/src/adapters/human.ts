@@ -1,4 +1,5 @@
 import * as p from '@clack/prompts'
+import { existsSync } from 'fs'
 import { join, isAbsolute, resolve } from 'path'
 import {
   getTemplates,
@@ -9,6 +10,7 @@ import {
 import { scaffoldProject } from '../core/scaffold.js'
 import { INIT_MODES, isInitMode, type InitMode } from '../core/workspace.js'
 import { normalizeIntegrations } from '../core/integrations.js'
+import { createDomainPackage, type DomainPackageOnboardingInput } from '../core/domainPackages.js'
 
 export interface HumanAdapterOptions {
   /** Explicit target directory. Absolute or relative to cwd. Defaults to ./<name>. */
@@ -16,6 +18,24 @@ export interface HumanAdapterOptions {
   /** Placement mode. Defaults to auto detection. */
   mode?: string
   integrations?: string | string[]
+  /** domain-packages template: explicit first-package id. */
+  domainPackageId?: string
+  /** domain-packages template: explicit first-package intent. */
+  domainPackageIntent?: string
+  /** domain-packages template: optional first-package display name. */
+  domainPackageDisplayName?: string
+  /** domain-packages template: optional first-package owner. */
+  domainPackageOwner?: string
+  /** domain-packages template: optional package spec path. */
+  domainPackageSpec?: string
+}
+
+function defaultDomainDisplayName(id: string): string {
+  return id
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
 }
 
 export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<void> {
@@ -84,6 +104,106 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
     process.exit(0)
   }
 
+  const hasDomainPackageInput = Boolean(
+    opts.domainPackageSpec ??
+    opts.domainPackageId ??
+    opts.domainPackageIntent ??
+    opts.domainPackageDisplayName ??
+    opts.domainPackageOwner,
+  )
+  if (hasDomainPackageInput && !template.supportsDomainPackageOnboarding) {
+    p.cancel(`Template "${templateId}" does not support domain-package onboarding input.`)
+    process.exit(1)
+  }
+
+  const hasExplicitDomainFields = Boolean(
+    opts.domainPackageId ??
+    opts.domainPackageIntent ??
+    opts.domainPackageDisplayName ??
+    opts.domainPackageOwner,
+  )
+  let domainPackageInput: DomainPackageOnboardingInput | undefined
+  if (template.supportsDomainPackageOnboarding) {
+    if (opts.domainPackageSpec && hasExplicitDomainFields) {
+      p.cancel('Use either a domain package spec or explicit domain package values, not both.')
+      process.exit(1)
+    }
+    if (hasExplicitDomainFields && (!opts.domainPackageId || !opts.domainPackageIntent)) {
+      p.cancel('Domain package id and intent must be provided together.')
+      process.exit(1)
+    }
+
+    if (opts.domainPackageSpec) {
+      const specPath = resolve(process.cwd(), opts.domainPackageSpec)
+      if (!existsSync(specPath)) {
+        p.cancel(`Domain package spec not found: ${specPath}`)
+        process.exit(1)
+      }
+      domainPackageInput = { spec: specPath }
+    } else if (opts.domainPackageId && opts.domainPackageIntent) {
+      domainPackageInput = {
+        id: opts.domainPackageId,
+        intent: opts.domainPackageIntent,
+        ...(opts.domainPackageDisplayName ? { displayName: opts.domainPackageDisplayName } : {}),
+        ...(opts.domainPackageOwner ? { owner: opts.domainPackageOwner } : {}),
+      }
+    } else {
+      const packageId = await p.text({
+        message: 'Domain package id',
+        placeholder: 'example-domain',
+        defaultValue: '',
+        validate(value) {
+          if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.trim()))
+            return 'Use lowercase kebab-case (for example: example-domain)'
+          return undefined
+        },
+      })
+      if (p.isCancel(packageId)) {
+        p.cancel('Cancelled.')
+        process.exit(0)
+      }
+
+      const packageIntent = await p.text({
+        message: 'One-sentence domain intent',
+        defaultValue: '',
+        validate(value) {
+          if (value.trim().length < 20) return 'Describe the outcome in at least 20 characters'
+          return undefined
+        },
+      })
+      if (p.isCancel(packageIntent)) {
+        p.cancel('Cancelled.')
+        process.exit(0)
+      }
+
+      const displayNameDefault = defaultDomainDisplayName(packageId as string)
+      const packageDisplayName = await p.text({
+        message: 'Display name',
+        defaultValue: displayNameDefault,
+      })
+      if (p.isCancel(packageDisplayName)) {
+        p.cancel('Cancelled.')
+        process.exit(0)
+      }
+
+      const packageOwner = await p.text({
+        message: 'Owner',
+        defaultValue: '@product-team',
+      })
+      if (p.isCancel(packageOwner)) {
+        p.cancel('Cancelled.')
+        process.exit(0)
+      }
+
+      domainPackageInput = {
+        id: packageId as string,
+        intent: packageIntent as string,
+        displayName: (packageDisplayName as string).trim() || displayNameDefault,
+        owner: (packageOwner as string).trim() || '@product-team',
+      }
+    }
+  }
+
   let schemaName: string | undefined = undefined
   if (dataLayer === 'supabase' && template.supportsSchema) {
     const schemaInput = await p.text({
@@ -126,8 +246,11 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
     pm = selectedPackageManager
   }
 
+  const packageSummary = domainPackageInput?.id
+    ? ` and domain package "${domainPackageInput.id}"`
+    : ''
   const confirmed = await p.confirm({
-    message: `Create project "${projectName}" using template "${templateId}"?`,
+    message: `Create project "${projectName}" using template "${templateId}"${packageSummary}?`,
   })
 
   if (p.isCancel(confirmed) || !confirmed) {
@@ -162,7 +285,23 @@ export async function runHumanAdapter(opts: HumanAdapterOptions = {}): Promise<v
     process.exit(1)
   }
 
-  spinner.stop('Done!')
+  spinner.stop('Workspace scaffolded.')
+
+  if (domainPackageInput) {
+    const domainResult = createDomainPackage({
+      targetDir,
+      input: domainPackageInput,
+    })
+    if (!domainResult.ok) {
+      p.cancel(`${domainResult.message}${domainResult.stderr ? `\n${domainResult.stderr}` : ''}`)
+      process.exit(1)
+    }
+    p.log.success(`Created domain package at ${domainResult.packagePath}`)
+    p.outro(`Workspace created at ${targetDir}\n\n  cd ${targetDir}\n  pnpm install\n  pnpm check`)
+    return
+  }
+
+  p.log.success('Done!')
 
   if (result.mode === 'workspace') {
     const shellName = `'${result.name.replaceAll("'", "'\\''")}'`

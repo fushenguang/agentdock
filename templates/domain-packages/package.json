@@ -1,8 +1,8 @@
 {
   "name": "@cogito.ai/template-domain-packages",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Empty standards-driven domain-packages workspace with a deterministic package generator, agent practice pack, and optional package Web scaffolding.",
+  "description": "Empty standards-driven domain-packages workspace with OpenSpec, docs, a deterministic package generator, agent practice pack, and package Web scaffolding.",
   "type": "module",
   "packageManager": "pnpm@12.4.1",
   "engines": {
@@ -21,6 +21,7 @@
       "none"
     ],
     "defaultDataLayer": "none",
-    "supportsSchema": false
+    "supportsSchema": false,
+    "supportsDomainPackageOnboarding": true
   }
 }

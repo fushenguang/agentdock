@@ -6,20 +6,61 @@ description: Create an empty standards-driven workspace for domain packages and 
 # Domain Packages Workspace
 
 The `domain-packages` template initializes a repository that deliberately contains no business package.
-It carries the deterministic package generator, machine-readable schemas, practice pack, and agent
-skills needed to create a formal domain package without reconstructing paths from model memory.
+It carries OpenSpec, a documentation workspace, the deterministic package generator, machine-readable
+schemas, practice pack, and agent skills needed to create a formal domain package without
+reconstructing paths from model memory.
 
-## Create a workspace
+## Create a workspace and first package
+
+Interactive `agentdock init` continues from workspace scaffolding into first-package onboarding. It
+asks for the domain package id and intent, derives sensible display-name/owner defaults, and creates
+the package before returning:
 
 ```bash
-npx @cogito.ai/cli@0.27.0 init \
+npx @cogito.ai/cli@0.27.1 init \
   --name my-domain-packages \
   --template domain-packages \
   --dir my-domain-packages \
   --pm pnpm
 ```
 
-## Create the first package
+Agent/JSON mode remains non-interactive. Pass explicit package fields or a spec:
+
+```bash
+npx @cogito.ai/cli@0.27.1 init \
+  --name my-domain-packages \
+  --template domain-packages \
+  --dir my-domain-packages \
+  --pm pnpm \
+  --json \
+  --domain-package-id example-domain \
+  --domain-package-intent "Help the user complete one concrete domain outcome with a reviewable artifact."
+```
+
+Omit those fields in agent/JSON mode to generate the valid empty workspace.
+
+## Repository layout
+
+```text
+openspec/               # root specification workspace
+apps/<package-id>/      # domain package root
+apps/<package-id>/web/  # ignored build staging
+apps/docs/              # documentation workspace
+apps/web/               # package Web source
+```
+
+## Use the generator in an existing workspace
+
+Run this in an interactive terminal when the workspace already exists:
+
+```bash
+pnpm create:package
+```
+
+The generator asks for the id and intent and applies display-name/owner defaults. It does not require
+a temporary `package-spec.json`.
+
+## Create a package from a spec (agent/CI)
 
 ```bash
 cat > package-spec.json <<'JSON'
@@ -45,14 +86,14 @@ The generator creates:
 - package-local `AGENTS.md` and `roadmap.yaml`;
 - `agent/surface.json` and `agent/web-surface.json`;
 - a capability catalog;
-- a `web-tanstackstart` package Web project;
+- the fixed `apps/web/` `web-tanstackstart` package Web project;
 - root `dev`, `check`, and package build commands.
 
 Formal packages default to Web. A no-Web package requires an explicit approved exception.
 
 ## Source and artifact boundary
 
-`<package-id>/web/` and generated seed databases are ignored build staging. A release pipeline must
+`apps/<package-id>/web/` and generated seed databases are ignored build staging. A release pipeline must
 build them from a clean source clone and include them in an immutable artifact with checksum and
 build metadata.
 

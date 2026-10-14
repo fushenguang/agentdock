@@ -14,7 +14,7 @@
     {
       "id": "generated-output-not-source",
       "title": "Generated output stays out of Git",
-      "check": "Ignore <package>/web/ and generated seed databases; release CI builds them from a clean clone."
+      "check": "Ignore apps/<package>/web/ and generated seed databases; release CI builds them from a clean clone."
     },
     {
       "id": "package-local-roadmap",
@@ -28,4 +28,3 @@
     }
   ]
 }
-

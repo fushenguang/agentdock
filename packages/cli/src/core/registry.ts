@@ -25,6 +25,8 @@ export interface RegistryTemplate {
     pnpm?: string
   }
   workspaceMember?: WorkspaceMemberMetadata
+  /** Template ships the domain-package generator and supports init-time onboarding. */
+  supportsDomainPackageOnboarding?: boolean
   dataLayers: string[]
   defaultDataLayer: string
   supportsSchema: boolean

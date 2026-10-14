@@ -55,6 +55,29 @@ export const initCommand = defineCommand({
       description:
         'Optional integration ID. Repeat the flag or use a comma-separated list (e.g. mastra).',
     },
+    'domain-package-id': {
+      type: 'string',
+      description:
+        'domain-packages template: first domain package id (non-interactive agent/JSON mode)',
+    },
+    'domain-package-intent': {
+      type: 'string',
+      description:
+        'domain-packages template: first domain package intent (non-interactive agent/JSON mode)',
+    },
+    'domain-package-display-name': {
+      type: 'string',
+      description: 'domain-packages template: optional first package display name',
+    },
+    'domain-package-owner': {
+      type: 'string',
+      description: 'domain-packages template: optional first package owner',
+    },
+    'domain-package-spec': {
+      type: 'string',
+      description:
+        'domain-packages template: package-spec.json path for non-interactive first-package creation',
+    },
   },
   async run({ args }) {
     const isTTY = Boolean(process.stdout.isTTY)
@@ -74,10 +97,24 @@ export const initCommand = defineCommand({
         schema: args.schema,
         displayName: args['display-name'],
         integrations: args.integrations,
+        domainPackageId: args['domain-package-id'],
+        domainPackageIntent: args['domain-package-intent'],
+        domainPackageDisplayName: args['domain-package-display-name'],
+        domainPackageOwner: args['domain-package-owner'],
+        domainPackageSpec: args['domain-package-spec'],
       })
     } else {
       const { runHumanAdapter } = await import('../adapters/human.js')
-      await runHumanAdapter({ dir: args.dir, mode: args.mode, integrations: args.integrations })
+      await runHumanAdapter({
+        dir: args.dir,
+        mode: args.mode,
+        integrations: args.integrations,
+        domainPackageId: args['domain-package-id'],
+        domainPackageIntent: args['domain-package-intent'],
+        domainPackageDisplayName: args['domain-package-display-name'],
+        domainPackageOwner: args['domain-package-owner'],
+        domainPackageSpec: args['domain-package-spec'],
+      })
     }
   },
 })

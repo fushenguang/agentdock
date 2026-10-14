@@ -33,7 +33,24 @@
 - [x] 4.2 Run CLI tests, type check, lint, format check, and build.
 - [x] 4.3 Run docs checks and OpenSpec validation.
 - [x] 4.4 Verify the built CLI package contains the template after the CLI build.
-- [ ] 4.5 Complete the normal 0.27.0 release gate.
+- [x] 4.5 Complete the normal 0.27.0 release gate.
+
+## 5. Post-0.27.1 onboarding and layout iteration
+
+- [x] 5.1 Add the root `openspec/`, `apps/docs/`, and `apps/web/` reservation layout without adding
+      a business package.
+- [x] 5.2 Add human-interactive and friendly-error handling to `create-package`, preserving `--spec`
+      as the non-interactive contract.
+- [x] 5.3 Move generated package roots and build staging to `apps/<id>/` and generate package Web at
+      `apps/web/` through standard workspace mode.
+- [x] 5.4 Extend `agentdock init` so human mode creates the first package immediately and
+      agent/JSON mode accepts explicit package arguments or a spec.
+- [x] 5.5 Update workspace checks, tests, registry metadata, agent guidance, README, and bilingual
+      documentation for the new layout and onboarding flow.
+- [x] 5.6 Add a release changeset for the CLI/template iteration without publishing or choosing the
+      release version.
+- [x] 5.7 Run template tests, CLI tests, workspace-mode checks, type/build/lint/docs/OpenSpec gates,
+      and real init/install/check/build smoke tests.
 
 ## Verification log
 
@@ -49,3 +66,12 @@
 - `pnpm changeset:check`, `pnpm arch:check`, and `pnpm secrets:check` — passed (`arch:check` reported two existing template warnings).
 - Prettier check passed for all new/edited files except intentionally unformatted `roadmap.yaml`, which follows its existing hand-authored style.
 - Built `packages/cli/dist/templates/domain-packages/` contains the template and `_gitignore`; built registry exposes `domain-packages`.
+- 0.27.0 was published, followed by the 0.27.1 allowBuilds patch release.
+- Post-0.27.1 iteration: `node --test templates/domain-packages/test/*.test.mjs` — 7/7 passed.
+- Post-0.27.1 iteration: `pnpm --filter @cogito.ai/cli test` — 10 files / 192 tests passed, including explicit-field init, spec init, empty agent init, missing-spec failure, and fixed `apps/web` workspace placement.
+- Post-0.27.1 iteration: `pnpm install`, `pnpm check-types`, `pnpm build`, and `pnpm lint` passed. Lint retained only the existing generated `web-nextjs` warning.
+- Post-0.27.1 docs gates: `pnpm --filter docs lint`, `pnpm --filter docs check-types`, `pnpm docs:check-template-parity`, and the docs build inside `pnpm build` passed.
+- Prettier was run with `pnpm format`; its current repo-wide glob also reformats 142 pre-existing unrelated files, so those unrelated edits were restored. A Prettier check over every file edited by this change passed.
+- Real built-CLI agent smoke with package fields succeeded and generated `apps/smoke-domain/` plus `apps/web/`; real `pnpm install`, `pnpm check`, `pnpm check:smoke-domain`, and `pnpm build:smoke-domain-package` passed. `allowBuilds` produced no required root changes and `apps/smoke-domain/web/` was ignored.
+- Real PTY smoke passed for interactive `agentdock init` package onboarding and for `pnpm create:package` without a spec; both generated `apps/<id>/` and `apps/web/`, and no temporary `package-spec.json` was created.
+- Built `packages/cli/dist/templates/domain-packages/` contains root OpenSpec, `apps/docs/`, the `apps/web/.gitkeep` reservation, and the updated generator; built registry metadata exposes domain-package onboarding.

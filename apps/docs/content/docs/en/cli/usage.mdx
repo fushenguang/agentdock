@@ -46,7 +46,9 @@ npx @cogito.ai/cli init
 1. 输入项目名称（小写字母、数字、连字符）
 2. 选择模板（方向键选择）
 3. 选择包管理器（pnpm 推荐）
-4. 确认创建
+4. 选择数据层与包管理器（模板相关）
+5. 选择 `domain-packages` 时继续输入首个 domain package id 与 intent
+6. 确认创建
 
 创建完成后输出：
 
@@ -72,16 +74,21 @@ agentdock init \
 
 #### Flag 说明
 
-| Flag             | 类型    | 默认值     | 说明                                                                                       |
-| ---------------- | ------- | ---------- | ------------------------------------------------------------------------------------------ |
-| `--name`         | string  | 必填       | 项目名称，也是目标目录名                                                                   |
-| `--template`     | string  | 必填       | 模板 ID，如 `web-nextjs`                                                                   |
-| `--pm`           | string  | `pnpm`     | 包管理器：`pnpm` / `npm` / `yarn` / `bun`                                                  |
-| `--dir`          | string  | `./<name>` | 目标目录（绝对路径或相对于 cwd）                                                           |
-| `--mode`         | string  | `auto`     | Placement mode: `auto` / `workspace` / `standalone`                                        |
-| `--integrations` | string  | 空         | Optional integration ID. Repeat the flag or use a comma-separated list; currently `mastra` |
-| `--json`         | boolean | `false`    | 以 NDJSON 格式输出结果                                                                     |
-| `--silent`       | boolean | `false`    | 抑制所有输出（无声模式）                                                                   |
+| Flag                            | 类型    | 默认值          | 说明                                                                                       |
+| ------------------------------- | ------- | --------------- | ------------------------------------------------------------------------------------------ |
+| `--name`                        | string  | 必填            | 项目名称，也是目标目录名                                                                   |
+| `--template`                    | string  | 必填            | 模板 ID，如 `web-nextjs`                                                                   |
+| `--pm`                          | string  | `pnpm`          | 包管理器：`pnpm` / `npm` / `yarn` / `bun`                                                  |
+| `--dir`                         | string  | `./<name>`      | 目标目录（绝对路径或相对于 cwd）                                                           |
+| `--mode`                        | string  | `auto`          | Placement mode: `auto` / `workspace` / `standalone`                                        |
+| `--integrations`                | string  | 空              | Optional integration ID. Repeat the flag or use a comma-separated list; currently `mastra` |
+| `--domain-package-id`           | string  | 空              | `domain-packages` 模板：首个 package id；必须与 `--domain-package-intent` 成对出现         |
+| `--domain-package-intent`       | string  | 空              | `domain-packages` 模板：一句话领域意图；必须与 `--domain-package-id` 成对出现              |
+| `--domain-package-display-name` | string  | 从 id 推导      | `domain-packages` 模板：可选显示名                                                         |
+| `--domain-package-owner`        | string  | `@product-team` | `domain-packages` 模板：可选 owner                                                         |
+| `--domain-package-spec`         | string  | 空              | `domain-packages` 模板：非交互 `package-spec.json` 路径；不能与显式 package 字段混用       |
+| `--json`                        | boolean | `false`         | 以 NDJSON 格式输出结果                                                                     |
+| `--silent`                      | boolean | `false`         | 抑制所有输出（无声模式）                                                                   |
 
 #### Workspace placement
 
@@ -119,6 +126,19 @@ The CLI does not modify root `allowBuilds` automatically. `requiredRootChanges` 
   "lockfileOwner": "/path/to/my-app/pnpm-lock.yaml",
   "requiredRootChanges": [],
   "rootConfigConflicts": []
+}
+```
+
+如果 `domain-packages` 初始化提供了 package 参数，成功结果还会包含 `domainPackage`：
+
+```json
+{
+  "domainPackage": {
+    "ok": true,
+    "id": "example-domain",
+    "packagePath": "/path/to/my-domain-packages/apps/example-domain",
+    "webPath": "/path/to/my-domain-packages/apps/web"
+  }
 }
 ```
 

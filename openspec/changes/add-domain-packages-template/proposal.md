@@ -27,15 +27,26 @@ an agent create a conforming package through a deterministic, non-interactive ge
    - validates id, intent, owner, lifecycle, residency, and no-Web exception;
    - generates package declarations, system prompt, roadmap, package-local agent context, Agent
      Surface, Web Surface, and capability catalog;
-   - invokes the pinned AgentDock CLI to create `apps/<id>-web` with `web-tanstackstart`;
+   - invokes the pinned AgentDock CLI to create the shared `apps/web` member with
+     `web-tanstackstart`;
    - adds package-specific dev/check/build commands.
-3. Make formal packages default to `hasWeb: true`; no-Web requires an approved exception.
-4. Add a generic package build staging script that builds Web output into ignored `<id>/web/`.
-5. Pre-approve the workspace build scripts required by `web-tanstackstart`.
-6. Register the template in the CLI registry and test standalone scaffolding.
-7. Add bilingual template documentation.
-8. Add a minor changeset so the CLI releases as 0.27.0, followed by a patch release for first-
-   package install reliability.
+3. Make interactive `pnpm create:package` collect the first package id and intent instead of failing
+   when no spec file exists, while retaining explicit `--spec` as the non-interactive contract.
+4. Extend interactive `agentdock init` for this template to collect the package id and intent and run
+   the generator immediately; agent/JSON mode may instead pass explicit package arguments or a spec.
+5. Make formal packages default to `hasWeb: true`; no-Web requires an approved exception.
+6. Use the standard generated workspace layout:
+   - `openspec/` at the repository root;
+   - domain packages under `apps/<package-id>/`;
+   - documentation under `apps/docs/`;
+   - package Web under `apps/web/`.
+7. Add a generic package build staging script that builds Web output into ignored
+   `apps/<id>/web/`.
+8. Pre-approve the workspace build scripts required by `web-tanstackstart`.
+9. Register the template in the CLI registry and test standalone scaffolding and post-scaffold
+   package creation.
+10. Add bilingual template documentation.
+11. Add release changesets without choosing or publishing the next version locally.
 
 ## Capabilities
 
@@ -50,11 +61,12 @@ an agent create a conforming package through a deterministic, non-interactive ge
 
 ## Non-goals
 
-- Do not bundle a business domain package.
+- Do not bundle a business domain package in the empty template.
 - Do not distribute private TheFoolAI hosted-runtime source in the public npm package.
 - Do not implement a package-owned LLM, agent loop, conversation memory, or tool policy.
 - Do not move or migrate existing domain-packages repositories.
-- Do not publish the release from this proposal without the normal release gate.
+- Do not publish a release from this proposal.
+- Do not add an OpenSpec runtime dependency to the generated workspace.
 
 ## Impact
 

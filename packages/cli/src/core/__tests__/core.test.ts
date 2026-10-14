@@ -96,6 +96,7 @@ describe('registry — domain-packages template', () => {
     expect(template?.dataLayers).toEqual(['none'])
     expect(template?.defaultDataLayer).toBe('none')
     expect(template?.workspaceMember).toBeUndefined()
+    expect(template?.supportsDomainPackageOnboarding).toBe(true)
     expect(template?.resolvedDependencies).toEqual({})
   })
 
@@ -378,10 +379,14 @@ describe('scaffoldProject', () => {
     expect(existsSync(join(targetDir, 'schemas', 'package-spec.schema.json'))).toBe(true)
     expect(existsSync(join(targetDir, '.agent', 'practice', 'checks.json'))).toBe(true)
     expect(existsSync(join(targetDir, 'AGENTS.md'))).toBe(true)
+    expect(existsSync(join(targetDir, 'openspec', 'config.yaml'))).toBe(true)
+    expect(existsSync(join(targetDir, 'apps', 'docs', 'package.json'))).toBe(true)
+    expect(existsSync(join(targetDir, 'apps', 'web', '.gitkeep'))).toBe(true)
+    expect(existsSync(join(targetDir, 'apps', 'new-domain'))).toBe(false)
     const directories = readdirSync(targetDir, { withFileTypes: true })
       .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
       .map((entry) => entry.name)
-      .filter((entry) => !['apps', 'schemas', 'test', 'tools'].includes(entry))
+      .filter((entry) => !['apps', 'openspec', 'schemas', 'test', 'tools'].includes(entry))
     expect(directories).toEqual([])
 
     const pkg = JSON.parse(readFileSync(join(targetDir, 'package.json'), 'utf-8')) as {

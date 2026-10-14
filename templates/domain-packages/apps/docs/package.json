@@ -1,0 +1,9 @@
+{
+  "name": "docs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Documentation workspace for this domain-packages repository.",
+  "scripts": {
+    "check": "node ../../tools/check-workspace.mjs"
+  }
+}

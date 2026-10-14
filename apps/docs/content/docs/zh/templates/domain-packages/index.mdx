@@ -5,21 +5,60 @@ description: 初始化一个空的标准化 domain packages 工作区，并通�
 
 # Domain Packages 工作区
 
-`domain-packages` 模板初始化的仓库刻意不包含任何业务 package。它内置确定性建包生成器、
-机器可读 schema、实践包和 agent skills，让 AI Coding Agent 不依赖模型记忆也能创建规范的
-domain package。
+`domain-packages` 模板初始化的仓库刻意不包含任何业务 package。它内置 OpenSpec、文档工作
+区、确定性建包生成器、机器可读 schema、实践包和 agent skills，让人类或 AI Coding Agent
+不依赖模型记忆也能创建规范的 domain package。
 
-## 创建工作区
+## 创建工作区和第一个 package
+
+交互式 `agentdock init` 会在生成 workspace 后继续首个 package onboarding：询问 domain
+package id 与 intent，推导 display name/owner 默认值，并在返回前直接创建 package：
 
 ```bash
-npx @cogito.ai/cli@0.27.0 init \
+npx @cogito.ai/cli@0.27.1 init \
   --name my-domain-packages \
   --template domain-packages \
   --dir my-domain-packages \
   --pm pnpm
 ```
 
-## 创建第一个 package
+Agent/JSON 模式保持非交互。可以显式传入 package 字段或 spec：
+
+```bash
+npx @cogito.ai/cli@0.27.1 init \
+  --name my-domain-packages \
+  --template domain-packages \
+  --dir my-domain-packages \
+  --pm pnpm \
+  --json \
+  --domain-package-id example-domain \
+  --domain-package-intent "Help the user complete one concrete domain outcome with a reviewable artifact."
+```
+
+在 agent/JSON 模式省略这些字段，则会生成合法的空 workspace。
+
+## 仓库结构
+
+```text
+openspec/               # 根目录规范工作区
+apps/<package-id>/      # domain package 根目录
+apps/<package-id>/web/  # 被忽略的构建 staging
+apps/docs/              # 文档工作区
+apps/web/               # package Web 源码
+```
+
+## 在已有工作区使用生成器
+
+如果 workspace 已存在，在交互终端运行：
+
+```bash
+pnpm create:package
+```
+
+生成器会询问 id 与 intent，并应用 display name/owner 默认值，不需要临时创建
+`package-spec.json`。
+
+## 通过 spec 创建 package（agent/CI）
 
 ```bash
 cat > package-spec.json <<'JSON'
@@ -45,14 +84,14 @@ pnpm check
 - package-local `AGENTS.md` 与 `roadmap.yaml`；
 - `agent/surface.json` 与 `agent/web-surface.json`；
 - capability catalog；
-- `web-tanstackstart` 包 Web 项目；
+- 固定在 `apps/web/` 的 `web-tanstackstart` 包 Web 项目；
 - 根目录的 `dev`、`check` 和 package build 命令。
 
 正式 package 默认带 Web。无 Web 的正式 package 必须提供明确批准的例外说明。
 
 ## 源码与产物边界
 
-`<package-id>/web/` 和生成的 seed database 是被 Git 忽略的构建 staging。发布流水线必须从干净
+`apps/<package-id>/web/` 和生成的 seed database 是被 Git 忽略的构建 staging。发布流水线必须从干净
 源码克隆构建它们，并连同 checksum 与构建元数据放入不可变 artifact。
 
 ## Agent 边界

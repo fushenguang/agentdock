@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { createInterface } from 'node:readline/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -11,13 +12,24 @@ function usage() {
   return `Create a conforming domain package.
 
 Usage:
-  pnpm create:package --spec package-spec.json
+  pnpm create:package                              # interactive human mode
+  pnpm create:package --spec package-spec.json     # non-interactive agent/CI mode
+  node tools/create-package.mjs --id example-domain --intent "..." [--display-name ...] [--owner ...]
   node tools/create-package.mjs --spec package-spec.json --repo-root /path/to/workspace
 `
 }
 
 function parseArgs(argv) {
-  const options = { spec: null, repoRoot: defaultWorkspaceRoot, help: false }
+  const options = {
+    spec: null,
+    id: null,
+    intent: null,
+    displayName: null,
+    owner: null,
+    repoRoot: defaultWorkspaceRoot,
+    quiet: false,
+    help: false,
+  }
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index]
     const next = () => {
@@ -26,11 +38,15 @@ function parseArgs(argv) {
       return argv[index]
     }
     if (argument === '--spec') options.spec = resolve(next())
+    else if (argument === '--id') options.id = next()
+    else if (argument === '--intent') options.intent = next()
+    else if (argument === '--display-name') options.displayName = next()
+    else if (argument === '--owner') options.owner = next()
     else if (argument === '--repo-root') options.repoRoot = resolve(next())
+    else if (argument === '--quiet') options.quiet = true
     else if (argument === '--help' || argument === '-h') options.help = true
     else throw new Error(`unknown argument: ${argument}`)
   }
-  if (!options.help && !options.spec) throw new Error('--spec is required')
   return options
 }
 
@@ -51,6 +67,99 @@ function writeText(file, value) {
 function fail(message) {
   console.error(`create-package: ${message}`)
   process.exit(1)
+}
+
+function hasExplicitFields(options) {
+  return Boolean(options.id ?? options.intent ?? options.displayName ?? options.owner)
+}
+
+function defaultDisplayName(id) {
+  return id
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+async function ask(question, defaultValue) {
+  const readline = createInterface({ input: process.stdin, output: process.stdout })
+  try {
+    const answer = await readline.question(
+      defaultValue ? `${question} (${defaultValue}): ` : `${question}: `,
+    )
+    return answer.trim() || defaultValue || ''
+  } finally {
+    readline.close()
+  }
+}
+
+async function promptSpec() {
+  const id = await ask('Domain package id (kebab-case)')
+  const intent = await ask('One-sentence domain intent (at least 20 characters)')
+  const displayName = (await ask('Display name', defaultDisplayName(id))) || defaultDisplayName(id)
+  const owner = (await ask('Owner', '@product-team')) || '@product-team'
+
+  return {
+    id,
+    displayName,
+    intent,
+    owner,
+    lifecycle: 'active',
+    repositoryClass: 'product',
+    hasWeb: true,
+  }
+}
+
+async function loadSpec(options, repositoryRoot) {
+  const explicitFields = hasExplicitFields(options)
+
+  if (options.spec && explicitFields) {
+    fail('use either --spec or explicit id/intent fields, not both')
+  }
+
+  if (options.spec) {
+    if (!existsSync(options.spec)) {
+      fail(
+        `package spec file not found: ${options.spec}\n` +
+          'Create it from schemas/package-spec.schema.json, or run `pnpm create:package` without --spec in an interactive terminal.',
+      )
+    }
+    try {
+      const spec = JSON.parse(readFileSync(options.spec, 'utf8'))
+      if (typeof spec !== 'object' || spec === null || Array.isArray(spec)) {
+        fail(`package spec must contain a JSON object: ${options.spec}`)
+      }
+      return spec
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        fail(`package spec is not valid JSON: ${options.spec}\n${error.message}`)
+      }
+      throw error
+    }
+  }
+
+  if (explicitFields) {
+    if (!options.id || !options.intent) {
+      fail('explicit generator input requires both --id and --intent')
+    }
+    return {
+      id: options.id,
+      displayName: options.displayName ?? defaultDisplayName(options.id),
+      intent: options.intent,
+      owner: options.owner ?? '@product-team',
+      lifecycle: 'active',
+      repositoryClass: 'product',
+      hasWeb: true,
+    }
+  }
+
+  if (!process.stdin.isTTY) {
+    fail(
+      '--spec is required in non-interactive mode. Provide a package-spec.json, or pass --id and --intent explicitly.',
+    )
+  }
+
+  return promptSpec()
 }
 
 function validateSpec(spec) {
@@ -135,7 +244,6 @@ function descriptor({ id, kind, title, description, access, risk, whenToUse }) {
 }
 
 function packageFiles(spec, standards) {
-  const packageRoot = spec.id
   const capabilitySlug = `${spec.id}.workbench.get-state`.replaceAll('.', '-')
   const capabilityFiles = spec.hasWeb
     ? [
@@ -382,33 +490,60 @@ function packageFiles(spec, standards) {
   return files
 }
 
-async function scaffoldWeb(workspaceRoot, spec) {
-  const appRoot = join(workspaceRoot, 'apps', `${spec.id}-web`)
+function isGeneratedWebProject(appRoot) {
+  if (!existsSync(appRoot)) return false
+  const entries = readdirSync(appRoot)
+  return entries.length > 1 || (entries[0] !== '.gitkeep' && entries.length > 0)
+}
+
+function clearInitialWebReservation(appRoot) {
+  if (!existsSync(appRoot)) return
+  const entries = readdirSync(appRoot)
+  if (entries.length === 1 && entries[0] === '.gitkeep') {
+    rmSync(appRoot, { recursive: true, force: true })
+    return
+  }
+  throw new Error('apps/web already contains a Web project or unexpected files')
+}
+
+async function scaffoldWeb(workspaceRoot, spec, quiet) {
+  const appRoot = join(workspaceRoot, 'apps', 'web')
   const lock = readJson(join(workspaceRoot, 'standards-lock.json'))
+  try {
+    clearInitialWebReservation(appRoot)
+  } catch (error) {
+    return error instanceof Error ? error : new Error(String(error))
+  }
   const args = [
     '-y',
     `@cogito.ai/cli@${lock.agentdockCliVersion}`,
     'init',
     '--name',
-    `${spec.id}-web`,
+    'web',
     '--display-name',
     spec.displayName,
     '--template',
     'web-tanstackstart',
     '--dir',
-    `apps/${spec.id}-web`,
+    'apps/web',
     '--mode',
     'workspace',
     '--pm',
     'pnpm',
+    '--json',
   ]
-  const result = spawnSync('npx', args, { cwd: workspaceRoot, stdio: 'inherit' })
+  const result = spawnSync('npx', args, {
+    cwd: workspaceRoot,
+    stdio: quiet ? 'ignore' : 'pipe',
+    encoding: quiet ? undefined : 'utf8',
+  })
   if (result.error || result.status !== 0) {
     return new Error(`agentdock web scaffold exited with ${result.status ?? result.error?.message}`)
   }
   try {
-    if (!existsSync(join(appRoot, 'package.json'))) {
-      return new Error('agentdock web scaffold did not create a package.json')
+    const generatedPackage = readJson(join(appRoot, 'package.json'))
+    if (generatedPackage.name !== 'web') {
+      return new Error('agentdock web scaffold did not create the "web" workspace member')
     }
     return null
   } catch (error) {
@@ -421,8 +556,8 @@ function updateWorkspace(workspaceRoot, spec, standards) {
   const rootPackage = readJson(rootPackageFile)
   rootPackage.scripts ??= {}
   if (spec.hasWeb) {
-    rootPackage.scripts[`dev:${spec.id}`] = `pnpm --filter ${spec.id}-web dev`
-    rootPackage.scripts[`check:${spec.id}`] = `pnpm --filter ${spec.id}-web check`
+    rootPackage.scripts[`dev:${spec.id}`] = 'pnpm --filter web dev'
+    rootPackage.scripts[`check:${spec.id}`] = 'pnpm --filter web check'
     rootPackage.scripts[`build:${spec.id}-package`] = `node tools/build-package.mjs ${spec.id}`
   } else {
     rootPackage.scripts[`check:${spec.id}`] = 'node tools/check-workspace.mjs'
@@ -432,6 +567,7 @@ function updateWorkspace(workspaceRoot, spec, standards) {
   const catalogFile = join(workspaceRoot, 'catalog.json')
   const catalog = readJson(catalogFile)
   catalog.updatedAt = new Date().toISOString().slice(0, 10)
+  catalog.specVersion = standards['domain-package-workspace']
   catalog.packages.push({
     id: spec.id,
     title: spec.displayName,
@@ -443,7 +579,7 @@ function updateWorkspace(workspaceRoot, spec, standards) {
     hasWeb: spec.hasWeb,
     standardsVersion: standards['domain-package-workspace'],
     artifactChannel: spec.artifactChannel,
-    contextEntry: `${spec.id}/AGENTS.md`,
+    contextEntry: `apps/${spec.id}/AGENTS.md`,
     ...(spec.noWebException ? { noWebException: spec.noWebException } : {}),
   })
   writeJson(catalogFile, catalog)
@@ -457,10 +593,10 @@ async function main() {
   }
   const workspaceRoot = options.repoRoot
   const lock = readJson(join(workspaceRoot, 'standards-lock.json'))
-  const spec = validateSpec(readJson(options.spec))
-  const packageRoot = join(workspaceRoot, spec.id)
-  const appRoot = join(workspaceRoot, 'apps', `${spec.id}-web`)
-  if (existsSync(packageRoot) || existsSync(appRoot)) {
+  const spec = validateSpec(await loadSpec(options, workspaceRoot))
+  const packageRoot = join(workspaceRoot, 'apps', spec.id)
+  const appRoot = join(workspaceRoot, 'apps', 'web')
+  if (existsSync(packageRoot) || isGeneratedWebProject(appRoot)) {
     fail(`package path already exists: ${spec.id}`)
   }
 
@@ -471,7 +607,7 @@ async function main() {
   }
 
   if (spec.hasWeb) {
-    const error = await scaffoldWeb(workspaceRoot, spec)
+    const error = await scaffoldWeb(workspaceRoot, spec, options.quiet)
     if (error) {
       rmSync(packageRoot, { recursive: true, force: true })
       rmSync(appRoot, { recursive: true, force: true })
@@ -482,4 +618,8 @@ async function main() {
   console.log(`Created package ${spec.id} at ${packageRoot}`)
 }
 
-await main()
+try {
+  await main()
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error))
+}

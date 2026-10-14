@@ -1,10 +1,30 @@
 # Domain Packages Workspace
 
 An empty, standards-driven workspace for creating formal domain packages. The template ships no
-business package by design; it carries the generator, schemas, practice pack, and agent skills needed
-to create one correctly.
+business package by design; it carries the generator, schemas, OpenSpec directory, documentation
+workspace, practice pack, and agent skills needed to create one correctly.
+
+## Repository layout
+
+```text
+openspec/               # root specification workspace (no runtime dependency)
+apps/<package-id>/      # generated domain package root
+apps/<package-id>/web/  # ignored build staging
+apps/docs/              # documentation workspace
+apps/web/               # generated package Web source
+tools/                  # generators and workspace checks
+```
 
 ## Create the first package
+
+Interactive humans can run the generator directly:
+
+```bash
+pnpm create:package
+```
+
+The generator asks for the package id and intent, offers a display-name default derived from the id,
+and defaults owner to `@product-team`. Agent and CI workflows keep the deterministic file contract:
 
 ```bash
 cat > package-spec.json <<'JSON'
@@ -24,8 +44,9 @@ pnpm install
 pnpm check
 ```
 
-The generator creates the package declarations, package-local agent context, machine-readable package
-and Web surfaces, capability catalog, roadmap, and a `web-tanstackstart` Web project.
+The generator creates the package declarations under `apps/<package-id>/`, package-local agent
+context, machine-readable package and Web surfaces, capability catalog, roadmap, and the fixed
+`apps/web/` `web-tanstackstart` workspace member.
 
 ## Commands
 
@@ -43,9 +64,16 @@ pnpm check:<package-id>
 pnpm build:<package-id>-package
 ```
 
+The generated package Web commands filter the workspace member by its standard name:
+
+```bash
+pnpm --filter web dev
+pnpm --filter web check
+```
+
 ## Source and artifact boundary
 
-The source repository contains package content and Web source only. `<package-id>/web/` and generated
+The source repository contains package content and Web source only. `apps/<package-id>/web/` and generated
 seed databases are ignored build staging. A release pipeline must build them from a clean source clone
 and include them in an immutable artifact with checksum and metadata.
 
