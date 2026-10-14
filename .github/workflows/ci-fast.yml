@@ -150,7 +150,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Workspace-member scaffold tests enforce template Node ranges.
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies

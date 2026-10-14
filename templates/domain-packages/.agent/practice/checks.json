@@ -1,0 +1,31 @@
+{
+  "practiceVersion": "0.1.0",
+  "invariants": [
+    {
+      "id": "no-package-intelligence",
+      "title": "Intelligence stays with the App Agent",
+      "check": "Reject package source or dependencies that call an LLM, instantiate an agent loop, or own conversation memory."
+    },
+    {
+      "id": "intent-level-web-surface",
+      "title": "Web actions are declarative",
+      "check": "Each route/action declares purpose, input schema, effects, authorization, risk, and a one-to-one capability id."
+    },
+    {
+      "id": "generated-output-not-source",
+      "title": "Generated output stays out of Git",
+      "check": "Ignore <package>/web/ and generated seed databases; release CI builds them from a clean clone."
+    },
+    {
+      "id": "package-local-roadmap",
+      "title": "Product intent stays package-local",
+      "check": "The workspace root carries tooling only; package outcomes live in <package>/roadmap.yaml."
+    },
+    {
+      "id": "registry-first-capabilities",
+      "title": "Host capabilities are registry-governed",
+      "check": "Never invent host.* ids in a generated package; request them through the platform registry."
+    }
+  ]
+}
+

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentdock.dev/templates/domain-packages/workspace-catalog.schema.json",
+  "title": "Generated Workspace Catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["catalogVersion", "specVersion", "updatedAt", "packages"],
+  "properties": {
+    "catalogVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "specVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "updatedAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "packageVersion",
+          "lifecycle",
+          "repositoryClass",
+          "residency",
+          "owner",
+          "hasWeb",
+          "standardsVersion",
+          "artifactChannel",
+          "contextEntry"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "packageVersion": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$"
+          },
+          "lifecycle": {
+            "const": "active"
+          },
+          "repositoryClass": {
+            "const": "product"
+          },
+          "residency": {
+            "const": "external"
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hasWeb": {
+            "type": "boolean"
+          },
+          "standardsVersion": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$"
+          },
+          "artifactChannel": {
+            "enum": ["pending", "oss", "github-release", "private-registry"]
+          },
+          "contextEntry": {
+            "type": "string",
+            "minLength": 1
+          },
+          "noWebException": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

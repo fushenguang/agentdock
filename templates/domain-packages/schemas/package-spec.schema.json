@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentdock.dev/templates/domain-packages/package-spec.schema.json",
+  "title": "Domain Package Creation Spec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "displayName", "intent", "owner", "lifecycle", "repositoryClass"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 500
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "lifecycle": {
+      "const": "active"
+    },
+    "repositoryClass": {
+      "const": "product"
+    },
+    "residency": {
+      "const": "external"
+    },
+    "hasWeb": {
+      "type": "boolean",
+      "default": true
+    },
+    "artifactChannel": {
+      "enum": ["pending", "oss", "github-release", "private-registry"]
+    },
+    "noWebException": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "approvedBy"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 1000
+        },
+        "approvedBy": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

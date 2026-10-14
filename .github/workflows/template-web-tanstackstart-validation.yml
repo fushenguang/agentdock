@@ -53,8 +53,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: templates/web-tanstackstart/pnpm-lock.yaml
+          # pnpm 10 completes every validation step, but setup-node's cache post step
+          # intermittently treats the present lockfile as missing and fails the job.
+          # This matrix installs quickly enough to skip dependency caching.
 
       - name: Install template dependencies
         run: pnpm install --frozen-lockfile

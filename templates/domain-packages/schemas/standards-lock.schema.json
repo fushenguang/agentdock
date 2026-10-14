@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentdock.dev/templates/domain-packages/standards-lock.schema.json",
+  "title": "Domain Package Workspace Standards Lock",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["templateVersion", "agentdockCliVersion", "standards"],
+  "properties": {
+    "templateVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "agentdockCliVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "standards": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      },
+      "minProperties": 1
+    }
+  }
+}

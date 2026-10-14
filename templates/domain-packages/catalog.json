@@ -1,0 +1,7 @@
+{
+  "$schema": "./schemas/workspace-catalog.schema.json",
+  "catalogVersion": "0.1.0",
+  "specVersion": "0.1.0",
+  "updatedAt": "2026-10-14",
+  "packages": []
+}
