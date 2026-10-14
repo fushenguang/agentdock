@@ -1,3 +1,12 @@
 packages:
-  - "apps/*"
+  - 'apps/*'
 
+# Pre-approve the build scripts required when `create:package` adds a
+# `web-tanstackstart` workspace member. This is the same policy advertised by
+# that template's workspaceMember metadata.
+allowBuilds:
+  '@astryxdesign/cli': true
+  '@astryxdesign/core': true
+  better-sqlite3: false
+  esbuild: true
+  lightningcss: true
