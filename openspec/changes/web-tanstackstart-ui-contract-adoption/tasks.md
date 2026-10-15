@@ -7,7 +7,7 @@
 
 - [x] 2.1 Replace `PageContainer` with the container-query version including `isFullHeight`
 - [x] 2.2 Add `PageTopBar` (back link + page actions, one row, no scrolling)
-- [x] 2.3 Add `PageShell` (fixed `2rem` column gap, one framed content region, `isFramed` opt-out)
+- [x] 2.3 Add `PageShell` (fixed `2rem` column gap, unframed content body; the original `isFramed` frame was superseded by change `remove-web-tanstackstart-page-frame`)
 - [x] 2.4 Add `SideDrawer` (end side, transparent backdrop, outside click does not close, width 420 capped to viewport)
 - [x] 2.5 Add `HorizontalFields` (label `auto` / control `minmax(0, 1fr)`, re-applied below the 480px collapse)
 - [x] 2.6 Add `BottomNav` (config-driven items, i18n labels, print-safe)

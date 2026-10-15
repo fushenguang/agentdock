@@ -250,7 +250,7 @@ export const Route = createFileRoute("/$locale/customers")({
 Decide which level the route is, because the two levels have different shapes:
 
 - **A first-level route is a landing (an index).** It carries a `VisuallyHidden` `h1` (the bottom navigation already names it), at most one line of orientation in a `Blockquote`, and the module entries that lead one route deeper. `src/components/OverviewLanding.tsx` is the sample; `BottomNav` owns the destination list.
-- **A second-level route is a one-screen workbench.** Compose `PageShell` (`src/components/layout/PageShell.tsx`): it renders the way back plus this page's action in a `PageTopBar`, and the page itself does not scroll — only the content frame does. `src/components/HelloWorkspace.tsx` is the sample.
+- **A second-level route is a one-screen workbench.** Compose `PageShell` (`src/components/layout/PageShell.tsx`): it renders the way back plus this page's action in a `PageTopBar`, and the page itself does not scroll — only the content body does. `src/components/HelloWorkspace.tsx` is the sample.
 
 1. Keep loaders thin. Put behavior behind the feature boundary.
 2. Add every visible string to `enCatalog` and `zhCNCatalog` in `src/i18n/messages.ts`.
@@ -294,7 +294,7 @@ The layout primitives live in `src/components/layout/`:
 - `BottomNav`: the fixed bottom destination pill; its `items` array is the component's only variable surface.
 - `PageContainer`: content width and rhythm; pass `isFullHeight` for a page that must not scroll.
 - `PageTopBar`: the way back plus the page's actions, one row, never scrolls.
-- `PageShell`: the whole one-screen skeleton — `PageTopBar` + one content frame with a fixed `2rem` gap.
+- `PageShell`: the whole one-screen skeleton — `PageTopBar` + a scrolling content body (no card frame) with a fixed `2rem` gap.
 - `SideDrawer`: the right-hand drawer (`MobileNav side="end"`, transparent backdrop, an outside click does not close it).
 - `HorizontalFields`: label-left / control-right group for labels ≤4 characters with plain inputs or selects. A `Switch` stays on its own line — its label travels with the track and cannot join the label column.
 

@@ -73,7 +73,7 @@ shell exists to avoid and gives configurable preference two competing homes.
 **Decision.** `DESIGN.md` states — and the demo demonstrates — that a page is `Section` + `Divider` +
 `List`/rows; card chrome is allowed only for a discrete, independently enterable unit, exactly one
 level deep, never nested. The demo's landing uses `ClickableCard` entries (title + one line, no
-images) and its second-level page uses a plain framed content region, not a stack of cards.
+images) and its second-level page uses a plain unframed content body (the frame was removed by `remove-web-tanstackstart-page-frame`), not a stack of cards.
 
 **Why.** "The first screenful answers what do I do now" and "fewer, larger surfaces beat many small
 boxes" are the owner's tie-breakers. A template whose only sample is "a page header plus a card"
