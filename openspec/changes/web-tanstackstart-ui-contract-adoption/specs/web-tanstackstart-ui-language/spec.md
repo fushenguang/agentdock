@@ -88,8 +88,8 @@ demonstrate this by not stacking cards as its page structure.
 #### Scenario: Reviewer audits the demo for card usage
 
 - **WHEN** a reviewer inspects the generated template's demo pages
-- **THEN** the first-level landing shows module entries and the second-level page shows one framed
-  content region, with no card nested inside card chrome
+- **THEN** the first-level landing shows module entries and the second-level page shows unframed content
+  directly on the page background (no card frame; see `remove-web-tanstackstart-page-frame`)
 
 ### Requirement: Settings Surface for global controls
 

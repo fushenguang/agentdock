@@ -17,9 +17,8 @@ import { PageTopBar } from "./PageTopBar";
  *
  * - **The 32px gap is owned here**: the top bar and the content share one flex column whose `gap` is
  *   `2rem`, so the distance never rides on `PageContainer`'s responsive 16/24px page gap.
- * - **At most one rounded frame**: `isFramed` (the default) draws one rounded, bordered card surface
- *   (the list-page look). When the body *is* the content, pass `isFramed={false}` to drop the frame —
- *   a card inside a card is an explicit anti-pattern.
+ * - **No frame, no card**: the body sits directly on the page background. Structure comes from
+ *   headings, spacing, dividers, tabs and tables — never a rounded/bordered/card-background wrapper.
  * - The page name goes to a `VisuallyHidden` `h1` (via `title`); the top bar does not repeat it.
  */
 const styles = stylex.create({
@@ -32,19 +31,6 @@ const styles = stylex.create({
     minHeight: 0,
     width: "100%",
   },
-  frame: {
-    display: "flex",
-    flexDirection: "column",
-    flex: 1,
-    minHeight: 0,
-    width: "100%",
-    overflow: "hidden",
-    borderWidth: "1px",
-    borderStyle: "solid",
-    borderColor: "var(--color-border)",
-    borderRadius: "var(--radius-container)",
-    backgroundColor: "var(--color-background-card)",
-  },
   /** Scrollable body: the only place scrolling happens on a full-height page. */
   body: {
     flex: 1,
@@ -52,7 +38,6 @@ const styles = stylex.create({
     width: "100%",
     overflowY: "auto",
     overflowX: "hidden",
-    padding: "1rem",
   },
 });
 
@@ -62,21 +47,10 @@ export interface PageShellProps {
   readonly backLabel: string;
   /** Right-hand side of the top bar: this page's actions (button group or page tabs). */
   readonly actions?: ReactNode;
-  /** Drop the frame when the body is the content itself (keep full height and inner scrolling). */
-  readonly isFramed?: boolean;
   readonly children: ReactNode;
 }
 
-export function PageShell({
-  title,
-  backHref,
-  backLabel,
-  actions,
-  isFramed = true,
-  children,
-}: PageShellProps) {
-  const body = <div {...stylex.props(styles.body)}>{children}</div>;
-
+export function PageShell({ title, backHref, backLabel, actions, children }: PageShellProps) {
   return (
     <PageContainer isFullHeight>
       <VisuallyHidden>
@@ -86,8 +60,7 @@ export function PageShell({
         <PageTopBar backHref={backHref} backLabel={backLabel}>
           {actions}
         </PageTopBar>
-        {/* One body definition for both branches, so the scrolling wrapper cannot drift. */}
-        {isFramed ? <div {...stylex.props(styles.frame)}>{body}</div> : body}
+        <div {...stylex.props(styles.body)}>{children}</div>
       </div>
     </PageContainer>
   );
