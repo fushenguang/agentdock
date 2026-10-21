@@ -24,6 +24,13 @@ applies revive-only repairs, and issues at most three targeted retries. Exhausti
 `structured_output_retries_exhausted`. Add provider-specific native structured-output support in the
 driver; do not add prose fallback to the gate.
 
+## Provider driver
+
+`createConfiguredDriver` uses the OpenAI-compatible driver only when both the public base URL and
+model are present; otherwise it returns the deterministic reference driver. Keep provider transport in
+`openAICompatibleDriver.ts`, keep validation in the gate, and keep env/transport injection available
+for tests. A public API key is development-only and release builds must fail if one is configured.
+
 ## Tools and permissions
 
 Register tools with a stable id, input schema, risk level, and executor. Protected tools call the

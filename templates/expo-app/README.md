@@ -25,8 +25,23 @@ pnpm check
 pnpm start
 ```
 
-The reference driver works without an API key. Replace `src/core/agent/referenceDriver.ts` with a real
-provider adapter when ready; do not bypass `structuredOutputGate`.
+The deterministic reference driver works without provider configuration. For local acceptance with a
+real OpenAI-compatible provider, copy `.env.example` to `.env.local` and set:
+
+```bash
+EXPO_PUBLIC_AGENT_BASE_URL=https://provider.example/v1
+EXPO_PUBLIC_AGENT_MODEL=your-model
+# Development builds only. Never commit this value.
+EXPO_PUBLIC_AGENT_API_KEY=your-key
+```
+
+The base URL must use HTTPS (or an HTTP localhost proxy) and must not contain credentials, a query, or
+a fragment. Missing base URL/model settings fall back to the reference driver. Every real provider
+response still passes through `structuredOutputGate`; do not add a prose fallback.
+
+`EXPO_PUBLIC_*` values are embedded in JavaScript bundles. `pnpm build` therefore fails if
+`EXPO_PUBLIC_AGENT_API_KEY` is present. Production traffic must use an authenticated server-side proxy
+and must never ship a provider key in the mobile bundle.
 
 The OpenUI language-core postinstall script is not allowlisted. It only sends installation telemetry,
 so it stays disabled under pnpm's build-script policy.

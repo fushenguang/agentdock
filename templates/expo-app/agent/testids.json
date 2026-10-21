@@ -12,8 +12,11 @@
     "agent-bottom-sheet": "agent-bottom-sheet",
     "agent-voice-toggle": "agent-voice-toggle",
     "agent-status": "agent-status",
+    "agent-provider": "agent-provider",
     "agent-process-toggle": "agent-process-toggle",
     "agent-cancel": "agent-cancel",
-    "result-canvas": "result-canvas"
+    "result-canvas": "result-canvas",
+    "result-action-cancel": "result-action-cancel",
+    "result-action-confirm": "result-action-confirm"
   }
 }

@@ -21,7 +21,7 @@ pnpm install
 pnpm check
 ```
 
-`pnpm check` 会校验 Expo 依赖版本、运行 strict TypeScript，并产出 iOS Hermes bundle。
+`pnpm check` 会校验 Expo 依赖版本并运行 strict TypeScript。需要导出 iOS bundle 时使用 `pnpm build`。
 
 ## 开发循环
 
@@ -30,10 +30,26 @@ pnpm start -- --ios
 pnpm start -- --android
 ```
 
-Reference driver 返回本地结构化结果，不需要 API key。替换入口是
-`src/core/agent/referenceDriver.ts`；所有 provider 输出仍必须经过 `structured-output-gate`。
+未配置 provider 时，确定性 reference driver 会返回本地结构化结果。要做真实本地验收，把
+`.env.example` 复制为被 git 忽略的 `.env.local`，并配置 OpenAI-compatible provider：
 
-## 替换 reference driver
+```bash
+EXPO_PUBLIC_AGENT_BASE_URL=https://provider.example/v1
+EXPO_PUBLIC_AGENT_MODEL=your-model
+EXPO_PUBLIC_AGENT_API_KEY=your-key
+```
+
+Base URL 必须使用 HTTPS（HTTP 仅允许 localhost proxy），且不能携带 credentials、query 或 fragment。
+如果 base URL 或 model 缺失，应用继续使用 reference driver。真实 provider 输出仍必须经过
+`structured-output-gate`；验证问题会显示在 Agent 面板，不会被当作自由文本渲染。
+
+## 生产 provider 边界
+
+`EXPO_PUBLIC_*` 值会被嵌入 JavaScript bundle。构建环境或生产 env 文件中存在
+`EXPO_PUBLIC_AGENT_API_KEY` 时，`pnpm build` 会拒绝导出。生产调用必须经过带身份验证的服务端
+proxy；不要把 provider key 挪到其他公开 Expo 变量。
+
+## 替换或扩展 provider driver
 
 1. 实现 `AgentTurnDriver`。
 2. 优先使用 provider 的原生 structured output。

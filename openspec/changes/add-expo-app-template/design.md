@@ -66,6 +66,22 @@ LLM/provider output
 Repair may only revive a value without changing its meaning. Invalid content is surfaced as a typed
 failure. The renderer accepts an `agent_result` envelope, not raw assistant prose.
 
+## Development provider boundary
+
+The default driver remains the deterministic local reference driver. When
+`EXPO_PUBLIC_AGENT_BASE_URL` and `EXPO_PUBLIC_AGENT_MODEL` are present, the template creates an
+OpenAI-compatible chat-completions driver for development acceptance. The base URL must be HTTPS,
+except for an explicit localhost development proxy, and must not carry credentials, a query, or a
+fragment. `EXPO_PUBLIC_AGENT_API_KEY` is read only in development because Expo public values are
+embedded in release bundles; production builds fail before bundling when it is present and production
+traffic must use an authenticated server-side proxy.
+
+The driver owns only transport and provider-message shaping. It does not validate or render output:
+every response still passes through the structured-output gate. Network transport, environment, and
+development mode are injectable so repository tests can exercise endpoint normalization, headers,
+request shape, content extraction, cancellation, timeout, and the no-secret production behavior
+without a real provider or device.
+
 ## Data boundary
 
 The first migration stores sessions, session events, memory projections, permission decisions, and

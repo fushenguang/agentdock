@@ -93,6 +93,40 @@ error. The renderer MUST NOT silently treat arbitrary assistant prose as a valid
 - **THEN** the UI shows `structured_output_retries_exhausted` with actionable validation errors
 - **AND** no raw free-text result is rendered as if it were structured data
 
+### Requirement: Development provider and credential boundary
+
+The template SHALL provide an OpenAI-compatible development driver behind `AgentTurnDriver` while
+keeping the deterministic reference driver as the no-configuration default. The driver SHALL accept
+an HTTPS provider base URL or an HTTP localhost proxy, SHALL NOT accept URL credentials, query
+strings, or fragments, and SHALL send `EXPO_PUBLIC_AGENT_API_KEY` only in development. Release
+bundling SHALL fail when that public key is configured, and all provider output SHALL remain behind
+the structured-output gate.
+
+#### Scenario: A developer configures a real provider
+
+- **WHEN** development environment variables define a model and HTTPS OpenAI-compatible base URL
+- **THEN** the mobile host calls that provider through `AgentTurnDriver`
+- **AND** a configured API key is sent only in development
+- **AND** the response remains raw provider output until the structured-output gate validates it
+
+#### Scenario: The configuration is incomplete
+
+- **WHEN** either the provider base URL or model is absent
+- **THEN** the local reference driver remains active
+- **AND** no provider request is made
+
+#### Scenario: A release build would embed a public key
+
+- **WHEN** `EXPO_PUBLIC_AGENT_API_KEY` is set in the build environment or a production env file
+- **THEN** the production environment guard fails before export
+- **AND** documentation directs production traffic through an authenticated server-side proxy
+
+#### Scenario: The driver is tested without a device or real provider
+
+- **WHEN** repository tests execute the development driver
+- **THEN** environment, transport, timeout, and cancellation behavior are injected
+- **AND** tests prove endpoint, request, response extraction, and credential boundaries
+
 ### Requirement: Mobile-local persistence boundary
 
 The template SHALL provide SQLite migrations and repository contracts for sessions, events, memory

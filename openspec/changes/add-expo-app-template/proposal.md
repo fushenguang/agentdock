@@ -36,6 +36,9 @@ local persistence. Generalization to other products is deliberately deferred.
    Electron data layer but simplified for mobile.
 9. Register the template in the CLI, add scaffolding tests, bilingual documentation, and a CLI
    changeset.
+10. Add an OpenAI-compatible development provider driver with an explicit HTTPS/localhost boundary,
+    injectable network transport for tests, and a production guard that refuses to embed a public API
+    key in a release bundle.
 
 ## Capabilities
 
@@ -58,7 +61,8 @@ local persistence. Generalization to other products is deliberately deferred.
 
 - Do not replace the desktop App Agent Core or move authority over tool policy to domain packages.
 - Do not make the template product-neutral in this first change.
-- Do not implement cloud synchronization, account authentication, or production model routing.
+- Do not implement cloud synchronization, account authentication, or production model routing; the
+  OpenAI-compatible integration is for local development and authenticated proxy evaluation only.
 - Do not depend on Mastra at runtime; its structured-output behavior is a design reference only.
 - Do not downgrade Expo to match OpenUI's React Native example; incompatibility is handled behind the
   renderer adapter.

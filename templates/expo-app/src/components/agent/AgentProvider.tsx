@@ -17,6 +17,7 @@ import {
   StructuredOutputTurnError,
   type AgentAuditEvent,
   type AgentResultEnvelope,
+  type StructuredOutputIssue,
   type AgentTurnState,
 } from '../../core/agent'
 import { getMobileDataStore, type MobileDataStore } from '../../infra/sqlite/dataStore'
@@ -36,12 +37,14 @@ export interface AgentSessionContextValue {
   readonly snapPoint: AgentSheetSnap
   readonly result: AgentResultEnvelope | undefined
   readonly structuredOutputError: string | undefined
+  readonly structuredOutputIssues: readonly StructuredOutputIssue[]
   readonly genericError: string | undefined
+  readonly driverId: string
   openAgent(snap?: AgentSheetSnap): void
   closeAgent(): void
   setSnapPoint(snap: AgentSheetSnap): void
   startSession(): void
-  continueSession(sessionId: string): void
+  continueSession(sessionId: string, title?: string): void
   dismissResult(): void
   submit(text: string): Promise<boolean>
   cancelTurn(): void
@@ -55,6 +58,9 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
   const [snapPoint, setSnapPoint] = useState<AgentSheetSnap>(AGENT_SHEET_SNAP_POINTS.voice)
   const [result, setResult] = useState<AgentResultEnvelope | undefined>(undefined)
   const [structuredOutputError, setStructuredOutputError] = useState<string | undefined>(undefined)
+  const [structuredOutputIssues, setStructuredOutputIssues] = useState<
+    readonly StructuredOutputIssue[]
+  >([])
   const [genericError, setGenericError] = useState<string | undefined>(undefined)
   const cancelledTurnsRef = useRef(new Set<string>())
   const ensuredSessionsRef = useRef(new Set<string>())
@@ -119,6 +125,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
     activeSessionTitleRef.current = 'New voice session'
     setResult(undefined)
     setStructuredOutputError(undefined)
+    setStructuredOutputIssues([])
     setGenericError(undefined)
     setTurn({
       turnId: newId(),
@@ -135,11 +142,13 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
   }, [cancelActiveTurn, openAgent])
 
   const continueSession = useCallback(
-    (sessionId: string) => {
+    (sessionId: string, title = 'Continued session') => {
       cancelActiveTurn()
       activeSessionIdRef.current = sessionId
+      activeSessionTitleRef.current = title
       setResult(undefined)
       setStructuredOutputError(undefined)
+      setStructuredOutputIssues([])
       setGenericError(undefined)
       setTurn(createInitialTurnState())
       openAgent(AGENT_SHEET_SNAP_POINTS.voice)
@@ -160,6 +169,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
       activeTurnIdRef.current = turnId
       setResult(undefined)
       setStructuredOutputError(undefined)
+      setStructuredOutputIssues([])
       setGenericError(undefined)
       setTurn({
         turnId,
@@ -236,6 +246,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
         activeTurnIdRef.current = undefined
         if (error instanceof StructuredOutputTurnError) {
           setStructuredOutputError(`${error.failure.code}: ${error.failure.message}`)
+          setStructuredOutputIssues(error.failure.issues)
           setTurn((current) => ({
             ...current,
             phase: AGENT_PHASES.failed,
@@ -284,7 +295,9 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
       snapPoint,
       result,
       structuredOutputError,
+      structuredOutputIssues,
       genericError,
+      driverId: driver.id,
       openAgent,
       closeAgent,
       setSnapPoint,
@@ -300,7 +313,9 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
       snapPoint,
       result,
       structuredOutputError,
+      structuredOutputIssues,
       genericError,
+      driver,
       openAgent,
       closeAgent,
       startSession,

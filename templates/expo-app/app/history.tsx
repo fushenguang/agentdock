@@ -50,9 +50,6 @@ export default function HistoryDesktop() {
       return () => {
         cancelled = true
       }
-      return () => {
-        cancelled = true
-      }
     }, []),
   )
 
@@ -91,7 +88,7 @@ export default function HistoryDesktop() {
               accessibilityRole="button"
               accessibilityLabel={`Continue session ${session.title}`}
               accessibilityHint="Opens this session in the agent panel"
-              onPress={() => continueSession(session.id)}
+              onPress={() => continueSession(session.id, session.title)}
             >
               <Card>
                 <Text variant="title">{session.title}</Text>

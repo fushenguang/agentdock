@@ -28,6 +28,8 @@ export function AgentBottomSheet() {
     snapPoint,
     result,
     structuredOutputError,
+    structuredOutputIssues,
+    driverId,
     closeAgent,
     setSnapPoint,
     submit,
@@ -85,7 +87,12 @@ export function AgentBottomSheet() {
           keyboardShouldPersistTaps="handled"
         >
           <View className="flex-row items-center justify-between">
-            <Text className="text-lg font-semibold text-ink">Voice agent</Text>
+            <View className="flex-1 gap-1">
+              <Text className="text-lg font-semibold text-ink">Voice agent</Text>
+              <Text testID="agent-provider" className="text-xs text-muted" numberOfLines={1}>
+                {driverId}
+              </Text>
+            </View>
             <View className="flex-row gap-2">
               {running ? (
                 <Pressable
@@ -164,6 +171,15 @@ export function AgentBottomSheet() {
             <View className="rounded-3xl bg-danger/10 p-4">
               <Text className="text-sm font-medium text-danger">Structured output failed</Text>
               <Text className="mt-1 text-xs text-ink">{structuredOutputError}</Text>
+              {structuredOutputIssues.length > 0 ? (
+                <View className="mt-2 gap-1">
+                  {structuredOutputIssues.map((issue) => (
+                    <Text key={`${issue.path}-${issue.message}`} className="text-xs text-ink">
+                      {issue.path}: {issue.message}
+                    </Text>
+                  ))}
+                </View>
+              ) : null}
             </View>
           ) : null}
 

@@ -21,7 +21,8 @@ pnpm install
 pnpm check
 ```
 
-`pnpm check` verifies Expo package versions, runs strict TypeScript, and produces an iOS Hermes bundle.
+`pnpm check` verifies Expo package versions and runs strict TypeScript. Use `pnpm build` when you need
+an exported iOS bundle.
 
 ## Development loop
 
@@ -30,11 +31,29 @@ pnpm start -- --ios
 pnpm start -- --android
 ```
 
-The reference driver returns a local structured result and does not require an API key. Replace it
-through `src/core/agent/referenceDriver.ts`; every provider response still passes through
-`structured-output-gate`.
+Without provider configuration, the deterministic reference driver returns a local structured result.
+For a real local acceptance run, copy `.env.example` to ignored `.env.local` and configure an
+OpenAI-compatible provider:
 
-## Replace the reference driver
+```bash
+EXPO_PUBLIC_AGENT_BASE_URL=https://provider.example/v1
+EXPO_PUBLIC_AGENT_MODEL=your-model
+EXPO_PUBLIC_AGENT_API_KEY=your-key
+```
+
+The base URL must be HTTPS, except for an HTTP localhost proxy, and must not contain credentials, a
+query, or a fragment. If either the base URL or model is missing, the app stays on the reference
+driver. Real provider output still passes through `structured-output-gate`, and validation issues are
+shown in the agent panel rather than rendered as prose.
+
+## Production provider boundary
+
+`EXPO_PUBLIC_*` values are embedded in JavaScript bundles. `pnpm build` refuses to export when
+`EXPO_PUBLIC_AGENT_API_KEY` is set in the build environment or a production env file. Production calls
+must go through an authenticated server-side proxy; do not move a provider key into another public
+Expo variable.
+
+## Replace or extend the provider driver
 
 1. Implement `AgentTurnDriver`.
 2. Prefer native structured output in the provider request.

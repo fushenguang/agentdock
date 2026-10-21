@@ -144,6 +144,9 @@ describe('shouldCopyTemplatePath', () => {
   it('skips generated artifacts, local env files, and SQLite database files', () => {
     expect(shouldCopyTemplatePath('/template/node_modules')).toBe(false)
     expect(shouldCopyTemplatePath('/template/dist')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/.expo')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/ios')).toBe(false)
+    expect(shouldCopyTemplatePath('/template/android')).toBe(false)
     expect(shouldCopyTemplatePath('/template/.output')).toBe(false)
     expect(shouldCopyTemplatePath('/template/coverage')).toBe(false)
     expect(shouldCopyTemplatePath('/template/src/routeTree.gen.ts')).toBe(false)

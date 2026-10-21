@@ -111,14 +111,18 @@ export function ResultCanvas({
           <Text className="text-base text-ink">{result.result.message}</Text>
           <View className="flex-row justify-end gap-2">
             <Pressable
+              testID="result-action-cancel"
               accessibilityRole="button"
+              accessibilityLabel={result.result.cancelLabel}
               className="rounded-full bg-surface px-4 py-2"
               onPress={onCancel}
             >
               <Text className="text-sm font-medium text-ink">{result.result.cancelLabel}</Text>
             </Pressable>
             <Pressable
+              testID="result-action-confirm"
               accessibilityRole="button"
+              accessibilityLabel={result.result.confirmLabel}
               className="rounded-full bg-accent px-4 py-2"
               onPress={onConfirm}
             >

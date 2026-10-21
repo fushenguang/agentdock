@@ -8,6 +8,7 @@ import {
 } from './types'
 
 const REQUEST_TIMEOUT_MS = 60_000
+const MAX_RESPONSE_CHARS = 1_000_000
 
 const AGENT_RESULT_SYSTEM_PROMPT = `You are a mobile agent. Return only one JSON object, with no Markdown fence and no prose.
 The object must satisfy this TypeScript shape:
@@ -42,7 +43,7 @@ function step(
   }
 }
 
-function providerEndpoint(rawUrl: string): string {
+export function normalizeProviderEndpoint(rawUrl: string): string {
   const url = new URL(rawUrl)
   const isLocalHttp =
     url.protocol === 'http:' &&
@@ -50,6 +51,9 @@ function providerEndpoint(rawUrl: string): string {
 
   if (url.protocol !== 'https:' && !isLocalHttp) {
     throw new Error('Provider base URL must use HTTPS unless it is a localhost development proxy.')
+  }
+  if (url.username || url.password) {
+    throw new Error('Provider base URL must not include credentials.')
   }
   if (url.search || url.hash) {
     throw new Error('Provider base URL must not include a query string or fragment.')
@@ -74,6 +78,8 @@ interface OpenAIChatResponse {
   }[]
 }
 
+type OpenAICompatibleFetch = (url: string, init: RequestInit) => Promise<Response>
+
 function contentText(content: unknown): string {
   if (typeof content === 'string') return content
   if (!Array.isArray(content)) return ''
@@ -87,7 +93,7 @@ function contentText(content: unknown): string {
     .join('')
 }
 
-function extractContent(rawResponse: string): string {
+export function extractOpenAICompatibleContent(rawResponse: string): string {
   let parsed: OpenAIChatResponse
   try {
     parsed = JSON.parse(rawResponse) as OpenAIChatResponse
@@ -107,8 +113,21 @@ function extractContent(rawResponse: string): string {
   return text
 }
 
-async function readErrorMessage(response: Response): Promise<string> {
+async function readResponseBody(response: Response): Promise<string> {
+  const contentLength = Number(response.headers.get('content-length') ?? Number.NaN)
+  if (Number.isFinite(contentLength) && contentLength > MAX_RESPONSE_CHARS) {
+    throw new Error('Provider response exceeded the 1,000,000-character safety limit.')
+  }
+
   const raw = await response.text()
+  if (raw.length > MAX_RESPONSE_CHARS) {
+    throw new Error('Provider response exceeded the 1,000,000-character safety limit.')
+  }
+  return raw
+}
+
+async function readErrorMessage(response: Response): Promise<string> {
+  const raw = await readResponseBody(response)
   try {
     const parsed = JSON.parse(raw) as { error?: { message?: unknown }; message?: unknown }
     const message = parsed.error?.message ?? parsed.message
@@ -129,9 +148,11 @@ export function createOpenAICompatibleDriver(options: {
   readonly maxTokens?: number
   readonly useJSONResponseFormat?: boolean
   readonly id?: string
+  readonly fetchImpl?: OpenAICompatibleFetch | undefined
 }): AgentTurnDriver {
-  const endpoint = providerEndpoint(options.baseURL)
+  const endpoint = normalizeProviderEndpoint(options.baseURL)
   const timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS
+  const providerFetch = options.fetchImpl ?? fetch
 
   return {
     id: options.id ?? `openai-compatible:${options.model}`,
@@ -177,7 +198,7 @@ export function createOpenAICompatibleDriver(options: {
           requestBody.response_format = { type: 'json_object' }
         }
 
-        const response = await fetch(endpoint, {
+        const response = await providerFetch(endpoint, {
           method: 'POST',
           headers,
           body: JSON.stringify(requestBody),
@@ -186,7 +207,7 @@ export function createOpenAICompatibleDriver(options: {
         ensureActive(request)
 
         if (!response.ok) throw new Error(await readErrorMessage(response))
-        const content = extractContent(await response.text())
+        const content = extractOpenAICompatibleContent(await readResponseBody(response))
         observe(step(`${options.model}:call`, `Call ${options.model}`, 'tool'))
         return content
       } catch (error) {
@@ -205,10 +226,18 @@ export function createOpenAICompatibleDriver(options: {
   }
 }
 
-export function createConfiguredDriver(): AgentTurnDriver {
-  const baseURL = process.env.EXPO_PUBLIC_AGENT_BASE_URL
-  const apiKey = __DEV__ ? process.env.EXPO_PUBLIC_AGENT_API_KEY : undefined
-  const model = process.env.EXPO_PUBLIC_AGENT_MODEL
+export function createConfiguredDriver(
+  options: {
+    readonly env?: Record<string, string | undefined> | undefined
+    readonly isDevelopment?: boolean | undefined
+    readonly fetchImpl?: OpenAICompatibleFetch | undefined
+  } = {},
+): AgentTurnDriver {
+  const env = options.env ?? process.env
+  const isDevelopment = options.isDevelopment ?? __DEV__
+  const baseURL = env.EXPO_PUBLIC_AGENT_BASE_URL?.trim()
+  const apiKey = isDevelopment ? env.EXPO_PUBLIC_AGENT_API_KEY?.trim() : undefined
+  const model = env.EXPO_PUBLIC_AGENT_MODEL?.trim()
 
   if (!baseURL || !model) {
     console.warn(
@@ -219,14 +248,19 @@ export function createConfiguredDriver(): AgentTurnDriver {
     return createReferenceDriver()
   }
 
-  if (__DEV__ && !apiKey) {
+  if (isDevelopment && !apiKey) {
     console.warn(
       'No provider API key configured; treating EXPO_PUBLIC_AGENT_BASE_URL as an authenticated or open proxy.',
     )
   }
 
   try {
-    return createOpenAICompatibleDriver({ baseURL, apiKey, model })
+    return createOpenAICompatibleDriver({
+      baseURL,
+      apiKey: apiKey || undefined,
+      model,
+      fetchImpl: options.fetchImpl,
+    })
   } catch (error) {
     console.warn('Invalid agent provider URL; using the local reference driver.', error)
     return createReferenceDriver()

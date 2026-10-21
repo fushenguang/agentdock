@@ -32,3 +32,17 @@
 - [x] 4.3 Run OpenSpec, alignment, architecture, changeset, secrets, and docs parity checks.
 - [x] 4.4 Record any OpenUI/Expo 57 incompatibility as an explicit adapter decision rather than a silent
       dependency downgrade.
+
+## 5. Developer-experience and provider hardening
+
+- [x] 5.1 Add injectable environment, transport, timeout, and cancellation seams to the
+      OpenAI-compatible driver while preserving the structured-output gate boundary.
+- [x] 5.2 Surface actionable structured-output issues and provider identity in the agent panel, and
+      preserve the selected history session title during continuation.
+- [x] 5.3 Refresh generated and platform documentation for the real provider workflow, reference
+      fallback, release guard, and proxy boundary in English and Simplified Chinese.
+- [x] 5.4 Add focused repository tests for endpoint normalization, request construction, response
+      extraction, credential handling, and injectable transport.
+- [x] 5.5 Prune Expo-generated native/build directories during scaffolding and CLI packaging so local
+      acceptance artifacts cannot slow tests or leak into generated/published projects.
+- [x] 5.6 Re-run OpenSpec, template type, CLI test/build, format, and secret checks.
