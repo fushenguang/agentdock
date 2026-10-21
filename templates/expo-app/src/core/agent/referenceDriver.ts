@@ -46,19 +46,27 @@ export function createReferenceDriver(): AgentTurnDriver {
       observe(step('domain', 'Read domain summary', 'tool'))
       observe(step('schema', 'Validate result envelope', 'validation', 'running'))
 
+      const isGreeting = /^(?:hi|hello|hey|你好|您好|嗨)[!.。]?$/.test(
+        request.userText.trim().toLowerCase(),
+      )
       const envelope = createResultEnvelope({
         status: 'ok',
-        title:
-          request.userText.length > 24 ? `${request.userText.slice(0, 24)}…` : request.userText,
+        title: isGreeting
+          ? 'Reply'
+          : request.userText.length > 24
+            ? `${request.userText.slice(0, 24)}…`
+            : request.userText,
         generated_at: new Date().toISOString(),
-        result: {
-          kind: 'summary',
-          metrics: [
-            { label: 'Domain', value: request.context.domainId },
-            { label: 'Context', value: `${request.context.compactEntries.length} entries` },
-            { label: 'Turn', value: 'ready to connect' },
-          ],
-        },
+        result: isGreeting
+          ? { kind: 'text', text: 'Hi! How can I help you today?' }
+          : {
+              kind: 'summary',
+              metrics: [
+                { label: 'Domain', value: request.context.domainId },
+                { label: 'Context', value: `${request.context.compactEntries.length} entries` },
+                { label: 'Turn', value: 'ready to connect' },
+              ],
+            },
         follow_ups: ['Connect a provider driver', 'Add a domain-specific tool'],
       })
       observe(step('schema', 'Validate result envelope', 'validation'))

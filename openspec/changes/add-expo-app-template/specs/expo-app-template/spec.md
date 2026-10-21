@@ -28,9 +28,21 @@ new-session action.
 #### Scenario: The user opens the shell
 
 - **WHEN** Domain Desktop renders
-- **THEN** the top bar contains the drawer/domain entry and new-session entry only
-- **AND** the drawer provides current domain, search, history, and user summary
+- **THEN** the top bar contains an icon-only drawer entry and new-session entry only
+- **AND** the drawer expands from the left with a domain selector and session-history search at the
+  top, a session list filling the remaining height, and a fixed user entry at the bottom
 - **AND** primary navigation is limited to Domain Desktop and History & Tasks
+
+#### Scenario: The user switches primary workspaces
+
+- **WHEN** the user horizontally swipes the workspace layer or uses the workspace page indicator
+- **THEN** the shell pages between Domain Desktop and History & Tasks
+- **AND** the active route remains synchronized with the visible primary workspace
+
+#### Scenario: The drawer opens over an expanded agent session
+
+- **WHEN** the agent BottomSheet is open and the user activates the top-bar drawer entry
+- **THEN** the agent sheet closes before the left drawer expands
 
 #### Scenario: Low-frequency user information opens as a secondary route
 
@@ -86,6 +98,12 @@ error. The renderer MUST NOT silently treat arbitrary assistant prose as a valid
 
 - **WHEN** the provider returns a valid `agent_result` envelope
 - **THEN** ResultCanvas renders the high-density native result
+
+#### Scenario: The user-facing answer is conversational
+
+- **WHEN** a validated `agent_result` uses the `text` result kind
+- **THEN** ResultCanvas displays only the user-facing text with a native Text component
+- **AND** envelope metadata, schema version, status, and JSON syntax remain invisible to the user
 
 #### Scenario: Output fails after retries
 

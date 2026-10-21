@@ -52,6 +52,10 @@ function TableResult({ table }: { table: AgentTable }) {
   )
 }
 
+function TextResult({ text }: { text: string }) {
+  return <Text className="text-base leading-6 text-ink">{text}</Text>
+}
+
 interface OpenUIResultState {
   readonly failed: boolean
 }
@@ -97,12 +101,10 @@ export function ResultCanvas({
 }) {
   return (
     <View testID="result-canvas" className="gap-3">
-      <View className="gap-1">
+      {result.result.kind === 'text' ? null : (
         <Text className="text-xl font-semibold text-ink">{result.title}</Text>
-        <Text className="text-xs text-muted">
-          {result.status} · schema {result.schema_version}
-        </Text>
-      </View>
+      )}
+      {result.result.kind === 'text' ? <TextResult text={result.result.text} /> : null}
       {result.result.kind === 'summary' ? <SummaryResult metrics={result.result.metrics} /> : null}
       {result.result.kind === 'table' ? <TableResult table={result.result.table} /> : null}
       {result.result.kind === 'openui' ? <OpenUIResult source={result.result.source} /> : null}

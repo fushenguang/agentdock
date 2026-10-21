@@ -18,13 +18,17 @@ The object must satisfy this TypeScript shape:
   title: string;
   generated_at: string; // RFC 3339 date-time
   result:
+    | { kind: "text"; text: string }
     | { kind: "summary"; metrics: Array<{ label: string; value: string | number; delta?: string; state?: "neutral" | "positive" | "warning" | "negative" }> }
     | { kind: "table"; table: { columns: Array<{ key: string; label: string }>; rows: Array<Record<string, string | number | boolean | null>> } }
     | { kind: "openui"; source: string }
     | { kind: "action-request"; message: string; confirmLabel: string; cancelLabel: string };
   follow_ups: string[];
 }
-Prefer concise, high-density metrics over prose. Respond in the user's language.`
+Choose the result kind from the user's actual content. Use "text" for conversational answers and
+simple statements; put the complete user-facing answer in text. Use metrics, tables, OpenUI, or action
+requests only when that structure genuinely helps the user. Never expose envelope fields or JSON syntax
+in user-facing text. Respond in the user's language.`
 
 function step(
   id: string,

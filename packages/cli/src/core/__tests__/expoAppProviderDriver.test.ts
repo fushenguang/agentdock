@@ -38,6 +38,17 @@ const driverModuleUrl = new URL(
 
 const cliPackageUrl = new URL('../../../package.json', import.meta.url)
 
+const agentResultModuleUrl = new URL(
+  '../../../../../templates/expo-app/src/core/agent/agent-result.js',
+  import.meta.url,
+).href
+
+interface AgentResultModule {
+  readonly agentResultEnvelopeSchema: {
+    safeParse(input: unknown): { readonly success: boolean }
+  }
+}
+
 async function loadDriverModule(): Promise<ProviderDriverModule> {
   return (await import(driverModuleUrl)) as unknown as ProviderDriverModule
 }
@@ -108,6 +119,42 @@ describe('extractOpenAICompatibleContent', () => {
     expect(() => extractOpenAICompatibleContent(JSON.stringify({ choices: [] }))).toThrow(
       'Provider returned an empty completion.',
     )
+  })
+})
+
+describe('agent_result text presentation contract', () => {
+  it('accepts a non-empty conversational text payload', async () => {
+    const { agentResultEnvelopeSchema } = (await import(
+      agentResultModuleUrl
+    )) as unknown as AgentResultModule
+
+    const result = agentResultEnvelopeSchema.safeParse({
+      schema_version: '1.0',
+      status: 'ok',
+      title: 'Reply',
+      generated_at: '2026-10-21T12:00:00.000Z',
+      result: { kind: 'text', text: 'Hi! How can I help you today?' },
+      follow_ups: [],
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects an empty text payload before rendering', async () => {
+    const { agentResultEnvelopeSchema } = (await import(
+      agentResultModuleUrl
+    )) as unknown as AgentResultModule
+
+    const result = agentResultEnvelopeSchema.safeParse({
+      schema_version: '1.0',
+      status: 'ok',
+      title: 'Reply',
+      generated_at: '2026-10-21T12:00:00.000Z',
+      result: { kind: 'text', text: '' },
+      follow_ups: [],
+    })
+
+    expect(result.success).toBe(false)
   })
 })
 

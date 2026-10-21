@@ -47,6 +47,11 @@ WorkspaceShell
 The top bar has exactly two entries. The drawer is the only home for current domain, search, history,
 and user summary. This prevents shortcut-row inflation and keeps primary surfaces at two.
 
+The top-bar drawer entry is icon-only. The drawer enters from the left: a compact domain selector and
+session-history search stay at the top, the session list occupies all flexible height, and the user
+entry remains fixed at the bottom. Opening the drawer closes an expanded agent BottomSheet first. The
+two primary workspaces are horizontally pageable, with the route synchronized to the visible page.
+
 Visual language is minimal but not monochrome: a light neutral base, one current-domain accent,
 semantic state colors, and a fixed chart palette. Decoration that does not encode state is removed.
 
@@ -65,6 +70,11 @@ LLM/provider output
 
 Repair may only revive a value without changing its meaning. Invalid content is surfaced as a typed
 failure. The renderer accepts an `agent_result` envelope, not raw assistant prose.
+
+The envelope is an application contract, not UI content. Conversational answers use the validated
+`text` result kind and render as native text; metrics, tables, OpenUI, and action requests are
+reserved for content that genuinely benefits from those structures. Envelope status, schema version,
+and other transport metadata are not shown to the user.
 
 ## Development provider boundary
 

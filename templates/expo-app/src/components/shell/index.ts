@@ -1,4 +1,6 @@
 export * from './AppDrawer'
+export * from './DomainDesktop'
+export * from './HistoryDesktop'
 export * from './SecondaryScreen'
 export * from './TopBar'
 export * from './WorkspaceShell'

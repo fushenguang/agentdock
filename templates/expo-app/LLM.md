@@ -24,6 +24,9 @@ applies revive-only repairs, and issues at most three targeted retries. Exhausti
 `structured_output_retries_exhausted`. Add provider-specific native structured-output support in the
 driver; do not add prose fallback to the gate.
 
+Use the `text` result kind for conversational answers. The text field is the complete user-facing
+answer; envelope status, schema metadata, and JSON syntax must never be rendered as content.
+
 ## Provider driver
 
 `createConfiguredDriver` uses the OpenAI-compatible driver only when both the public base URL and

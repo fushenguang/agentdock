@@ -16,6 +16,15 @@
         {
           "type": "object",
           "additionalProperties": false,
+          "required": ["kind", "text"],
+          "properties": {
+            "kind": { "const": "text" },
+            "text": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
           "required": ["kind", "metrics"],
           "properties": {
             "kind": { "const": "summary" },

@@ -15,6 +15,7 @@ export const agentMetricSchema = z.object({
 })
 
 export const agentResultDataSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('text'), text: z.string().min(1) }),
   z.object({ kind: z.literal('summary'), metrics: z.array(agentMetricSchema).min(1) }),
   z.object({ kind: z.literal('table'), table: agentTableSchema }),
   z.object({ kind: z.literal('openui'), source: z.string().min(1) }),

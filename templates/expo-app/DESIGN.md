@@ -19,8 +19,12 @@ The top bar has exactly two controls:
 1. Left: drawer/domain entry.
 2. Right: new session.
 
-The drawer contains current domain, search, history, and user summary. There are only two primary work
-surfaces: Domain Desktop and History & Tasks. Search is an overlay. Profile, privacy, storage, sync,
+The left drawer entry is icon-only. The drawer enters from the left: domain selection and session
+history search stay at the top, the session list fills the remaining height, and the user entry is
+fixed at the bottom. Opening the drawer automatically closes an expanded agent sheet.
+
+There are only two primary work surfaces: Domain Desktop and History & Tasks. Swipe horizontally (or
+use the page indicator) to move between them. Search is an overlay. Profile, privacy, storage, sync,
 notifications, and about are secondary `/user/**` routes.
 
 ## Agent panel
@@ -39,9 +43,10 @@ and cancel while a turn is active.
 
 ## Structured results
 
-Result content is an `agent_result` envelope. Use cards, metrics, tables, charts, and OpenUI-native
-components instead of long prose. A validation failure is a first-class error state, not a fallback to
-unvalidated text.
+Result transport is an `agent_result` envelope, but users see real content rather than JSON. A simple
+conversational answer uses the validated `text` kind and a native Text component. Cards, metrics,
+tables, charts, and OpenUI-native components are for content where that structure genuinely helps. A
+validation failure is a first-class error state, not a fallback to unvalidated text.
 
 ## Agent rules for UI changes
 

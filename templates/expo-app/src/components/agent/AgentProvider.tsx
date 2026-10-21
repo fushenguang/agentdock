@@ -40,6 +40,7 @@ export interface AgentSessionContextValue {
   readonly structuredOutputIssues: readonly StructuredOutputIssue[]
   readonly genericError: string | undefined
   readonly driverId: string
+  readonly domainId: string
   openAgent(snap?: AgentSheetSnap): void
   closeAgent(): void
   setSnapPoint(snap: AgentSheetSnap): void
@@ -48,6 +49,7 @@ export interface AgentSessionContextValue {
   dismissResult(): void
   submit(text: string): Promise<boolean>
   cancelTurn(): void
+  setDomainId(domainId: string): void
 }
 
 const AgentSessionContext = createContext<AgentSessionContextValue | undefined>(undefined)
@@ -67,6 +69,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
   const activeTurnIdRef = useRef<string | undefined>(undefined)
   const activeSessionIdRef = useRef('local-current')
   const activeSessionTitleRef = useRef('New voice session')
+  const [domainId, setDomainId] = useState('thefoolai')
   const dataStoreRef = useRef<MobileDataStore | undefined>(undefined)
   const driver = useMemo(createConfiguredDriver, [])
 
@@ -90,7 +93,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
         if (!ensuredSessionsRef.current.has(event.sessionId)) {
           await store.sessions.ensure({
             id: event.sessionId,
-            domainId: 'thefoolai',
+            domainId,
             title: activeSessionTitleRef.current,
             status: 'active',
           })
@@ -102,7 +105,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
         console.warn('Agent audit persistence failed', error)
       }
     },
-    [getDataStore],
+    [domainId, getDataStore],
   )
 
   const cancelActiveTurn = useCallback(() => {
@@ -188,7 +191,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
         userText: text,
         context: {
           sessionId,
-          domainId: 'thefoolai',
+          domainId,
           intentSummary: text,
           compactEntries: [] as const,
           totalTokenEstimate: 0,
@@ -271,7 +274,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
         return false
       }
     },
-    [driver, recordAudit],
+    [domainId, driver, recordAudit],
   )
 
   const cancelTurn = useCallback(() => {
@@ -298,6 +301,8 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
       structuredOutputIssues,
       genericError,
       driverId: driver.id,
+      domainId,
+      setDomainId,
       openAgent,
       closeAgent,
       setSnapPoint,
@@ -316,6 +321,8 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
       structuredOutputIssues,
       genericError,
       driver,
+      domainId,
+      setDomainId,
       openAgent,
       closeAgent,
       startSession,

@@ -46,3 +46,15 @@
 - [x] 5.5 Prune Expo-generated native/build directories during scaffolding and CLI packaging so local
       acceptance artifacts cannot slow tests or leak into generated/published projects.
 - [x] 5.6 Re-run OpenSpec, template type, CLI test/build, format, and secret checks.
+
+## 6. Acceptance refinements
+
+- [x] 6.1 Add a validated conversational `text` result kind and render it as native text without
+      exposing envelope metadata or JSON syntax.
+- [x] 6.2 Make Domain Desktop and History & Tasks horizontally pageable with route state and a page
+      indicator.
+- [x] 6.3 Rebuild the left drawer as a left-to-right panel with a domain selector, session search,
+      flexible-height history list, and fixed user entry; make the top-bar entry icon-only and close
+      an expanded agent sheet first.
+- [x] 6.4 Update machine-readable action/test-id maps and documentation.
+- [x] 6.5 Re-run template, CLI, OpenSpec, format, and secret checks.

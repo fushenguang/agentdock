@@ -4,7 +4,32 @@
     "open-navigation-drawer": {
       "route": "shell",
       "surface": "top-bar-left",
-      "intent": "Open current domain, search, history, and user summary"
+      "intent": "Open the left navigation drawer"
+    },
+    "select-domain": {
+      "route": "shell",
+      "surface": "navigation-drawer-header",
+      "intent": "Choose the active domain"
+    },
+    "search-session-history": {
+      "route": "shell",
+      "surface": "navigation-drawer-header",
+      "intent": "Filter local session history"
+    },
+    "continue-session-from-drawer": {
+      "route": "shell",
+      "surface": "navigation-drawer-history",
+      "intent": "Continue a local session"
+    },
+    "open-user-information": {
+      "route": "shell",
+      "surface": "navigation-drawer-footer",
+      "intent": "Open secondary user information"
+    },
+    "switch-workspace": {
+      "route": "shell",
+      "surface": "workspace-pager",
+      "intent": "Swipe or use the page indicator to switch primary workspaces"
     },
     "create-session": {
       "route": "shell",
