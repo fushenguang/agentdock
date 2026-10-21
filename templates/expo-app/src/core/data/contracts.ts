@@ -41,6 +41,8 @@ export interface OutboxRecord {
 
 export interface SessionRepository {
   create(input: Omit<SessionRecord, 'createdAt' | 'updatedAt'>): Promise<SessionRecord>
+  ensure(input: Omit<SessionRecord, 'createdAt' | 'updatedAt'>): Promise<SessionRecord>
+  touch(id: string): Promise<void>
   list(limit: number): Promise<readonly SessionRecord[]>
 }
 
@@ -58,8 +60,16 @@ export interface PermissionRepository {
 }
 
 export interface OutboxRepository {
-  enqueue(input: Omit<OutboxRecord, 'status' | 'createdAt'>): Promise<OutboxRecord>
+  enqueue(input: {
+    aggregateType: OutboxRecord['aggregateType']
+    aggregateId: string
+    operation: string
+    payload: Record<string, unknown>
+    idempotencyKey: string
+  }): Promise<OutboxRecord>
   listPending(limit: number): Promise<readonly OutboxRecord[]>
+  markSent(id: string): Promise<void>
+  markFailed(id: string, error: string): Promise<void>
 }
 
 export interface AgentAuditRepository extends SessionEventRepository {

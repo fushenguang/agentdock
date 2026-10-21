@@ -1,23 +1,24 @@
 import { BottomSheet } from '@expo/ui/community/bottom-sheet'
 import { Mic, Square } from 'lucide-react-native'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
-import { isActiveTurn } from '../../core/agent'
-import { useAgentSession } from './AgentProvider'
+import { isExecutingTurn } from '../../core/agent'
+import { useVoiceInput } from '../../core/voice/useVoiceInput'
+import { AGENT_SHEET_SNAP_POINTS, useAgentSession } from './AgentProvider'
 import { AgentStatusStrip } from './AgentStatusStrip'
 import { ProcessDrawer } from './ProcessDrawer'
 import { ResultCanvas } from './ResultCanvas'
-import { useVoiceInput } from '../../core/voice/useVoiceInput'
 
-const SNAP_CYCLE = [25, 50, 90] as const
-type SheetSnapPoint = (typeof SNAP_CYCLE)[number]
+const SNAP_CYCLE = [
+  AGENT_SHEET_SNAP_POINTS.voice,
+  AGENT_SHEET_SNAP_POINTS.task,
+  AGENT_SHEET_SNAP_POINTS.full,
+] as const
 
-function nextSnapPoint(current: number): SheetSnapPoint {
-  const currentPoint = current as SheetSnapPoint
-  const index = SNAP_CYCLE.indexOf(currentPoint)
+function nextSnapPoint(current: (typeof SNAP_CYCLE)[number]): (typeof SNAP_CYCLE)[number] {
+  const index = SNAP_CYCLE.indexOf(current)
   const safeIndex = index === -1 ? 0 : index
-  const next = SNAP_CYCLE[(safeIndex + 1) % SNAP_CYCLE.length]
-  return next ?? 25
+  return SNAP_CYCLE[(safeIndex + 1) % SNAP_CYCLE.length] ?? AGENT_SHEET_SNAP_POINTS.voice
 }
 
 export function AgentBottomSheet() {
@@ -31,11 +32,44 @@ export function AgentBottomSheet() {
     setSnapPoint,
     submit,
     cancelTurn,
+    dismissResult,
+    genericError,
   } = useAgentSession()
   const [input, setInput] = useState('')
-  const voice = useVoiceInput()
-  const effectiveInput = input || voice.transcript
+  const [inputError, setInputError] = useState<string | undefined>(undefined)
+  const typedPrefixRef = useRef('')
+  const handleTranscript = useCallback(
+    (transcript: string) =>
+      setInput(
+        typedPrefixRef.current.length > 0
+          ? `${typedPrefixRef.current} ${transcript}`.trim()
+          : transcript,
+      ),
+    [],
+  )
+  const voice = useVoiceInput({ onTranscript: handleTranscript })
+  const running = isExecutingTurn(turn)
+
+  useEffect(() => {
+    if (!sheetOpen && voice.status === 'listening') voice.stop()
+  }, [sheetOpen, voice.status, voice.stop])
+
   if (!sheetOpen) return null
+
+  function runTurn() {
+    const text = input.trim()
+    setInputError(text.length > 0 ? undefined : 'Say or type a request first.')
+    if (text.length === 0 || running) return
+
+    voice.stop()
+    void submit(text)
+      .then((accepted) => {
+        if (accepted) setInput('')
+      })
+      .catch((error: unknown) => {
+        setInputError(error instanceof Error ? error.message : 'Agent turn failed.')
+      })
+  }
 
   return (
     <BottomSheet
@@ -45,13 +79,19 @@ export function AgentBottomSheet() {
       backgroundStyle={{ backgroundColor: '#ffffff' }}
     >
       <View testID="agent-bottom-sheet" className="flex-1">
-        <ScrollView className="flex-1" contentContainerClassName="gap-4 px-5 pb-10 pt-3">
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="gap-4 px-5 pb-10 pt-3"
+          keyboardShouldPersistTaps="handled"
+        >
           <View className="flex-row items-center justify-between">
             <Text className="text-lg font-semibold text-ink">Voice agent</Text>
             <View className="flex-row gap-2">
-              {isActiveTurn(turn) ? (
+              {running ? (
                 <Pressable
                   testID="agent-cancel"
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel agent turn"
                   className="rounded-full bg-danger/10 px-3 py-2"
                   onPress={cancelTurn}
                 >
@@ -59,6 +99,8 @@ export function AgentBottomSheet() {
                 </Pressable>
               ) : null}
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Change agent panel height to ${nextSnapPoint(snapPoint)} percent`}
                 className="rounded-full bg-line px-3 py-2"
                 onPress={() => setSnapPoint(nextSnapPoint(snapPoint))}
               >
@@ -72,15 +114,19 @@ export function AgentBottomSheet() {
           <View className="gap-2">
             <TextInput
               className="min-h-12 rounded-2xl border border-line bg-canvas py-3 pl-12 pr-4 text-base text-ink"
-              value={effectiveInput}
+              value={input}
               onChangeText={setInput}
               placeholder={voice.status === 'listening' ? 'Listening…' : 'Speak or type a request'}
               placeholderTextColor="#69746f"
               multiline
+              editable={!running}
             />
             {voice.error ? <Text className="text-xs text-danger">{voice.error}</Text> : null}
+            {inputError ? <Text className="text-xs text-danger">{inputError}</Text> : null}
+            {genericError ? <Text className="text-xs text-danger">{genericError}</Text> : null}
             <Pressable
               testID="agent-voice-toggle"
+              accessibilityRole="button"
               accessibilityLabel={
                 voice.status === 'listening' ? 'Stop voice input' : 'Start voice input'
               }
@@ -90,6 +136,7 @@ export function AgentBottomSheet() {
                   voice.stop()
                   return
                 }
+                typedPrefixRef.current = input.trim()
                 void voice.start()
               }}
             >
@@ -100,13 +147,16 @@ export function AgentBottomSheet() {
               )}
             </Pressable>
             <Pressable
-              className="self-end rounded-full bg-accent px-5 py-3"
-              onPress={() => {
-                const text = effectiveInput.trim() || 'Summarize the current domain'
-                void submit(text)
-              }}
+              accessibilityRole="button"
+              accessibilityLabel="Run agent turn"
+              accessibilityState={{ disabled: running }}
+              disabled={running}
+              className={`self-end rounded-full px-5 py-3 ${running ? 'bg-line' : 'bg-accent'}`}
+              onPress={runTurn}
             >
-              <Text className="text-sm font-medium text-white">Run</Text>
+              <Text className={`text-sm font-medium ${running ? 'text-muted' : 'text-white'}`}>
+                {running ? 'Running…' : 'Run'}
+              </Text>
             </Pressable>
           </View>
 
@@ -117,7 +167,24 @@ export function AgentBottomSheet() {
             </View>
           ) : null}
 
-          {result ? <ResultCanvas result={result} /> : null}
+          {result ? (
+            <ResultCanvas
+              result={result}
+              onConfirm={() =>
+                void submit(
+                  result.result.kind === 'action-request' ? result.result.confirmLabel : 'Confirm',
+                ).catch((error: unknown) => {
+                  setInputError(
+                    error instanceof Error ? error.message : 'Agent confirmation failed.',
+                  )
+                })
+              }
+              onCancel={() => {
+                dismissResult()
+                closeAgent()
+              }}
+            />
+          ) : null}
           <ProcessDrawer steps={turn.steps} />
         </ScrollView>
       </View>

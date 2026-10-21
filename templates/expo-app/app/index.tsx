@@ -1,6 +1,6 @@
-import { Pressable, ScrollView, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { useAgentSession } from '../src/components/agent'
-import { Card, Section, Text } from '../src/components/ui'
+import { Button, Card, Section, Text } from '../src/components/ui'
 
 export default function DomainDesktop() {
   const { startSession } = useAgentSession()
@@ -41,9 +41,14 @@ export default function DomainDesktop() {
         <Card className="items-start bg-accent/10">
           <Text variant="title">Start a voice session</Text>
           <Text className="mt-2">Create a draft turn and speak to the agent.</Text>
-          <Pressable className="mt-4" onPress={startSession}>
-            <Text className="text-sm font-medium text-accent">New session</Text>
-          </Pressable>
+          <Button
+            testID="domain-desktop-new-session"
+            accessibilityLabel="New session"
+            label="New session"
+            variant="ghost"
+            className="mt-4 self-start"
+            onPress={startSession}
+          />
         </Card>
       </Section>
     </ScrollView>

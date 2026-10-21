@@ -11,6 +11,11 @@
       "surface": "top-bar-right",
       "intent": "Create a draft session and open the voice agent panel"
     },
+    "start-session-from-domain": {
+      "route": "domain-desktop",
+      "surface": "primary-action",
+      "intent": "Start a voice session from the Domain Desktop"
+    },
     "open-agent-panel": {
       "route": "shell",
       "surface": "floating-agent-orb",

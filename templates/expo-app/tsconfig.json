@@ -21,6 +21,8 @@
     "src/**/*.tsx",
     "src/**/*.ts",
     "agent/**/*.json",
-    "nativewind-env.d.ts"
+    "nativewind-env.d.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ]
 }

@@ -41,13 +41,13 @@ export function AppDrawer({ visible, domainLabel, onClose }: AppDrawerProps) {
 
   function go(route: '/' | '/history' | '/search' | '/user') {
     onClose()
-    router.push(route)
+    router.navigate(route)
   }
 
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-black/25">
-        <View testID="navigation-drawer" className="gap-2 rounded-t-4xl bg-surface p-5 pb-10">
+        <View testID="navigation-drawer" className="gap-2 rounded-t-3xl bg-surface p-5 pb-10">
           <Text className="pb-2 text-xs text-muted">Current domain</Text>
           <DrawerRow
             icon={<View className="h-5 w-5 rounded-md bg-accent/20" />}

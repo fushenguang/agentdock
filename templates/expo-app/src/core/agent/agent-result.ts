@@ -30,7 +30,7 @@ export const agentResultEnvelopeSchema = z.object({
   schema_version: z.literal(AGENT_RESULT_SCHEMA_VERSION),
   status: z.enum(['ok', 'needs-confirmation', 'error']),
   title: z.string().min(1),
-  generated_at: z.string().datetime(),
+  generated_at: z.string().datetime({ offset: true }),
   result: agentResultDataSchema,
   follow_ups: z.array(z.string()).default([]),
 })
@@ -45,8 +45,8 @@ export function createResultEnvelope(
     Partial<Pick<AgentResultEnvelope, 'follow_ups'>>,
 ): AgentResultEnvelope {
   return {
+    ...value,
     schema_version: AGENT_RESULT_SCHEMA_VERSION,
     follow_ups: value.follow_ups ?? [],
-    ...value,
   }
 }

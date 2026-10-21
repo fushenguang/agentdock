@@ -9,3 +9,14 @@ web-build/
 .env.*
 !.env.example
 coverage/
+*.tsbuildinfo
+
+# Expo generated typed routes
+expo-env.d.ts
+
+# Native signing artifacts must never be committed.
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision

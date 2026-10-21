@@ -17,7 +17,14 @@ function step(
   status: AgentTurnStep['status'] = 'succeeded',
 ): AgentTurnStep {
   const now = new Date().toISOString()
-  return { id, label, kind, status, startedAt: now, finishedAt: now }
+  return {
+    id,
+    label,
+    kind,
+    status,
+    startedAt: now,
+    ...(status === 'running' ? {} : { finishedAt: now }),
+  }
 }
 
 function ensureActive(request: AgentTurnRequest): void {
@@ -39,7 +46,7 @@ export function createReferenceDriver(): AgentTurnDriver {
       observe(step('domain', 'Read domain summary', 'tool'))
       observe(step('schema', 'Validate result envelope', 'validation', 'running'))
 
-      return createResultEnvelope({
+      const envelope = createResultEnvelope({
         status: 'ok',
         title:
           request.userText.length > 24 ? `${request.userText.slice(0, 24)}…` : request.userText,
@@ -47,13 +54,15 @@ export function createReferenceDriver(): AgentTurnDriver {
         result: {
           kind: 'summary',
           metrics: [
-            { label: 'Domain', value: request.domainId },
+            { label: 'Domain', value: request.context.domainId },
             { label: 'Context', value: `${request.context.compactEntries.length} entries` },
             { label: 'Turn', value: 'ready to connect' },
           ],
         },
         follow_ups: ['Connect a provider driver', 'Add a domain-specific tool'],
       })
+      observe(step('schema', 'Validate result envelope', 'validation'))
+      return envelope
     },
   }
 }

@@ -12,6 +12,17 @@ export const AGENT_PHASES = {
 
 export type AgentPhase = (typeof AGENT_PHASES)[keyof typeof AGENT_PHASES]
 
+export const TERMINAL_AGENT_PHASES: readonly AgentPhase[] = [
+  AGENT_PHASES.idle,
+  AGENT_PHASES.completed,
+  AGENT_PHASES.failed,
+  AGENT_PHASES.cancelled,
+] as const
+
+export function isTerminalAgentPhase(phase: AgentPhase): boolean {
+  return TERMINAL_AGENT_PHASES.includes(phase)
+}
+
 export interface AgentContextEntry {
   readonly id: string
   readonly summary: string
@@ -35,10 +46,18 @@ export interface AgentMemoryProjection {
   readonly confidence: number
 }
 
-export interface AgentToolSchema {
+export interface AgentToolSchemaNode {
+  readonly type?: string | readonly string[]
+  readonly required?: readonly string[]
+  readonly properties?: Record<string, AgentToolSchemaNode>
+  readonly items?: AgentToolSchemaNode
+  readonly enum?: readonly unknown[]
+}
+
+export interface AgentToolSchema extends AgentToolSchemaNode {
   readonly $schema: 'https://json-schema.org/draft/2020-12/schema'
   readonly type: 'object'
-  readonly properties: Record<string, unknown>
+  readonly properties: Record<string, AgentToolSchemaNode>
   readonly required: readonly string[]
 }
 
@@ -69,6 +88,8 @@ export interface PermissionRequest {
   readonly toolId: string
   readonly reason: string
   readonly risk: ToolRiskLevel
+  /** SHA-256 digest of the exact serialized input being authorized. */
+  readonly inputDigest: string
 }
 
 export const PERMISSION_DECISIONS = {
@@ -105,8 +126,6 @@ export interface AgentAuditEvent {
 }
 
 export interface AgentTurnRequest {
-  readonly sessionId: string
-  readonly domainId: string
   readonly userText: string
   readonly context: AgentContextEnvelope
   readonly retry?: AgentTurnRetryContext

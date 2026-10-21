@@ -17,7 +17,9 @@ export default function RootLayout() {
                 headerShown: false,
                 contentStyle: { backgroundColor: '#f7f7f4' },
               }}
-            />
+            >
+              <Stack.Screen name="search" options={{ presentation: 'modal' }} />
+            </Stack>
           </WorkspaceShell>
           <StatusBar style="dark" />
         </AgentSessionProvider>

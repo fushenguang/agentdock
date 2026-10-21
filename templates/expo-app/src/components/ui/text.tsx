@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { TextProps as NativeTextProps } from 'react-native'
 import { Text as NativeText } from 'react-native'
 import { cn } from '../../lib/utils'
 
@@ -12,16 +12,14 @@ const TEXT_VARIANTS = {
 
 export type TextVariant = keyof typeof TEXT_VARIANTS
 
-export interface TextProps {
-  children: ReactNode
+export interface TextProps extends NativeTextProps {
   variant?: TextVariant
   className?: string
-  testID?: string
 }
 
-export function Text({ children, variant = 'body', className, testID }: TextProps) {
+export function Text({ children, variant = 'body', className, ...props }: TextProps) {
   return (
-    <NativeText testID={testID} className={cn(TEXT_VARIANTS[variant], className)}>
+    <NativeText className={cn(TEXT_VARIANTS[variant], className)} {...props}>
       {children}
     </NativeText>
   )

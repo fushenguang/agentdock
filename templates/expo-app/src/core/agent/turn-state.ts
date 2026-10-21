@@ -1,4 +1,5 @@
-import type { AgentPhase, AgentTurnStep } from './types'
+import type { AgentResultEnvelope } from './agent-result'
+import { AGENT_PHASES, isTerminalAgentPhase, type AgentPhase, type AgentTurnStep } from './types'
 
 export interface AgentTurnState {
   readonly turnId: string
@@ -7,12 +8,10 @@ export interface AgentTurnState {
   readonly startedAt: number
   readonly updatedAt: number
   readonly steps: readonly AgentTurnStep[]
-  readonly result?: unknown
-  readonly failureCode?: string
-  readonly failureMessage?: string
+  readonly result: AgentResultEnvelope | undefined
+  readonly failureCode: string | undefined
+  readonly failureMessage: string | undefined
 }
-
-export const EMPTY_TURN_PHASES: readonly AgentPhase[] = ['idle', 'completed', 'failed', 'cancelled']
 
 export function createInitialTurnState(now = Date.now()): AgentTurnState {
   return {
@@ -22,11 +21,25 @@ export function createInitialTurnState(now = Date.now()): AgentTurnState {
     startedAt: now,
     updatedAt: now,
     steps: [],
+    result: undefined,
+    failureCode: undefined,
+    failureMessage: undefined,
   }
 }
 
 export function isActiveTurn(state: AgentTurnState): boolean {
-  return !EMPTY_TURN_PHASES.includes(state.phase)
+  return !isTerminalAgentPhase(state.phase)
+}
+
+const EXECUTING_TURN_PHASES: readonly AgentPhase[] = [
+  AGENT_PHASES.planning,
+  AGENT_PHASES.waitingPermission,
+  AGENT_PHASES.runningTool,
+  AGENT_PHASES.structuring,
+]
+
+export function isExecutingTurn(state: AgentTurnState): boolean {
+  return EXECUTING_TURN_PHASES.includes(state.phase)
 }
 
 export function completedStepCount(state: AgentTurnState): number {
@@ -54,15 +67,15 @@ export function executionStatus(
     return { showStage: false, showElapsed: false, label: state.stage }
   }
 
-  const elapsedSeconds = Math.floor((now - state.startedAt) / 1000)
+  const elapsedSeconds = Math.max(0, Math.floor((now - state.startedAt) / 1000))
   const showStage = elapsedSeconds >= 3
   const showElapsed = elapsedSeconds >= 10
-  const suffix = showElapsed
-    ? ` · ${formatElapsed(state.startedAt, now)} · ${completedStepCount(state)} steps`
-    : ''
+  const stepCount = completedStepCount(state)
+  const stepLabel = stepCount === 1 ? '1 step' : `${stepCount} steps`
+  const suffix = showElapsed ? ` · ${formatElapsed(state.startedAt, now)} · ${stepLabel}` : ''
   return {
     showStage,
     showElapsed,
-    label: `${state.stage}${suffix}`,
+    label: `${showStage ? state.stage : 'Working…'}${suffix}`,
   }
 }
