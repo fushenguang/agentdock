@@ -11,13 +11,12 @@ import {
   AGENT_PHASES,
   AgentTurnCancelledError,
   createInitialTurnState,
-  createReferenceDriver,
+  createConfiguredDriver,
   isActiveTurn,
   runVerifiedAgentTurn,
   StructuredOutputTurnError,
   type AgentAuditEvent,
   type AgentResultEnvelope,
-  type AgentTurnDriver,
   type AgentTurnState,
 } from '../../core/agent'
 import { getMobileDataStore, type MobileDataStore } from '../../infra/sqlite/dataStore'
@@ -63,7 +62,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
   const activeSessionIdRef = useRef('local-current')
   const activeSessionTitleRef = useRef('New voice session')
   const dataStoreRef = useRef<MobileDataStore | undefined>(undefined)
-  const driverRef = useRef<AgentTurnDriver>(createReferenceDriver())
+  const driver = useMemo(createConfiguredDriver, [])
 
   const openAgent = useCallback((snap = AGENT_SHEET_SNAP_POINTS.voice) => {
     if (activeSessionIdRef.current === 'local-current') activeSessionIdRef.current = newId()
@@ -190,7 +189,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
       try {
         const envelope = await runVerifiedAgentTurn({
           request,
-          driver: driverRef.current,
+          driver,
           recordAudit,
           turnId,
           observe: (step) => {
@@ -261,7 +260,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
         return false
       }
     },
-    [recordAudit],
+    [driver, recordAudit],
   )
 
   const cancelTurn = useCallback(() => {

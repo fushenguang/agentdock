@@ -20,6 +20,12 @@ function StepRow({ step }: { step: AgentTurnStep }) {
   )
 }
 
+function latestSteps(steps: readonly AgentTurnStep[]): readonly AgentTurnStep[] {
+  const latestById = new Map<string, AgentTurnStep>()
+  for (const step of steps) latestById.set(step.id, step)
+  return [...latestById.values()]
+}
+
 export function ProcessDrawer({ steps }: { steps: readonly AgentTurnStep[] }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -43,7 +49,9 @@ export function ProcessDrawer({ steps }: { steps: readonly AgentTurnStep[] }) {
           {steps.length === 0 ? (
             <Text className="py-3 text-sm text-muted">No execution event yet.</Text>
           ) : (
-            steps.map((step) => <StepRow key={`${step.id}-${step.startedAt}`} step={step} />)
+            latestSteps(steps).map((step) => (
+              <StepRow key={`${step.id}-${step.startedAt}`} step={step} />
+            ))
           )}
         </View>
       ) : null}

@@ -1,5 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition'
+import { requireOptionalNativeModule } from 'expo'
+
+interface SpeechSubscription {
+  remove(): void
+}
+
+interface SpeechRecognitionModule {
+  readonly requestPermissionsAsync: () => Promise<{ readonly granted: boolean }>
+  readonly start: (options: {
+    readonly lang: string
+    readonly interimResults: boolean
+    readonly continuous: boolean
+    readonly addsPunctuation: boolean
+  }) => void
+  readonly stop: () => void
+  readonly abort: () => void
+  readonly addListener: (
+    eventName: string,
+    listener: (event: Record<string, unknown>) => void,
+  ) => SpeechSubscription
+}
 
 export const VOICE_INPUT_STATUSES = {
   idle: 'idle',
@@ -23,6 +43,19 @@ const ERROR_MESSAGES: Record<string, string> = {
   network: 'Speech recognition is unavailable because the network failed.',
   'audio-capture': 'No microphone is available on this device.',
 }
+
+function loadSpeechModule(): SpeechRecognitionModule | undefined {
+  try {
+    return (
+      requireOptionalNativeModule<SpeechRecognitionModule>('ExpoSpeechRecognition') ?? undefined
+    )
+  } catch (error) {
+    if (__DEV__) console.warn('Failed to load ExpoSpeechRecognition module', error)
+    return undefined
+  }
+}
+
+const speechModule = loadSpeechModule()
 
 function transcriptFromResults(results: readonly { transcript: string }[]): string {
   return results
@@ -48,62 +81,82 @@ export function useVoiceInput({
   })
   const startingRef = useRef(false)
   const mountedRef = useRef(true)
+  const onTranscriptRef = useRef(onTranscript)
 
-  useSpeechRecognitionEvent('result', (event) => {
-    if (!mountedRef.current) return
-    const transcript = transcriptFromResults(event.results)
-    setState((current) => ({
-      ...current,
-      status: event.isFinal ? VOICE_INPUT_STATUSES.idle : VOICE_INPUT_STATUSES.listening,
-      transcript,
-    }))
-    if (transcript.length > 0) onTranscript?.(transcript)
-  })
+  useEffect(() => {
+    onTranscriptRef.current = onTranscript
+  }, [onTranscript])
 
-  useSpeechRecognitionEvent('error', (event) => {
-    if (!mountedRef.current) return
-    if (event.error === 'aborted') {
-      setState((current) => ({ ...current, status: VOICE_INPUT_STATUSES.idle }))
-      return
-    }
+  useEffect(() => {
+    if (!speechModule?.addListener) return undefined
 
-    const message = ERROR_MESSAGES[event.error] ?? 'Voice input failed. Please try again.'
-    setState((current) => ({
-      ...current,
-      status:
-        event.error === 'not-allowed' || event.error === 'service-not-allowed'
-          ? VOICE_INPUT_STATUSES.denied
-          : VOICE_INPUT_STATUSES.failed,
-      transcript: '',
-      error: message,
-    }))
-  })
+    const subscriptions = [
+      speechModule.addListener('result', (event) => {
+        if (!mountedRef.current) return
+        const results = Array.isArray(event.results)
+          ? (event.results as { transcript?: unknown }[])
+              .map((result) =>
+                typeof result.transcript === 'string' ? { transcript: result.transcript } : null,
+              )
+              .filter((result): result is { transcript: string } => result !== null)
+          : []
+        const transcript = transcriptFromResults(results)
+        setState((current) => ({
+          ...current,
+          status:
+            event.isFinal === true ? VOICE_INPUT_STATUSES.idle : VOICE_INPUT_STATUSES.listening,
+          transcript,
+          error: undefined,
+        }))
+        if (transcript.length > 0) onTranscriptRef.current?.(transcript)
+      }),
+      speechModule.addListener('error', (event) => {
+        if (!mountedRef.current) return
+        const errorCode = typeof event.error === 'string' ? event.error : 'unknown'
+        if (errorCode === 'aborted') {
+          setState((current) => ({ ...current, status: VOICE_INPUT_STATUSES.idle }))
+          return
+        }
 
-  useSpeechRecognitionEvent('start', () => {
-    if (!mountedRef.current) return
-    setState((current) => ({ ...current, status: VOICE_INPUT_STATUSES.listening }))
-  })
+        const message = ERROR_MESSAGES[errorCode] ?? 'Voice input failed. Please try again.'
+        setState((current) => ({
+          ...current,
+          status:
+            errorCode === 'not-allowed' || errorCode === 'service-not-allowed'
+              ? VOICE_INPUT_STATUSES.denied
+              : VOICE_INPUT_STATUSES.failed,
+          transcript: '',
+          error: message,
+        }))
+      }),
+      speechModule.addListener('start', () => {
+        if (!mountedRef.current) return
+        setState((current) => ({ ...current, status: VOICE_INPUT_STATUSES.listening }))
+      }),
+      speechModule.addListener('end', () => {
+        if (!mountedRef.current) return
+        setState((current) => ({ ...current, status: VOICE_INPUT_STATUSES.idle }))
+      }),
+      speechModule.addListener('nomatch', () => {
+        if (!mountedRef.current) return
+        setState((current) => ({
+          ...current,
+          status: VOICE_INPUT_STATUSES.idle,
+          transcript: '',
+          error: 'No matching speech was recognized. Please try again.',
+        }))
+      }),
+    ]
 
-  useSpeechRecognitionEvent('end', () => {
-    if (!mountedRef.current) return
-    setState((current) => ({ ...current, status: VOICE_INPUT_STATUSES.idle }))
-  })
-
-  useSpeechRecognitionEvent('nomatch', () => {
-    if (!mountedRef.current) return
-    setState((current) => ({
-      ...current,
-      status: VOICE_INPUT_STATUSES.idle,
-      error: 'No matching speech was recognized. Please try again.',
-    }))
-  })
+    return () => subscriptions.forEach((subscription) => subscription.remove())
+  }, [])
 
   useEffect(() => {
     mountedRef.current = true
     return () => {
       mountedRef.current = false
       startingRef.current = false
-      ExpoSpeechRecognitionModule.abort()
+      speechModule?.abort()
     }
   }, [])
 
@@ -112,7 +165,16 @@ export function useVoiceInput({
     startingRef.current = true
 
     try {
-      const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync()
+      if (!speechModule?.addListener) {
+        setState((current) => ({
+          ...current,
+          status: VOICE_INPUT_STATUSES.failed,
+          error: 'Voice input requires an app development build. Text input remains available.',
+        }))
+        return
+      }
+
+      const permission = await speechModule.requestPermissionsAsync()
       if (!mountedRef.current) return
       if (!permission.granted) {
         setState((current) => ({
@@ -123,7 +185,7 @@ export function useVoiceInput({
         return
       }
 
-      ExpoSpeechRecognitionModule.start({
+      speechModule.start({
         lang,
         interimResults: true,
         continuous: false,
@@ -149,7 +211,7 @@ export function useVoiceInput({
   }, [lang, state.status])
 
   const stop = useCallback(() => {
-    ExpoSpeechRecognitionModule.stop()
+    speechModule?.stop()
     setState((current) => ({ ...current, status: VOICE_INPUT_STATUSES.idle }))
   }, [])
 

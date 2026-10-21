@@ -7,10 +7,10 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "ios": "expo start --ios",
-    "android": "expo start --android",
-    "build": "expo export --platform ios",
-    "check": "expo install --check && tsc --noEmit && pnpm build",
+    "ios": "expo run:ios",
+    "android": "expo run:android",
+    "build": "node scripts/verify-production-env.cjs && expo export --platform ios",
+    "check": "expo install --check && tsc --noEmit",
     "check-types": "tsc --noEmit"
   },
   "engines": {
