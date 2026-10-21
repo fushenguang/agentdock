@@ -1,4 +1,4 @@
-# mobile-expo-thefoolai-template Specification
+# expo-app-template Specification
 
 ## ADDED Requirements
 
@@ -9,7 +9,7 @@ source-owned `react-native-reusables` primitives, and `@expo/ui` for selected na
 
 #### Scenario: A standalone mobile project is generated
 
-- **WHEN** `agentdock init` uses template `mobile-expo-thefoolai`
+- **WHEN** `agentdock init` uses template `expo-app`
 - **THEN** the generated project contains an Expo Router application and NativeWind configuration
 - **AND** the generated package uses Expo SDK 57-compatible React, React Native, Router, and UI versions
 - **AND** no `.git` directory or `node_modules` directory is copied.

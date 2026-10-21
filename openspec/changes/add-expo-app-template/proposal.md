@@ -1,8 +1,8 @@
 ---
-roadmap-id: mobile-expo-thefoolai-template
+roadmap-id: expo-app-template
 ---
 
-# Proposal: add-mobile-expo-thefoolai-template
+# Proposal: add-expo-app-template
 
 ## Why
 
@@ -16,7 +16,7 @@ local persistence. Generalization to other products is deliberately deferred.
 
 ## What Changes
 
-1. Add the `mobile-expo-thefoolai` template on Expo SDK 57, React Native 0.86, React 19, Expo Router,
+1. Add the `expo-app` template on Expo SDK 57, React Native 0.86, React 19, Expo Router,
    NativeWind 4, and source-owned `react-native-reusables` primitives.
 2. Use `@expo/ui` as a targeted native-control supplement, starting with the agent BottomSheet.
 3. Add a two-layer mobile UI contract:
@@ -41,7 +41,7 @@ local persistence. Generalization to other products is deliberately deferred.
 
 ### New Capabilities
 
-- `mobile-expo-thefoolai-template`: a mobile-first Expo Agent Host scaffold optimized for TheFoolAI.
+- `expo-app-template`: a mobile-first Expo Agent Host scaffold optimized for TheFoolAI.
 
 ### Modified Capabilities
 
@@ -49,7 +49,7 @@ local persistence. Generalization to other products is deliberately deferred.
 
 ## Impact
 
-- Adds `templates/mobile-expo-thefoolai`.
+- Adds `templates/expo-app`.
 - Updates `packages/cli/src/registry.json` and CLI tests.
 - Adds English and Simplified Chinese template documentation.
 - Adds a `@cogito.ai/cli` minor changeset.

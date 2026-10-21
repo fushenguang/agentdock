@@ -1,5 +1,5 @@
 {
-  "name": "@cogito.ai/template-mobile-expo-thefoolai",
+  "name": "@cogito.ai/template-expo-app",
   "version": "0.1.0",
   "private": true,
   "description": "TheFoolAI-specific Expo mobile Agent Host template with Agent Core Lite, voice-first interaction, NativeWind, structured results, and local SQLite persistence.",

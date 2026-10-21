@@ -1,4 +1,4 @@
-# Design: add-mobile-expo-thefoolai-template
+# Design: add-expo-app-template
 
 ## Product boundary
 

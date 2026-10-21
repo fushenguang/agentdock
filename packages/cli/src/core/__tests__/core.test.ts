@@ -106,13 +106,13 @@ describe('registry — domain-packages template', () => {
   })
 })
 
-describe('registry — mobile-expo-thefoolai template', () => {
+describe('registry — expo-app template', () => {
   it('is discoverable with mobile Agent Host metadata', () => {
-    const template = getTemplate('mobile-expo-thefoolai')
+    const template = getTemplate('expo-app')
 
     expect(template).toBeDefined()
-    expect(template?.name).toBe('@cogito.ai/template-mobile-expo-thefoolai')
-    expect(template?.source).toBe('templates/mobile-expo-thefoolai')
+    expect(template?.name).toBe('@cogito.ai/template-expo-app')
+    expect(template?.source).toBe('templates/expo-app')
     expect(template?.minCliVersion).toBe('0.28.0')
     expect(template?.packageManager).toBe('pnpm')
     expect(template?.packageManagerEnforced).toBe(true)
@@ -123,7 +123,7 @@ describe('registry — mobile-expo-thefoolai template', () => {
   })
 
   it('pins the approved Expo 57 and NativeWind baseline', () => {
-    const template = getTemplate('mobile-expo-thefoolai')
+    const template = getTemplate('expo-app')
     expect(template).toBeDefined()
     expect(template?.resolvedDependencies.expo).toBe('~57.0.30')
     expect(template?.resolvedDependencies['react-native']).toBe('0.86.3')
@@ -429,9 +429,9 @@ describe('scaffoldProject', () => {
   })
 
   it('scaffolds the TheFoolAI mobile Agent Host with its machine surfaces', () => {
-    const template = getTemplate('mobile-expo-thefoolai')
+    const template = getTemplate('expo-app')
     expect(template).toBeDefined()
-    if (!template) throw new Error('mobile-expo-thefoolai template not found in registry')
+    if (!template) throw new Error('expo-app template not found in registry')
 
     const targetDir = join(tmpDir, 'my-fool-mobile')
     const result = scaffoldProject({

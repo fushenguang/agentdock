@@ -55,7 +55,7 @@ next:
 
   # 由 @sunny 于 2026-10-21 明确授权 AI 添加并开工：先为 TheFoolAI 专项定制
   # Expo 移动 Agent Host 模板，通用化方向后置。留痕以免日后被误读为绕过 Gate①。
-  - id: mobile-expo-thefoolai-template
+  - id: expo-app-template
     title: "Add TheFoolAI-specific Expo mobile Agent Host template"
     status: planned
     owner: "@sunny"

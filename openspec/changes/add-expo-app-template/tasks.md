@@ -1,4 +1,4 @@
-# Tasks: add-mobile-expo-thefoolai-template
+# Tasks: add-expo-app-template
 
 ## 1. Template foundation
 
