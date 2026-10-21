@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "{{PROJECT_NAME}}",
+    "slug": "thefoolai-agent",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "thefoolai-agent",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#f7f7f4",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "ai.thefool.mobile",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "The agent uses the microphone for voice-first sessions.",
+        "NSSpeechRecognitionUsageDescription": "The agent transcribes your voice requests on device when possible."
+      }
+    },
+    "android": {
+      "package": "ai.thefool.mobile",
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "The agent uses the microphone for voice-first sessions.",
+          "speechRecognitionPermission": "The agent transcribes voice requests."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    }
+  }
+}

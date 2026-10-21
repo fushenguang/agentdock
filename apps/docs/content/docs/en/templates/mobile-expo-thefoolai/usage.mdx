@@ -1,0 +1,48 @@
+---
+title: Usage
+description: Scaffold and verify a TheFoolAI mobile Agent Host.
+---
+
+# Usage
+
+## Scaffold
+
+```bash
+npx @cogito.ai/cli init my-fool-mobile \
+  --template mobile-expo-thefoolai \
+  --pm pnpm
+```
+
+## Local checks
+
+```bash
+cd my-fool-mobile
+pnpm install
+pnpm check
+```
+
+`pnpm check` verifies Expo package versions, runs strict TypeScript, and produces an iOS Hermes bundle.
+
+## Development loop
+
+```bash
+pnpm start -- --ios
+pnpm start -- --android
+```
+
+The reference driver returns a local structured result and does not require an API key. Replace it
+through `src/core/agent/referenceDriver.ts`; every provider response still passes through
+`structured-output-gate`.
+
+## Replace the reference driver
+
+1. Implement `AgentTurnDriver`.
+2. Prefer native structured output in the provider request.
+3. Return JSON that satisfies `agent_result` schema version `1.0`.
+4. Leave deterministic repair, actionable retry, and exhaustion behavior in the gate.
+5. Do not add a free-text rendering fallback.
+
+## Data changes
+
+Add append-only migrations in `src/core/data/migrations.ts`, implement the repository contract through
+`src/infra/sqlite/dataStore.ts`, and represent every remote mutation as an idempotent outbox operation.

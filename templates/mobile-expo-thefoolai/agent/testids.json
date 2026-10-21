@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "testids": {
+    "topbar-drawer": "topbar-drawer",
+    "topbar-new-session": "topbar-new-session",
+    "navigation-drawer": "navigation-drawer",
+    "domain-desktop": "domain-desktop",
+    "history-desktop": "history-desktop",
+    "search-input": "search-input",
+    "agent-voice-orb": "agent-voice-orb",
+    "agent-bottom-sheet": "agent-bottom-sheet",
+    "agent-voice-toggle": "agent-voice-toggle",
+    "agent-status": "agent-status",
+    "agent-process-toggle": "agent-process-toggle",
+    "agent-cancel": "agent-cancel",
+    "result-canvas": "result-canvas"
+  }
+}

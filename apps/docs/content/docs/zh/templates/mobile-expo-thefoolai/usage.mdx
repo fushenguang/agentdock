@@ -1,0 +1,47 @@
+---
+title: 使用方式
+description: 创建并验证 TheFoolAI 移动 Agent Host。
+---
+
+# 使用方式
+
+## 创建项目
+
+```bash
+npx @cogito.ai/cli init my-fool-mobile \
+  --template mobile-expo-thefoolai \
+  --pm pnpm
+```
+
+## 本地检查
+
+```bash
+cd my-fool-mobile
+pnpm install
+pnpm check
+```
+
+`pnpm check` 会校验 Expo 依赖版本、运行 strict TypeScript，并产出 iOS Hermes bundle。
+
+## 开发循环
+
+```bash
+pnpm start -- --ios
+pnpm start -- --android
+```
+
+Reference driver 返回本地结构化结果，不需要 API key。替换入口是
+`src/core/agent/referenceDriver.ts`；所有 provider 输出仍必须经过 `structured-output-gate`。
+
+## 替换 reference driver
+
+1. 实现 `AgentTurnDriver`。
+2. 优先使用 provider 的原生 structured output。
+3. 返回满足 `agent_result` schema `1.0` 的 JSON。
+4. 保留 deterministic repair、可执行 retry 与显式 exhaustion。
+5. 不增加自由文本渲染 fallback。
+
+## 数据变更
+
+在 `src/core/data/migrations.ts` 追加迁移，通过 `src/infra/sqlite/dataStore.ts` 实现仓储契约，并把每个远端
+mutation 表示为幂等 outbox 操作。

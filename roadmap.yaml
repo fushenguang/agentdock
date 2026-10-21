@@ -53,6 +53,13 @@ next:
     status: in-progress
     owner: "@sunny"
 
+  # 由 @sunny 于 2026-10-21 明确授权 AI 添加并开工：先为 TheFoolAI 专项定制
+  # Expo 移动 Agent Host 模板，通用化方向后置。留痕以免日后被误读为绕过 Gate①。
+  - id: mobile-expo-thefoolai-template
+    title: "Add TheFoolAI-specific Expo mobile Agent Host template"
+    status: planned
+    owner: "@sunny"
+
   # 由 @sunny 于 2026-09-12 明确授权 AI 添加。用于新增独立
   # web-tanstackstart 模板，并同步升级 CLI 的模板感知能力。
   - id: web-tanstackstart-template

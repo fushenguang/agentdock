@@ -106,6 +106,35 @@ describe('registry — domain-packages template', () => {
   })
 })
 
+describe('registry — mobile-expo-thefoolai template', () => {
+  it('is discoverable with mobile Agent Host metadata', () => {
+    const template = getTemplate('mobile-expo-thefoolai')
+
+    expect(template).toBeDefined()
+    expect(template?.name).toBe('@cogito.ai/template-mobile-expo-thefoolai')
+    expect(template?.source).toBe('templates/mobile-expo-thefoolai')
+    expect(template?.minCliVersion).toBe('0.28.0')
+    expect(template?.packageManager).toBe('pnpm')
+    expect(template?.packageManagerEnforced).toBe(true)
+    expect(template?.engines).toEqual({ node: '>=22' })
+    expect(template?.dataLayers).toEqual(['sqlite'])
+    expect(template?.defaultDataLayer).toBe('sqlite')
+    expect(template?.supportsSchema).toBe(false)
+  })
+
+  it('pins the approved Expo 57 and NativeWind baseline', () => {
+    const template = getTemplate('mobile-expo-thefoolai')
+    expect(template).toBeDefined()
+    expect(template?.resolvedDependencies.expo).toBe('~57.0.30')
+    expect(template?.resolvedDependencies['react-native']).toBe('0.86.3')
+    expect(template?.resolvedDependencies.react).toBe('19.2.3')
+    expect(template?.resolvedDependencies['expo-router']).toBe('57.0.28')
+    expect(template?.resolvedDependencies['@expo/ui']).toBe('57.0.25')
+    expect(template?.resolvedDependencies.nativewind).toBe('4.2.7')
+    expect(template?.resolvedDependencies['react-native-css-interop']).toBe('0.2.7')
+  })
+})
+
 describe('registry — web-tanstackstart template', () => {
   it('exposes template-aware package and data-layer metadata', () => {
     const template = getTemplate('web-tanstackstart')
@@ -397,6 +426,46 @@ describe('scaffoldProject', () => {
     expect(pkg.name).toBe('my-domain-packages')
     expect(pkg.private).toBeUndefined()
     expect(pkg.agentdock).toBeUndefined()
+  })
+
+  it('scaffolds the TheFoolAI mobile Agent Host with its machine surfaces', () => {
+    const template = getTemplate('mobile-expo-thefoolai')
+    expect(template).toBeDefined()
+    if (!template) throw new Error('mobile-expo-thefoolai template not found in registry')
+
+    const targetDir = join(tmpDir, 'my-fool-mobile')
+    const result = scaffoldProject({
+      targetDir,
+      name: 'my-fool-mobile',
+      template,
+      packageManager: 'pnpm',
+      dataLayer: 'sqlite',
+    })
+
+    expect(result.ok).toBe(true)
+    expect(existsSync(join(targetDir, 'app', '_layout.tsx'))).toBe(true)
+    expect(existsSync(join(targetDir, 'app', 'index.tsx'))).toBe(true)
+    expect(existsSync(join(targetDir, 'app', 'history.tsx'))).toBe(true)
+    expect(existsSync(join(targetDir, 'app', 'user', 'profile.tsx'))).toBe(true)
+    expect(existsSync(join(targetDir, 'src', 'components', 'agent', 'AgentBottomSheet.tsx'))).toBe(
+      true,
+    )
+    expect(existsSync(join(targetDir, 'src', 'core', 'agent', 'structured-output-gate.ts'))).toBe(
+      true,
+    )
+    expect(existsSync(join(targetDir, 'src', 'infra', 'sqlite', 'dataStore.ts'))).toBe(true)
+    expect(existsSync(join(targetDir, 'agent', 'route-map.json'))).toBe(true)
+    expect(existsSync(join(targetDir, 'agent', 'action-map.json'))).toBe(true)
+    expect(existsSync(join(targetDir, 'agent', 'testids.json'))).toBe(true)
+    expect(existsSync(join(targetDir, 'agent', 'agent-result.schema.json'))).toBe(true)
+    expect(existsSync(join(targetDir, 'node_modules'))).toBe(false)
+    expect(existsSync(join(targetDir, '.git'))).toBe(false)
+
+    const appJson = JSON.parse(readFileSync(join(targetDir, 'app.json'), 'utf-8')) as {
+      expo?: { name?: string }
+    }
+    expect(appJson.expo?.name).toBe('my-fool-mobile')
+    expect(readFileSync(join(targetDir, 'app.json'), 'utf-8')).not.toContain('{{PROJECT_NAME}}')
   })
 
   it('scaffolds the child-oriented TanStack Start template', () => {

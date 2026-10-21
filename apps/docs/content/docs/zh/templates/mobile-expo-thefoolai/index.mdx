@@ -1,0 +1,48 @@
+---
+title: mobile-expo-thefoolai 模板
+description: 面向 TheFoolAI 的 Expo 移动 Agent Host，内置 Agent Core Lite、语音优先 UX、结构化结果与 SQLite。
+---
+
+# mobile-expo-thefoolai 模板
+
+`mobile-expo-thefoolai` 刻意保持产品专项定制：先满足 TheFoolAI 的移动 Agent Host，再考虑通用化。
+
+## 技术栈
+
+| 层级     | 技术                                           |
+| -------- | ---------------------------------------------- |
+| 运行时   | Expo SDK 57、React Native 0.86.3、React 19.2.3 |
+| 导航     | Expo Router                                    |
+| 样式     | NativeWind 4.2.7 + Tailwind CSS 3.4            |
+| 组件     | 源码自有 `react-native-reusables` primitives   |
+| 原生控件 | `@expo/ui` 57.0.25 BottomSheet                 |
+| 结果     | `@openuidev/react-lang` 1.0.1 renderer adapter |
+| 语音     | `expo-speech-recognition` 57.1.0               |
+| 数据     | `expo-sqlite` 57.0.4 迁移与 outbox             |
+
+## 架构
+
+```text
+app/               Expo Router 路由
+src/components     Shell、Agent 面板与源码自有 UI primitives
+src/core/agent     Turn、context、memory、tool、permission、audit 与输出契约
+src/core/voice     语音输入边界
+src/core/data      持久化与 outbox 契约
+src/infra/sqlite   本地 SQLite 实现
+agent/             route、action 与 test-id 映射
+```
+
+移动端在本地拥有简化版 Agent Core Lite。Domain package 仍是可查询的 capability surface，绝不拥有
+LLM loop、context、memory、tool policy 或 permission 权限。
+
+## UI 契约
+
+- 顶部只有两个入口：左侧 drawer/domain，右侧新建 session。
+- Drawer 承载当前 domain、搜索、历史与用户摘要。
+- 主工作面只有 Domain Desktop 和 History & Tasks。
+- 搜索是 overlay；低频用户信息进入 `/user/**`。
+- 常驻语音 orb 打开 `@expo/ui` BottomSheet，支持 25%、50%、90%。
+- 工具/脚本过程默认折叠；执行阶段、耗时、步骤数与取消始终可见。
+- 结果只从通过验证的 `agent_result` envelope 渲染。
+
+脚手架与验证流程见 [使用方式](./usage)。

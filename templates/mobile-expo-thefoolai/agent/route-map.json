@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "routes": {
+    "domain-desktop": "/",
+    "history-tasks": "/history",
+    "search-overlay": "/search",
+    "user-index": "/user",
+    "user-profile": "/user/profile",
+    "user-privacy": "/user/privacy",
+    "user-storage": "/user/storage",
+    "user-sync": "/user/sync",
+    "user-notifications": "/user/notifications",
+    "user-about": "/user/about"
+  }
+}

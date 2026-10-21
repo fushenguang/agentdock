@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "actions": {
+    "open-navigation-drawer": {
+      "route": "shell",
+      "surface": "top-bar-left",
+      "intent": "Open current domain, search, history, and user summary"
+    },
+    "create-session": {
+      "route": "shell",
+      "surface": "top-bar-right",
+      "intent": "Create a draft session and open the voice agent panel"
+    },
+    "open-agent-panel": {
+      "route": "shell",
+      "surface": "floating-agent-orb",
+      "intent": "Continue the current session by voice or text"
+    },
+    "toggle-voice-input": {
+      "route": "shell",
+      "surface": "agent-bottom-sheet",
+      "intent": "Start or stop the primary voice input surface"
+    },
+    "expand-agent-process": {
+      "route": "shell",
+      "surface": "agent-bottom-sheet",
+      "intent": "Inspect collapsed tool and script execution events"
+    },
+    "cancel-agent-turn": {
+      "route": "shell",
+      "surface": "agent-bottom-sheet",
+      "intent": "Cancel the active turn"
+    }
+  }
+}

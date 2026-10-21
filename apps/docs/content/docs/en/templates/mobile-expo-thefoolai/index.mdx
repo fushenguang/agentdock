@@ -1,0 +1,50 @@
+---
+title: mobile-expo-thefoolai Template
+description: TheFoolAI-specific Expo mobile Agent Host with Agent Core Lite, voice-first UX, structured results, and SQLite.
+---
+
+# mobile-expo-thefoolai Template
+
+`mobile-expo-thefoolai` is intentionally product-specific. It gives TheFoolAI a first-class mobile
+Agent Host before any generic mobile abstraction is extracted.
+
+## Stack
+
+| Layer           | Technology                                       |
+| --------------- | ------------------------------------------------ |
+| Runtime         | Expo SDK 57, React Native 0.86.3, React 19.2.3   |
+| Navigation      | Expo Router                                      |
+| Styling         | NativeWind 4.2.7 + Tailwind CSS 3.4              |
+| Components      | Source-owned `react-native-reusables` primitives |
+| Native controls | `@expo/ui` 57.0.25 BottomSheet                   |
+| Results         | `@openuidev/react-lang` 1.0.1 renderer adapter   |
+| Voice           | `expo-speech-recognition` 57.1.0                 |
+| Data            | `expo-sqlite` 57.0.4 migrations and outbox       |
+
+## Architecture
+
+```text
+app/               Expo Router routes
+src/components     Shell, agent panel, and source-owned UI primitives
+src/core/agent     Turn, context, memory, tool, permission, audit, and output contracts
+src/core/voice     Voice input boundary
+src/core/data      Persistence and outbox contracts
+src/infra/sqlite   Local SQLite implementation
+agent/             Route, action, and test-id maps
+```
+
+Mobile owns a simplified Agent Core Lite locally. Domain packages remain queryable capability
+surfaces and never own the LLM loop, context, memory, tool policy, or permissions.
+
+## UI Contract
+
+- The top bar has exactly two entries: left drawer/domain and right new session.
+- The drawer contains current domain, search, history, and user summary.
+- Primary work surfaces are only Domain Desktop and History & Tasks.
+- Search is an overlay; low-frequency user information lives under `/user/**`.
+- The persistent voice orb opens an `@expo/ui` BottomSheet at 25%, 50%, or 90%.
+- Tool/script process events are collapsed; execution stage, elapsed time, step count, and cancel stay
+  visible.
+- Results render only from a validated `agent_result` envelope.
+
+Read [Usage](./usage) for the scaffold and verification workflow.
