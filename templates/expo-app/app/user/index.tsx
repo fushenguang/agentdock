@@ -29,7 +29,7 @@ export default function UserDesktop() {
         className="flex-row items-center gap-2 self-start rounded-full bg-white/70 px-3 py-2 active:bg-white"
         onPress={() => {
           tapFeedback()
-          router.navigate('/')
+          router.dismissTo('/')
         }}
       >
         <AppIcon name="home" size={15} color="#b8731f" />

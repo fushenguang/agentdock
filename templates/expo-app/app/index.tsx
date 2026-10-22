@@ -1,1 +1,3 @@
-export { DomainDesktop as default } from '../src/components/shell/DomainDesktop'
+export default function IndexRoute() {
+  return null
+}

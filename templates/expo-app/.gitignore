@@ -10,6 +10,12 @@ web-build/
 !.env.example
 coverage/
 *.tsbuildinfo
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.sqlite3-*
 
 # Expo generated typed routes
 expo-env.d.ts

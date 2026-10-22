@@ -75,12 +75,12 @@ export function ActionTile({
   return (
     <Pressable
       testID={testID}
-      className={`flex-1 gap-3 rounded-[28px] border border-white/70 bg-white/72 p-4 active:opacity-80 ${className ?? ''}`}
+      className={`min-h-[80px] flex-row items-center gap-3 self-start rounded-[24px] border border-white/70 bg-white/72 p-3 active:opacity-80 ${className ?? ''}`}
       {...props}
     >
-      <IconBadge icon={icon} tone={tone} size={42} />
-      <View className="flex-1 gap-1">
-        <Text className="text-base font-semibold text-ink" numberOfLines={1}>
+      <IconBadge icon={icon} tone={tone} size={38} />
+      <View className="flex-1 gap-0.5">
+        <Text className="text-sm font-semibold text-ink" numberOfLines={1}>
           {title}
         </Text>
         <Text className="text-xs leading-4 text-muted" numberOfLines={2}>
@@ -137,11 +137,13 @@ export function DetailCard({
   tone?: IconTone
 }) {
   return (
-    <View className="flex-row items-start gap-4 rounded-[28px] border border-white/70 bg-white/74 p-5">
-      <IconBadge icon={icon} tone={tone} size={44} />
-      <View className="flex-1 gap-2">
-        <Text className="text-base font-semibold text-ink">{title}</Text>
-        <Text className="text-sm leading-5 text-muted">{body}</Text>
+    <View className="flex-row items-center gap-3 rounded-[26px] border border-white/70 bg-white/74 p-4">
+      <IconBadge icon={icon} tone={tone} size={38} />
+      <View className="flex-1 gap-1">
+        <Text className="text-sm font-semibold text-ink" numberOfLines={1}>
+          {title}
+        </Text>
+        <Text className="text-xs leading-4 text-muted">{body}</Text>
       </View>
     </View>
   )

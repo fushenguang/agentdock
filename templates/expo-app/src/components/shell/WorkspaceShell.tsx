@@ -144,6 +144,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     label: selectedDomainId,
   }
   const activeWorkspaceIndex = workspaceIndex(pathname)
+  const primaryWorkspaceActive = activeWorkspaceIndex >= 0
   const insets = useSafeAreaInsets()
 
   return (
@@ -153,19 +154,25 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     >
       <BrandBackdrop />
       <View className="flex-1">
-        {activeWorkspaceIndex >= 0 ? (
-          <WorkspacePager
-            initialIndex={activeWorkspaceIndex}
-            onWorkspaceChange={(index) => router.replace(WORKSPACES[index]?.route ?? '/')}
-            onOpenDrawer={() => {
-              if (sheetOpen) closeAgent()
-              setDrawerVisible(true)
-            }}
-            onNewSession={startSession}
-          />
-        ) : (
-          children
-        )}
+        <View
+          className={primaryWorkspaceActive ? 'flex-1 opacity-0' : 'flex-1'}
+          pointerEvents={primaryWorkspaceActive ? 'none' : 'auto'}
+        >
+          {children}
+        </View>
+        {primaryWorkspaceActive ? (
+          <View className="absolute inset-0">
+            <WorkspacePager
+              initialIndex={activeWorkspaceIndex}
+              onWorkspaceChange={(index) => router.replace(WORKSPACES[index]?.route ?? '/')}
+              onOpenDrawer={() => {
+                if (sheetOpen) closeAgent()
+                setDrawerVisible(true)
+              }}
+              onNewSession={startSession}
+            />
+          </View>
+        ) : null}
       </View>
       <AgentVoiceOrb hidden={sheetOpen} />
       <AppDrawer

@@ -80,10 +80,7 @@ function loadSpeechModule(): SpeechRecognitionModule | undefined {
 const speechModule = loadSpeechModule()
 
 function transcriptFromResults(results: readonly { transcript: string }[]): string {
-  return results
-    .map((result) => result.transcript.trim())
-    .filter(Boolean)
-    .join(' ')
+  return results[0]?.transcript.trim() ?? ''
 }
 
 export function useVoiceInput({
@@ -102,6 +99,7 @@ export function useVoiceInput({
     error: undefined,
   })
   const startingRef = useRef(false)
+  const startAttemptRef = useRef(0)
   const mountedRef = useRef(true)
   const onTranscriptRef = useRef(onTranscript)
 
@@ -179,6 +177,7 @@ export function useVoiceInput({
     return () => {
       mountedRef.current = false
       startingRef.current = false
+      startAttemptRef.current += 1
       speechModule?.abort()
     }
   }, [])
@@ -186,6 +185,7 @@ export function useVoiceInput({
   const start = useCallback(async () => {
     if (startingRef.current || state.status === VOICE_INPUT_STATUSES.listening) return
     startingRef.current = true
+    const startAttempt = ++startAttemptRef.current
     const messages = voiceMessages(lang)
 
     try {
@@ -199,7 +199,7 @@ export function useVoiceInput({
       }
 
       const permission = await speechModule.requestPermissionsAsync()
-      if (!mountedRef.current) return
+      if (!mountedRef.current || startAttemptRef.current !== startAttempt) return
       if (!permission.granted) {
         setState((current) => ({
           ...current,
@@ -215,7 +215,7 @@ export function useVoiceInput({
         continuous: false,
         addsPunctuation: true,
       })
-      if (!mountedRef.current) return
+      if (!mountedRef.current || startAttemptRef.current !== startAttempt) return
       setState((current) => ({
         ...current,
         status: VOICE_INPUT_STATUSES.listening,
@@ -223,18 +223,20 @@ export function useVoiceInput({
         error: undefined,
       }))
     } catch (error) {
-      if (!mountedRef.current) return
+      if (!mountedRef.current || startAttemptRef.current !== startAttempt) return
       setState((current) => ({
         ...current,
         status: VOICE_INPUT_STATUSES.failed,
         error: error instanceof Error ? error.message : messages.startFailed,
       }))
     } finally {
-      startingRef.current = false
+      if (startAttemptRef.current === startAttempt) startingRef.current = false
     }
   }, [lang, state.status])
 
   const stop = useCallback(() => {
+    startAttemptRef.current += 1
+    startingRef.current = false
     speechModule?.stop()
     setState((current) => ({ ...current, status: VOICE_INPUT_STATUSES.idle }))
   }, [])

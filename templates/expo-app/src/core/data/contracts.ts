@@ -55,6 +55,8 @@ export interface SessionRepository {
   ensure(input: Omit<SessionRecord, 'createdAt' | 'updatedAt'>): Promise<SessionRecord>
   touch(id: string): Promise<void>
   list(limit: number): Promise<readonly SessionRecord[]>
+  search(query: string, limit: number): Promise<readonly SessionRecord[]>
+  count(): Promise<number>
 }
 
 export interface SessionEventRepository {

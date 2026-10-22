@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'expo-router'
 import { Pressable, ScrollView, View } from 'react-native'
 import { useAgentSession } from '../src/components/agent'
@@ -18,35 +18,59 @@ import { getMobileDataStore } from '../src/infra/sqlite/dataStore'
 
 export default function SearchOverlay() {
   const [query, setQuery] = useState('')
-  const [sessions, setSessions] = useState<readonly SessionRecord[]>([])
+  const [results, setResults] = useState<readonly SessionRecord[]>([])
+  const [searching, setSearching] = useState(false)
+  const [searchFailed, setSearchFailed] = useState(false)
+  const searchRequestRef = useRef(0)
   const router = useRouter()
   const { continueSession } = useAgentSession()
   const { t, language } = useLanguage()
 
   useEffect(() => {
     let cancelled = false
-    const load = async () => {
-      try {
-        const values = await getMobileDataStore().sessions.list(100)
-        if (!cancelled) setSessions(values)
-      } catch (error) {
-        console.warn('Search failed to load sessions', error)
+    const normalizedQuery = query.trim()
+    if (normalizedQuery.length === 0) {
+      searchRequestRef.current += 1
+      setResults([])
+      setSearching(false)
+      setSearchFailed(false)
+      return () => {
+        cancelled = true
       }
     }
-    void load()
+
+    const requestId = ++searchRequestRef.current
+    setResults([])
+    setSearching(true)
+    setSearchFailed(false)
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const store = await getMobileDataStore()
+          const values = await store.sessions.search(normalizedQuery, 50)
+          if (!cancelled && searchRequestRef.current === requestId) {
+            setResults(values)
+            setSearchFailed(false)
+          }
+        } catch (error: unknown) {
+          console.warn('Search failed to load sessions', error)
+          if (!cancelled && searchRequestRef.current === requestId) {
+            setResults([])
+            setSearchFailed(true)
+          }
+        } finally {
+          if (!cancelled && searchRequestRef.current === requestId) setSearching(false)
+        }
+      })()
+    }, 200)
+
     return () => {
       cancelled = true
+      clearTimeout(timer)
     }
-  }, [])
+  }, [query])
 
-  const normalizedQuery = query.trim().toLowerCase()
-  const results = normalizedQuery
-    ? sessions.filter(
-        (session) =>
-          session.title.toLowerCase().includes(normalizedQuery) ||
-          session.domainId.toLowerCase().includes(normalizedQuery),
-      )
-    : []
+  const normalizedQuery = query.trim()
 
   const suggestions = [
     t('search.suggestionToday'),
@@ -63,13 +87,13 @@ export default function SearchOverlay() {
       <View className="flex-row items-center justify-between">
         <Text variant="display">{t('search.title')}</Text>
         <Pressable
+          testID="search-close"
           accessibilityRole="button"
           accessibilityLabel={t('search.close')}
           className="h-12 w-12 items-center justify-center rounded-full border border-white/70 bg-white/70"
           onPress={() => {
             tapFeedback()
-            if (router.canGoBack()) router.back()
-            else router.replace('/')
+            router.dismissTo('/')
           }}
         >
           <AppIcon name="close" size={18} color="#bd4535" />
@@ -111,7 +135,17 @@ export default function SearchOverlay() {
       {normalizedQuery ? (
         <Section title={`${t('workspace.sessions')} · ${results.length}`}>
           <View className="gap-3">
-            {results.length === 0 ? (
+            {searching && results.length === 0 ? (
+              <GlassCard className="p-5">
+                <Text variant="muted">{t('search.loading')}</Text>
+              </GlassCard>
+            ) : null}
+            {!searching && searchFailed ? (
+              <GlassCard className="p-5">
+                <Text variant="muted">{t('search.unavailable')}</Text>
+              </GlassCard>
+            ) : null}
+            {!searching && !searchFailed && results.length === 0 ? (
               <GlassCard className="p-5">
                 <Text variant="muted">{t('drawer.noMatching')}</Text>
               </GlassCard>
@@ -123,6 +157,7 @@ export default function SearchOverlay() {
                 onPress={() => {
                   tapFeedback()
                   continueSession(session.id, session.title)
+                  router.dismissTo('/')
                 }}
               >
                 <IconBadge icon="agent" tone="amber" size={40} />

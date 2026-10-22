@@ -4,6 +4,7 @@
   "private": true,
   "description": "TheFoolAI-specific Expo mobile Agent Host template with Agent Core Lite, voice-first interaction, NativeWind, structured results, and local SQLite persistence.",
   "type": "module",
+  "packageManager": "pnpm@9.0.0",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -27,7 +28,6 @@
   },
   "dependencies": {
     "@expo/ui": "57.0.26",
-    "@modelcontextprotocol/sdk": "^1.0.0",
     "@openuidev/react-lang": "1.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

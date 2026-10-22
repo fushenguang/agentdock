@@ -88,6 +88,30 @@ network-hosted asset.
 - **THEN** the dock uses transparent chrome over the brand background instead of a separate
   high-contrast bar
 - **AND** icon-plus-title detail surfaces align horizontally by default
+- **WHEN** the bottom of Domain Desktop renders
+- **THEN** its capability entries are grouped into one compact divided surface
+- **AND** quick-action tiles use bounded horizontal layouts without stretching to a tallest-card
+  height or leaving a large blank card region
+
+#### Scenario: The user closes the search overlay
+
+- **WHEN** the user activates the search overlay's close action
+- **THEN** the overlay is dismissed and the user returns to the Domain Desktop
+- **AND** the close action works when search was opened normally or launched directly as the
+  initial route
+
+#### Scenario: The user continues a session from search results
+
+- **WHEN** the user activates a search result
+- **THEN** the selected local session becomes active and the search overlay is dismissed
+- **AND** a failed bounded search query presents an unavailable state rather than pretending that
+  no sessions matched
+
+#### Scenario: The user returns home from a secondary surface
+
+- **WHEN** the user activates the user center's home action
+- **THEN** navigation dismisses secondary and modal history back to the Domain Desktop
+- **AND** the root Expo Stack remains mounted so later navigation cannot replay a stale search route
 
 ### Requirement: Voice-first agent panel
 
@@ -107,6 +131,12 @@ top-level cancel block.
 - **WHEN** the new-session action is activated
 - **THEN** a draft session is created and the agent sheet opens at its fixed session height
 - **AND** the sheet remains reachable while the user moves between primary work surfaces
+
+#### Scenario: The user cancels voice startup
+
+- **WHEN** the user closes or stops voice input while microphone permission is still being requested
+- **THEN** a later permission response does not restart speech recognition
+- **AND** an in-progress start attempt is invalidated before native recognition is invoked
 
 #### Scenario: A long-running turn is visible
 
@@ -239,6 +269,14 @@ details MUST remain behind Agent Core data contracts.
 - **WHEN** the app restarts without connectivity
 - **THEN** local sessions, history, and audit events remain available
 - **AND** remote mutations remain represented as outbox operations
+
+#### Scenario: Session history grows large
+
+- **WHEN** the local session ledger contains many more sessions than one screen
+- **THEN** recent history reads remain bounded and use an indexed ordering
+- **AND** session search executes a parameterized, escaped SQLite query with a result limit
+- **AND** SQLite opens, migrations, reads, and writes avoid synchronous JavaScript-thread calls
+- **AND** search UI debounces input without replacing results with an older asynchronous response
 
 ### Requirement: Bilingual user preference
 

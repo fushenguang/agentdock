@@ -78,6 +78,16 @@ const sessionLifecycleModuleUrl = new URL(
   import.meta.url,
 ).href
 
+const routeMapUrl = new URL(
+  '../../../../../templates/expo-app/agent/route-map.json',
+  import.meta.url,
+)
+
+const actionMapUrl = new URL(
+  '../../../../../templates/expo-app/agent/action-map.json',
+  import.meta.url,
+)
+
 interface AgentResultModule {
   readonly agentResultEnvelopeSchema: {
     safeParse(input: unknown): { readonly success: boolean }
@@ -225,6 +235,23 @@ describe('agent_result text presentation contract', () => {
     })
 
     expect(result.success).toBe(false)
+  })
+})
+
+describe('expo-app machine-readable action map', () => {
+  it('resolves every action to a registered route', () => {
+    const routeMap = JSON.parse(readFileSync(routeMapUrl, 'utf8')) as {
+      routes: Record<string, string>
+    }
+    const actionMap = JSON.parse(readFileSync(actionMapUrl, 'utf8')) as {
+      actions: Record<string, { route: string }>
+    }
+    const routeIds = new Set(Object.keys(routeMap.routes))
+    const unresolved = Object.entries(actionMap.actions).filter(
+      ([actionId, action]) => !routeIds.has(action.route),
+    )
+
+    expect(unresolved).toEqual([])
   })
 })
 

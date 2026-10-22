@@ -71,7 +71,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
   const sessionIdleTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const conversationEntriesRef = useRef<readonly AgentContextEntry[]>([])
   const [domainId, setDomainId] = useState('thefoolai')
-  const dataStoreRef = useRef<MobileDataStore | undefined>(undefined)
+  const dataStoreRef = useRef<Promise<MobileDataStore> | undefined>(undefined)
   const driver = useMemo(createConfiguredDriver, [])
 
   const clearSessionIdleTimer = useCallback(() => {
@@ -138,14 +138,21 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
   }, [activeSessionId, clearActiveSession, clearSessionIdleTimer])
 
   const getDataStore = useCallback(() => {
-    dataStoreRef.current ??= getMobileDataStore()
-    return dataStoreRef.current
+    if (dataStoreRef.current) return dataStoreRef.current
+
+    const dataStorePromise = getMobileDataStore()
+    const retryablePromise = dataStorePromise.catch((error: unknown) => {
+      if (dataStoreRef.current === retryablePromise) dataStoreRef.current = undefined
+      throw error
+    })
+    dataStoreRef.current = retryablePromise
+    return retryablePromise
   }, [])
 
   const recordAudit = useCallback(
     async (event: AgentAuditEvent) => {
       try {
-        const store = getDataStore()
+        const store = await getDataStore()
         if (!ensuredSessionsRef.current.has(event.sessionId)) {
           await store.sessions.ensure({
             id: event.sessionId,

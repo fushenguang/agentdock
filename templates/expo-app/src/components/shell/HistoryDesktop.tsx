@@ -18,6 +18,7 @@ type HistoryLoadState = (typeof HISTORY_LOAD_STATES)[keyof typeof HISTORY_LOAD_S
 interface HistoryState {
   readonly state: HistoryLoadState
   readonly sessions: readonly SessionRecord[]
+  readonly totalCount: number
 }
 
 export function HistoryDesktop() {
@@ -26,17 +27,29 @@ export function HistoryDesktop() {
   const [history, setHistory] = useState<HistoryState>({
     state: HISTORY_LOAD_STATES.loading,
     sessions: [],
+    totalCount: 0,
   })
+  const shouldRefreshHistory =
+    turn.phase === 'planning' ||
+    turn.phase === 'completed' ||
+    turn.phase === 'failed' ||
+    turn.phase === 'cancelled'
+  const [historyRefreshKey, setHistoryRefreshKey] = useState('initial')
 
   useEffect(() => {
     let cancelled = false
     const loadSessions = async () => {
       try {
-        const sessions = await getMobileDataStore().sessions.list(20)
-        if (!cancelled) setHistory({ state: HISTORY_LOAD_STATES.ready, sessions })
+        const store = await getMobileDataStore()
+        const [sessions, totalCount] = await Promise.all([
+          store.sessions.list(20),
+          store.sessions.count(),
+        ])
+        if (!cancelled) setHistory({ state: HISTORY_LOAD_STATES.ready, sessions, totalCount })
       } catch (error) {
         console.warn('Failed to load local sessions', error)
-        if (!cancelled) setHistory({ state: HISTORY_LOAD_STATES.failed, sessions: [] })
+        if (!cancelled)
+          setHistory({ state: HISTORY_LOAD_STATES.failed, sessions: [], totalCount: 0 })
       }
     }
 
@@ -45,7 +58,13 @@ export function HistoryDesktop() {
     return () => {
       cancelled = true
     }
-  }, [turn.updatedAt])
+  }, [historyRefreshKey])
+
+  useEffect(() => {
+    if (!shouldRefreshHistory) return
+    const nextKey = `${turn.turnId}:${turn.phase}`
+    setHistoryRefreshKey((current) => (current === nextKey ? current : nextKey))
+  }, [shouldRefreshHistory, turn.phase, turn.turnId])
 
   const statusTone = (status: SessionRecord['status']) =>
     status === 'active' ? 'green' : status === 'draft' ? 'amber' : 'neutral'
@@ -54,7 +73,7 @@ export function HistoryDesktop() {
     <ScrollView
       testID="history-desktop"
       className="flex-1"
-      contentContainerClassName="gap-6 px-5 pb-36 pt-4"
+      contentContainerClassName="gap-6 px-5 pb-24 pt-4"
       showsVerticalScrollIndicator={false}
     >
       <GlassCard className="p-5">
@@ -70,7 +89,7 @@ export function HistoryDesktop() {
         <View className="mt-5 flex-row gap-3">
           <View className="flex-1 rounded-3xl bg-accentSoft px-4 py-3">
             <Text className="text-2xl font-semibold text-accentDark">
-              {history.sessions.length.toString().padStart(2, '0')}
+              {history.totalCount.toString().padStart(2, '0')}
             </Text>
             <Text className="mt-1 text-xs font-medium text-muted">{t('workspace.sessions')}</Text>
           </View>

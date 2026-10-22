@@ -54,6 +54,10 @@ interface UserPreferenceRow {
   readonly updated_at: string
 }
 
+interface SessionCountRow {
+  readonly count: number
+}
+
 function now(): string {
   return new Date().toISOString()
 }
@@ -87,7 +91,8 @@ function decodePayload(raw: string): Record<string, unknown> {
       ? (parsed as Record<string, unknown>)
       : { malformedPayload: raw }
   } catch (error) {
-    throw new Error(`Malformed outbox payload: ${(error as Error).message}`)
+    console.warn('Malformed outbox payload; falling back to raw value', error)
+    return { malformedPayload: raw }
   }
 }
 
@@ -112,11 +117,15 @@ function decodeUserPreference(row: UserPreferenceRow): UserPreferenceRecord {
   }
 }
 
+function escapeLikeQuery(query: string): string {
+  return `%${query.replace(/[\\%_]/g, '\\$&')}%`
+}
+
 function createSessionRepository(db: SQLite.SQLiteDatabase): SessionRepository {
   return {
     async create(input) {
       const timestamp = now()
-      db.runSync(
+      await db.runAsync(
         `INSERT INTO sessions (id, domain_id, title, status, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [input.id, input.domainId, input.title, input.status, timestamp, timestamp],
@@ -125,12 +134,12 @@ function createSessionRepository(db: SQLite.SQLiteDatabase): SessionRepository {
     },
     async ensure(input) {
       const timestamp = now()
-      db.runSync(
+      await db.runAsync(
         `INSERT OR IGNORE INTO sessions (id, domain_id, title, status, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [input.id, input.domainId, input.title, input.status, timestamp, timestamp],
       )
-      const row = db.getFirstSync<SessionRow>(
+      const row = await db.getFirstAsync<SessionRow>(
         `SELECT id, domain_id, title, status, created_at, updated_at
          FROM sessions WHERE id = ?`,
         [input.id],
@@ -139,22 +148,41 @@ function createSessionRepository(db: SQLite.SQLiteDatabase): SessionRepository {
       return decodeSession(row)
     },
     async touch(id) {
-      db.runSync('UPDATE sessions SET updated_at = ? WHERE id = ?', [now(), id])
+      await db.runAsync('UPDATE sessions SET updated_at = ? WHERE id = ?', [now(), id])
     },
     async list(limit) {
-      const rows = db.getAllSync<SessionRow>(
+      const rows = await db.getAllAsync<SessionRow>(
         `SELECT id, domain_id, title, status, created_at, updated_at
          FROM sessions ORDER BY updated_at DESC LIMIT ?`,
         [limit],
       )
       return rows.map(decodeSession)
     },
+    async search(query, limit) {
+      const normalizedQuery = query.trim()
+      if (normalizedQuery.length === 0) return []
+
+      const pattern = escapeLikeQuery(normalizedQuery)
+      const rows = await db.getAllAsync<SessionRow>(
+        `SELECT id, domain_id, title, status, created_at, updated_at
+         FROM sessions
+         WHERE title LIKE ? ESCAPE '\\' OR domain_id LIKE ? ESCAPE '\\'
+         ORDER BY updated_at DESC
+         LIMIT ?`,
+        [pattern, pattern, limit],
+      )
+      return rows.map(decodeSession)
+    },
+    async count() {
+      const row = await db.getFirstAsync<SessionCountRow>('SELECT COUNT(*) AS count FROM sessions')
+      return row?.count ?? 0
+    },
   }
 }
 
 function createEventRepository(db: SQLite.SQLiteDatabase): AgentAuditRepository {
   const append = async (input: SessionEventRecord): Promise<void> => {
-    db.runSync(
+    await db.runAsync(
       `INSERT INTO session_events (id, session_id, turn_id, type, payload, created_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [
@@ -186,7 +214,7 @@ function createEventRepository(db: SQLite.SQLiteDatabase): AgentAuditRepository 
 function createMemoryRepository(db: SQLite.SQLiteDatabase): MemoryRepository {
   return {
     async saveProjection(input) {
-      db.runSync(
+      await db.runAsync(
         `INSERT OR REPLACE INTO memory_projections
          (id, session_id, kind, summary, confidence, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -194,7 +222,7 @@ function createMemoryRepository(db: SQLite.SQLiteDatabase): MemoryRepository {
       )
     },
     async listBySession(sessionId) {
-      const rows = db.getAllSync<MemoryRow>(
+      const rows = await db.getAllAsync<MemoryRow>(
         `SELECT id, session_id, kind, summary, confidence, created_at
          FROM memory_projections WHERE session_id = ? ORDER BY created_at DESC`,
         [sessionId],
@@ -207,10 +235,14 @@ function createMemoryRepository(db: SQLite.SQLiteDatabase): MemoryRepository {
 function createPermissionRepository(db: SQLite.SQLiteDatabase): PermissionRepository {
   return {
     async save(input: PermissionDecisionRecord) {
-      db.runSync(
+      await db.runAsync(
         `INSERT INTO permission_decisions
          (id, session_id, turn_id, tool_id, decision, reason, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           decision = excluded.decision,
+           reason = excluded.reason,
+           created_at = excluded.created_at`,
         [
           input.id,
           input.sessionId,
@@ -234,7 +266,7 @@ function createOutboxRepository(db: SQLite.SQLiteDatabase): OutboxRepository {
     async enqueue(input) {
       const id = newId()
       const timestamp = now()
-      db.runSync(
+      await db.runAsync(
         `INSERT INTO sync_outbox
          (id, aggregate_type, aggregate_id, operation, payload, status, idempotency_key,
           attempts, last_error, created_at, updated_at)
@@ -252,10 +284,10 @@ function createOutboxRepository(db: SQLite.SQLiteDatabase): OutboxRepository {
         ],
       )
 
-      const row = db.getFirstSync<OutboxRow>(selectById, [id])
+      const row = await db.getFirstAsync<OutboxRow>(selectById, [id])
       if (row) return decodeOutbox(row)
 
-      const existing = db.getFirstSync<OutboxRow>(
+      const existing = await db.getFirstAsync<OutboxRow>(
         `SELECT id, aggregate_type, aggregate_id, operation, payload, status,
          idempotency_key, attempts, last_error, created_at, updated_at
          FROM sync_outbox WHERE idempotency_key = ?`,
@@ -265,7 +297,7 @@ function createOutboxRepository(db: SQLite.SQLiteDatabase): OutboxRepository {
       return decodeOutbox(existing)
     },
     async listPending(limit) {
-      const rows = db.getAllSync<OutboxRow>(
+      const rows = await db.getAllAsync<OutboxRow>(
         `SELECT id, aggregate_type, aggregate_id, operation, payload, status,
          idempotency_key, attempts, last_error, created_at, updated_at
          FROM sync_outbox
@@ -278,7 +310,7 @@ function createOutboxRepository(db: SQLite.SQLiteDatabase): OutboxRepository {
       return rows.map(decodeOutbox)
     },
     async markSent(id) {
-      db.runSync(
+      await db.runAsync(
         `UPDATE sync_outbox
          SET status = 'sent', attempts = attempts + 1, last_error = NULL, updated_at = ?
          WHERE id = ? AND status IN ('pending', 'failed')`,
@@ -286,7 +318,7 @@ function createOutboxRepository(db: SQLite.SQLiteDatabase): OutboxRepository {
       )
     },
     async markFailed(id, error) {
-      db.runSync(
+      await db.runAsync(
         `UPDATE sync_outbox
          SET status = 'failed', attempts = attempts + 1, last_error = ?, updated_at = ?
          WHERE id = ? AND status IN ('pending', 'failed')`,
@@ -299,14 +331,14 @@ function createOutboxRepository(db: SQLite.SQLiteDatabase): OutboxRepository {
 function createUserPreferenceRepository(db: SQLite.SQLiteDatabase): UserPreferenceRepository {
   return {
     async get(key) {
-      const row = db.getFirstSync<UserPreferenceRow>(
+      const row = await db.getFirstAsync<UserPreferenceRow>(
         'SELECT key, value, updated_at FROM user_preferences WHERE key = ?',
         [key],
       )
       return row ? decodeUserPreference(row) : undefined
     },
     async set(input) {
-      db.runSync(
+      await db.runAsync(
         `INSERT INTO user_preferences (key, value, updated_at)
          VALUES (?, ?, ?)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
@@ -324,33 +356,77 @@ export interface MobileDataStore {
   readonly permissions: PermissionRepository
   readonly outbox: OutboxRepository
   readonly preferences: UserPreferenceRepository
-  close(): void
+  close(): Promise<void>
 }
 
-let sharedMobileDataStore: MobileDataStore | undefined
+const DEFAULT_DATABASE_NAME = 'thefoolai-agent.db'
 
-export function getMobileDataStore(databaseName = 'thefoolai-agent.db'): MobileDataStore {
-  sharedMobileDataStore ??= openMobileDataStore(databaseName)
-  return sharedMobileDataStore
+interface MobileDataStoreCacheEntry {
+  promise: Promise<MobileDataStore>
+  store: MobileDataStore | undefined
 }
 
-export function openMobileDataStore(databaseName = 'thefoolai-agent.db'): MobileDataStore {
-  const db = SQLite.openDatabaseSync(databaseName)
-  db.execSync('PRAGMA foreign_keys = ON')
-  db.execSync(
+const mobileDataStores = new Map<string, MobileDataStoreCacheEntry>()
+
+async function openCachedMobileDataStore(
+  databaseName: string,
+  cacheEntry: MobileDataStoreCacheEntry,
+): Promise<MobileDataStore> {
+  const store = await openMobileDataStore(databaseName)
+  const wrappedStore: MobileDataStore = {
+    ...store,
+    close: async () => {
+      if (mobileDataStores.get(databaseName) === cacheEntry) {
+        mobileDataStores.delete(databaseName)
+      }
+      await store.close()
+    },
+  }
+  cacheEntry.store = wrappedStore
+  return wrappedStore
+}
+
+export function getMobileDataStore(databaseName = DEFAULT_DATABASE_NAME): Promise<MobileDataStore> {
+  const cachedEntry = mobileDataStores.get(databaseName)
+  if (cachedEntry) {
+    if (cachedEntry.store) return Promise.resolve(cachedEntry.store)
+    return cachedEntry.promise
+  }
+
+  const cacheEntry = { store: undefined } as MobileDataStoreCacheEntry
+  cacheEntry.promise = openCachedMobileDataStore(databaseName, cacheEntry).catch(
+    (error: unknown) => {
+      if (mobileDataStores.get(databaseName) === cacheEntry) {
+        mobileDataStores.delete(databaseName)
+      }
+      throw error
+    },
+  )
+  mobileDataStores.set(databaseName, cacheEntry)
+  return cacheEntry.promise
+}
+
+export async function openMobileDataStore(
+  databaseName = DEFAULT_DATABASE_NAME,
+): Promise<MobileDataStore> {
+  const db = await SQLite.openDatabaseAsync(databaseName)
+  await db.execAsync('PRAGMA foreign_keys = ON')
+  await db.execAsync(
     `CREATE TABLE IF NOT EXISTS schema_migrations (
       id TEXT PRIMARY KEY,
       applied_at TEXT NOT NULL
     )`,
   )
-  const appliedRows = db.getAllSync<{ id: string }>('SELECT id FROM schema_migrations')
+  const appliedRows = await db.getAllAsync<{ readonly id: string }>(
+    'SELECT id FROM schema_migrations',
+  )
   const applied = new Set(appliedRows.map((row) => row.id))
 
   for (const migration of MOBILE_MIGRATIONS) {
     if (applied.has(migration.id)) continue
-    db.withTransactionSync(() => {
-      db.execSync(migration.statements.join(';\n'))
-      db.runSync('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)', [
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(migration.statements.join(';\n'))
+      await db.runAsync('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)', [
         migration.id,
         now(),
       ])
@@ -364,6 +440,6 @@ export function openMobileDataStore(databaseName = 'thefoolai-agent.db'): Mobile
     permissions: createPermissionRepository(db),
     outbox: createOutboxRepository(db),
     preferences: createUserPreferenceRepository(db),
-    close: () => db.closeSync(),
+    close: () => db.closeAsync(),
   }
 }

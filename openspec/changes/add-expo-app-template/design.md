@@ -86,6 +86,13 @@ The drawer omits section labels because its controls are self-describing, and se
 56-pixel container with the icon and input aligned in the same row. The workspace dock uses
 transparent chrome so it floats over the brand backdrop rather than reading as a second header.
 Detail cards and quick actions use horizontal icon-plus-title rows to reduce vertical stacking.
+The Domain Desktop groups its capability details into one divided glass surface, keeps quick-action
+tiles at a compact natural height, and reserves bottom scroll padding only for the floating voice
+entry so the end of the home feed does not expose a large blank card or oversized empty region.
+The root Expo Stack remains mounted even while the primary workspace overlay is visible. Index and
+history route files are lightweight anchors, while the overlay owns their product UI. This avoids
+destroying navigation history whenever the shell swaps between workspaces, and lets modal/user routes
+use deterministic `dismissTo` navigation back to their intended anchor.
 The user center provides an explicit Home control; secondary pages use native-feeling back behavior
 with a safe `/user` fallback.
 
@@ -154,6 +161,12 @@ The first migration stores sessions, session events, memory projections, permiss
 outbox records. SQLite code stays behind `src/core/data` contracts so a later sync implementation can
 replace the mobile adapter without changing Agent Core Lite. Every remote mutation is represented as
 an idempotent outbox operation before the network is involved.
+
+History remains a bounded read model: recent pages use an `updated_at` index, search pushes escaped
+LIKE predicates into SQLite with a result limit, and UI surfaces debounce queries and reject stale
+responses. SQLite opens, migrations, reads, and writes use the async adapter so a large ledger or
+index migration does not occupy the React Native JavaScript thread. This also keeps large result sets
+from being decoded and filtered in JavaScript on every keystroke.
 
 ## OpenUI compatibility strategy
 

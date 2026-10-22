@@ -115,3 +115,45 @@
       cards and quick actions horizontally.
 - [x] 11.4 Review adjacent spacing and update tests/specification.
 - [x] 11.5 Re-run template, CLI, repo, OpenSpec, format, and secret checks.
+
+## 12. Home bottom-density refinements
+
+- [x] 12.1 Compact quick-action tiles into bounded horizontal icon-plus-text cards.
+- [x] 12.2 Group the three Domain Desktop capability entries into one divided glass surface.
+- [x] 12.3 Reduce excess scroll padding under both primary workspaces while retaining space for the
+      floating voice entry.
+- [x] 12.4 Update the change specification and design rationale.
+- [x] 12.5 Re-run template type/build, OpenSpec, format, and targeted secret checks.
+
+## 13. Search overlay close repair
+
+- [x] 13.1 Keep the root Expo Stack mounted while primary workspace overlays render, preventing
+      navigation history from being discarded and later replaying stale routes.
+- [x] 13.2 Use deterministic `dismissTo` navigation for search close, user-home return, and
+      secondary-user back actions.
+- [x] 13.3 Add the search close action and test ID to the machine-readable maps.
+- [x] 13.4 Update the change specification.
+- [x] 13.5 Re-run template type/build, OpenSpec, and format checks, then restart the simulator app.
+
+## 14. Session-history scalability review
+
+- [x] 14.1 Add indexed session ordering and a parameterized, escaped SQLite search with bounded
+      results.
+- [x] 14.2 Debounce drawer and overlay session searches and invalidate stale async responses.
+- [x] 14.3 Keep recent history bounded, refresh only at turn boundaries, and report the actual
+      total session count.
+- [x] 14.4 Move SQLite opens, migrations, reads, and writes to the async adapter and virtualize the
+      drawer history list.
+- [x] 14.5 Update the persistence design and specification.
+- [x] 14.6 Re-run template type/build, OpenSpec, format, and targeted secret checks.
+
+## 15. OCR remediation pass
+
+- [x] 15.1 Make every action-map route reference resolve through route-map.
+- [x] 15.2 Dismiss search after continuing a result and distinguish search failure from no match.
+- [x] 15.3 Invalidate cancelled voice starts and use only the primary recognition hypothesis.
+- [x] 15.4 Make SQLite store lifecycle closable, tolerate malformed outbox payloads, and make
+      permission retries idempotent.
+- [x] 15.5 Ignore local SQLite artifacts and remove the unused direct MCP dependency.
+- [x] 15.6 Pin the generated project's enforced pnpm package manager.
+- [x] 15.7 Re-run focused OCR, template type/build, OpenSpec, format, lint, tests, and secret checks.

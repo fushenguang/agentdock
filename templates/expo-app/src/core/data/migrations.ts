@@ -139,4 +139,8 @@ export const MOBILE_MIGRATIONS: readonly MobileMigration[] = [
       )`,
     ],
   },
+  {
+    id: '0004_session_history_lookup',
+    statements: [`CREATE INDEX IF NOT EXISTS sessions_updated_at_idx ON sessions(updated_at DESC)`],
+  },
 ]

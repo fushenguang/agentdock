@@ -66,9 +66,8 @@ export function createPermissionBroker(
         }
       } catch (error) {
         decision = deniedDecision(permissionRequest.id)
-        decisionReason = `resolver-failed: ${
-          error instanceof Error ? `${error.name}: ${error.message}` : 'unknown error'
-        }`
+        decisionReason =
+          error instanceof AgentTurnCancelledError ? 'resolver-cancelled' : 'resolver-failed'
         if (error instanceof AgentTurnCancelledError) cancellation = error
       }
 

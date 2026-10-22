@@ -2,37 +2,37 @@
   "version": 1,
   "actions": {
     "open-navigation-drawer": {
-      "route": "shell",
+      "route": "domain-desktop",
       "surface": "workspace-dock-left",
       "intent": "Open the left navigation drawer"
     },
     "select-domain": {
-      "route": "shell",
+      "route": "domain-desktop",
       "surface": "navigation-drawer-header",
       "intent": "Choose the active domain"
     },
     "search-session-history": {
-      "route": "shell",
+      "route": "domain-desktop",
       "surface": "navigation-drawer-header",
       "intent": "Filter local session history"
     },
     "continue-session-from-drawer": {
-      "route": "shell",
+      "route": "domain-desktop",
       "surface": "navigation-drawer-history",
       "intent": "Continue a local session"
     },
     "open-user-information": {
-      "route": "shell",
+      "route": "domain-desktop",
       "surface": "navigation-drawer-footer",
       "intent": "Open secondary user information"
     },
     "switch-workspace": {
-      "route": "shell",
+      "route": "domain-desktop",
       "surface": "workspace-dock-center",
       "intent": "Swipe or use the page indicator to switch primary workspaces"
     },
     "create-session": {
-      "route": "shell",
+      "route": "domain-desktop",
       "surface": "workspace-dock-right",
       "intent": "Create a draft session and open the voice agent panel"
     },
@@ -41,28 +41,33 @@
       "surface": "primary-action",
       "intent": "Start a voice session from the Domain Desktop"
     },
+    "close-search": {
+      "route": "search-overlay",
+      "surface": "search-header",
+      "intent": "Dismiss the search overlay and return to the Domain Desktop"
+    },
     "open-agent-panel": {
-      "route": "shell",
+      "route": "domain-desktop",
       "surface": "floating-agent-orb",
       "intent": "Continue the current session by voice or text"
     },
     "toggle-voice-input": {
-      "route": "shell",
+      "route": "domain-desktop",
       "surface": "agent-bottom-sheet",
       "intent": "Start or stop the primary voice input surface"
     },
     "submit-prompt": {
-      "route": "shell",
+      "route": "domain-desktop",
       "surface": "agent-prompt-send-action",
       "intent": "Submit the current prompt to the active session"
     },
     "expand-agent-process": {
-      "route": "shell",
+      "route": "domain-desktop",
       "surface": "agent-bottom-sheet",
       "intent": "Inspect collapsed tool and script execution events"
     },
     "cancel-agent-turn": {
-      "route": "shell",
+      "route": "domain-desktop",
       "surface": "agent-prompt-send-action",
       "intent": "While running, the send action becomes pause/cancel; otherwise it submits the prompt"
     },
@@ -82,7 +87,7 @@
       "intent": "Return from user settings to the Domain Desktop"
     },
     "return-to-user-index": {
-      "route": "user-secondary",
+      "route": "user-index",
       "surface": "secondary-back-button",
       "intent": "Return from a secondary settings page to the user index"
     }

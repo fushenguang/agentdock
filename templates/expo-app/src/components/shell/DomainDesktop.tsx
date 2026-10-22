@@ -3,16 +3,31 @@ import { ScrollView, View } from 'react-native'
 import { tapFeedback } from '../../lib/haptics'
 import { useAgentSession } from '../agent'
 import { useLanguage } from '../settings/LanguageProvider'
-import {
-  ActionTile,
-  Button,
-  DetailCard,
-  GlassCard,
-  IconBadge,
-  Section,
-  StatusPill,
-  Text,
-} from '../ui'
+import { ActionTile, Button, GlassCard, IconBadge, Section, StatusPill, Text } from '../ui'
+
+const capabilities = [
+  {
+    key: 'localFirst',
+    icon: 'layers',
+    tone: 'amber',
+    titleKey: 'workspace.localFirstTitle',
+    bodyKey: 'workspace.localFirstBody',
+  },
+  {
+    key: 'privateTools',
+    icon: 'shield',
+    tone: 'green',
+    titleKey: 'workspace.privateToolsTitle',
+    bodyKey: 'workspace.privateToolsBody',
+  },
+  {
+    key: 'verifiedOutput',
+    icon: 'metrics',
+    tone: 'sky',
+    titleKey: 'workspace.verifiedOutputTitle',
+    bodyKey: 'workspace.verifiedOutputBody',
+  },
+] as const
 
 export function DomainDesktop() {
   const { startSession } = useAgentSession()
@@ -23,13 +38,13 @@ export function DomainDesktop() {
     <ScrollView
       testID="domain-desktop"
       className="flex-1"
-      contentContainerClassName="gap-6 px-5 pb-36 pt-4"
+      contentContainerClassName="gap-4 px-5 pb-24 pt-4"
       showsVerticalScrollIndicator={false}
     >
-      <GlassCard className="p-5">
-        <View className="relative gap-5">
+      <GlassCard className="p-4">
+        <View className="relative gap-4">
           <View className="flex-row items-center gap-4">
-            <IconBadge icon="spark" tone="amber" size={54} />
+            <IconBadge icon="spark" tone="amber" size={48} />
             <View className="flex-1 flex-row items-center justify-between gap-3">
               <Text variant="display">{t('workspace.domain')}</Text>
               <StatusPill label={t('workspace.heroReady')} tone="green" />
@@ -74,7 +89,7 @@ export function DomainDesktop() {
             className="min-w-[46%] flex-grow"
             onPress={() => {
               tapFeedback()
-              router.navigate('/history')
+              router.replace('/history')
             }}
           />
           <ActionTile
@@ -85,7 +100,7 @@ export function DomainDesktop() {
             className="min-w-[46%] flex-grow"
             onPress={() => {
               tapFeedback()
-              router.navigate('/search')
+              router.push('/search')
             }}
           />
           <ActionTile
@@ -103,26 +118,26 @@ export function DomainDesktop() {
       </Section>
 
       <Section title={t('workspace.capabilities')}>
-        <View className="gap-3">
-          <DetailCard
-            icon="layers"
-            tone="amber"
-            title={t('workspace.localFirstTitle')}
-            body={t('workspace.localFirstBody')}
-          />
-          <DetailCard
-            icon="shield"
-            tone="green"
-            title={t('workspace.privateToolsTitle')}
-            body={t('workspace.privateToolsBody')}
-          />
-          <DetailCard
-            icon="metrics"
-            tone="sky"
-            title={t('workspace.verifiedOutputTitle')}
-            body={t('workspace.verifiedOutputBody')}
-          />
-        </View>
+        <GlassCard className="p-1.5">
+          {capabilities.map((capability, index) => (
+            <View
+              key={capability.key}
+              className={
+                index === 0
+                  ? 'flex-row items-center gap-3 px-3 py-2.5'
+                  : 'flex-row items-center gap-3 border-t border-lineWarm px-3 py-2.5'
+              }
+            >
+              <IconBadge icon={capability.icon} tone={capability.tone} size={38} />
+              <View className="flex-1 gap-1">
+                <Text className="text-sm font-semibold text-ink" numberOfLines={1}>
+                  {t(capability.titleKey)}
+                </Text>
+                <Text className="text-xs leading-4 text-muted">{t(capability.bodyKey)}</Text>
+              </View>
+            </View>
+          ))}
+        </GlassCard>
       </Section>
     </ScrollView>
   )

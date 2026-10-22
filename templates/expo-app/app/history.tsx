@@ -1,1 +1,3 @@
-export { HistoryDesktop as default } from '../src/components/shell/HistoryDesktop'
+export default function HistoryRoute() {
+  return null
+}

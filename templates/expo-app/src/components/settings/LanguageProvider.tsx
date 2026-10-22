@@ -53,7 +53,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     const loadPreference = async () => {
       try {
-        const preference = await getMobileDataStore().preferences.get(LANGUAGE_PREFERENCE_KEY)
+        const store = await getMobileDataStore()
+        const preference = await store.preferences.get(LANGUAGE_PREFERENCE_KEY)
         if (cancelled) return
         if (preference && isInterfaceLanguage(preference.value)) setLanguageState(preference.value)
       } catch (error) {
@@ -71,13 +72,18 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const setLanguage = useCallback((nextLanguage: InterfaceLanguage) => {
     setLanguageState(nextLanguage)
-    void getMobileDataStore()
-      .preferences.set({
-        key: LANGUAGE_PREFERENCE_KEY,
-        value: nextLanguage,
-        updatedAt: new Date().toISOString(),
-      })
-      .catch((error: unknown) => console.warn('Failed to save language preference', error))
+    void (async () => {
+      try {
+        const store = await getMobileDataStore()
+        await store.preferences.set({
+          key: LANGUAGE_PREFERENCE_KEY,
+          value: nextLanguage,
+          updatedAt: new Date().toISOString(),
+        })
+      } catch (error: unknown) {
+        console.warn('Failed to save language preference', error)
+      }
+    })()
   }, [])
 
   const value = useMemo<LanguageContextValue>(

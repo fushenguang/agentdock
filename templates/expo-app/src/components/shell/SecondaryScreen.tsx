@@ -25,8 +25,7 @@ export function SecondaryScreen({
 
   function goBackToUser() {
     tapFeedback()
-    if (router.canGoBack()) router.back()
-    else router.navigate('/user')
+    router.dismissTo('/user')
   }
 
   return (

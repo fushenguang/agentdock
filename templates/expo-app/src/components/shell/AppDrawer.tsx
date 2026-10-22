@@ -1,16 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'expo-router'
 import { BlurView } from 'expo-blur'
 import { LinearGradient } from 'expo-linear-gradient'
-import {
-  Animated,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-  useWindowDimensions,
-} from 'react-native'
+import { Animated, Modal, Pressable, FlatList, Text, View, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAgentSession } from '../agent/AgentProvider'
 import { useLanguage } from '../settings/LanguageProvider'
@@ -45,6 +37,9 @@ interface DrawerHistoryState {
   readonly sessions: readonly SessionRecord[]
 }
 
+const DRAWER_LIST_STYLE = { flex: 1 } as const
+const DRAWER_LIST_CONTENT_STYLE = { gap: 8, paddingBottom: 16 } as const
+
 export function AppDrawer({
   visible,
   domains,
@@ -63,6 +58,7 @@ export function AppDrawer({
     state: HISTORY_LOAD_STATES.loading,
     sessions: [],
   })
+  const historyRequestRef = useRef(0)
   const slide = useRef(new Animated.Value(-1)).current
   const panelWidth = Math.min(width * 0.86, 360)
   const translateX = slide.interpolate({
@@ -78,35 +74,42 @@ export function AppDrawer({
     if (!visible) return undefined
 
     let cancelled = false
-    const loadSessions = async () => {
-      try {
-        const sessions = await getMobileDataStore().sessions.list(100)
-        if (!cancelled) setHistory({ state: HISTORY_LOAD_STATES.ready, sessions })
-      } catch (error) {
-        console.warn('Failed to load drawer sessions', error)
-        if (!cancelled) setHistory({ state: HISTORY_LOAD_STATES.failed, sessions: [] })
-      }
-    }
-
-    void loadSessions()
-    slide.setValue(-1)
-    Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 0, speed: 18 }).start()
+    const requestId = ++historyRequestRef.current
+    const query = search.trim()
+    setHistory({ state: HISTORY_LOAD_STATES.loading, sessions: [] })
+    const timer = setTimeout(
+      () => {
+        void (async () => {
+          try {
+            const store = await getMobileDataStore()
+            const sessions = query
+              ? await store.sessions.search(query, 100)
+              : await store.sessions.list(100)
+            if (!cancelled && historyRequestRef.current === requestId)
+              setHistory({ state: HISTORY_LOAD_STATES.ready, sessions })
+          } catch (error) {
+            console.warn('Failed to load drawer sessions', error)
+            if (!cancelled && historyRequestRef.current === requestId)
+              setHistory({ state: HISTORY_LOAD_STATES.failed, sessions: [] })
+          }
+        })()
+      },
+      query ? 200 : 0,
+    )
 
     return () => {
       cancelled = true
+      clearTimeout(timer)
     }
+  }, [search, visible])
+
+  useEffect(() => {
+    if (!visible) return
+    slide.setValue(-1)
+    Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 0, speed: 18 }).start()
   }, [slide, visible])
 
-  const sessions = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    if (history.state !== HISTORY_LOAD_STATES.ready) return []
-    if (query.length === 0) return history.sessions
-    return history.sessions.filter(
-      (session) =>
-        session.title.toLowerCase().includes(query) ||
-        session.domainId.toLowerCase().includes(query),
-    )
-  }, [history, search])
+  const sessions = history.state === HISTORY_LOAD_STATES.ready ? history.sessions : []
 
   function go(route: '/user') {
     onClose()
@@ -195,19 +198,14 @@ export function AppDrawer({
           </View>
 
           <View testID="drawer-session-list" className="flex-1 gap-2 px-5 pt-4">
-            <ScrollView className="flex-1" contentContainerClassName="gap-2 pb-4">
-              {history.state === HISTORY_LOAD_STATES.loading ? (
-                <Text className="px-1 py-3 text-sm text-muted">{t('drawer.loading')}</Text>
-              ) : null}
-              {history.state === HISTORY_LOAD_STATES.failed ? (
-                <Text className="px-1 py-3 text-sm text-danger">{t('drawer.unavailable')}</Text>
-              ) : null}
-              {history.state === HISTORY_LOAD_STATES.ready && sessions.length === 0 ? (
-                <Text className="px-1 py-3 text-sm text-muted">{t('drawer.noMatching')}</Text>
-              ) : null}
-              {sessions.map((session) => (
+            <FlatList
+              style={DRAWER_LIST_STYLE}
+              contentContainerStyle={DRAWER_LIST_CONTENT_STYLE}
+              data={sessions}
+              keyExtractor={(session) => session.id}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item: session }) => (
                 <Pressable
-                  key={session.id}
                   accessibilityRole="button"
                   accessibilityLabel={t('drawer.continueSession', { value: session.title })}
                   className="flex-row items-center gap-3 rounded-3xl border border-white/70 bg-white/76 px-3 py-3 active:bg-white"
@@ -229,8 +227,21 @@ export function AppDrawer({
                     </Text>
                   </View>
                 </Pressable>
-              ))}
-            </ScrollView>
+              )}
+              ListEmptyComponent={
+                <>
+                  {history.state === HISTORY_LOAD_STATES.loading ? (
+                    <Text className="px-1 py-3 text-sm text-muted">{t('drawer.loading')}</Text>
+                  ) : null}
+                  {history.state === HISTORY_LOAD_STATES.failed ? (
+                    <Text className="px-1 py-3 text-sm text-danger">{t('drawer.unavailable')}</Text>
+                  ) : null}
+                  {history.state === HISTORY_LOAD_STATES.ready ? (
+                    <Text className="px-1 py-3 text-sm text-muted">{t('drawer.noMatching')}</Text>
+                  ) : null}
+                </>
+              }
+            />
           </View>
 
           <View className="border-t border-line px-5 pt-3">
