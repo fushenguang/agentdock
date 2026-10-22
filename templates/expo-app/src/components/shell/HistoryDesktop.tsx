@@ -102,23 +102,27 @@ export function HistoryDesktop() {
             </GlassCard>
           ) : null}
           {history.state === HISTORY_LOAD_STATES.failed ? (
-            <GlassCard className="p-5">
-              <IconBadge icon="info" tone="neutral" size={44} />
-              <Text className="mt-3" variant="title">
-                {t('workspace.historyUnavailable')}
-              </Text>
-              <Text className="mt-2 text-sm leading-5 text-muted">
-                {t('workspace.historyUnavailableBody')}
-              </Text>
+            <GlassCard className="p-4">
+              <View className="flex-row items-center gap-4">
+                <IconBadge icon="info" tone="neutral" size={46} />
+                <View className="flex-1 gap-1">
+                  <Text variant="title">{t('workspace.historyUnavailable')}</Text>
+                  <Text className="text-sm leading-5 text-muted">
+                    {t('workspace.historyUnavailableBody')}
+                  </Text>
+                </View>
+              </View>
             </GlassCard>
           ) : null}
           {history.state === HISTORY_LOAD_STATES.ready && history.sessions.length === 0 ? (
-            <GlassCard className="items-start p-6">
-              <IconBadge icon="agent" tone="amber" size={54} />
-              <Text className="mt-4" variant="title">
-                {t('workspace.emptyTitle')}
-              </Text>
-              <Text className="mt-2 text-sm leading-5 text-muted">{t('workspace.emptyBody')}</Text>
+            <GlassCard className="p-4">
+              <View className="flex-row items-center gap-4">
+                <IconBadge icon="agent" tone="amber" size={52} />
+                <View className="flex-1 gap-1">
+                  <Text variant="title">{t('workspace.emptyTitle')}</Text>
+                  <Text className="text-sm leading-5 text-muted">{t('workspace.emptyBody')}</Text>
+                </View>
+              </View>
             </GlassCard>
           ) : null}
           {history.sessions.map((session) => (

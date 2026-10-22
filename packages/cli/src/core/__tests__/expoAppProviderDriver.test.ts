@@ -484,7 +484,7 @@ describe('expo-app mobile acceptance layout', () => {
     expect(newSessionIndex).toBeGreaterThan(indicatorIndex)
     expect(source).toContain('absolute left-0 right-0 top-0')
     expect(source).toContain('className="flex-1 flex-row items-center justify-center gap-2 px-1"')
-    expect(source).toContain('<BlurView')
+    expect(source).not.toContain('<BlurView')
     expect(source).toContain('<BrandBackdrop />')
   })
 
@@ -502,6 +502,15 @@ describe('expo-app mobile acceptance layout', () => {
 
     expect(panelIndex).toBeGreaterThan(-1)
     expect(scrimIndex).toBeGreaterThan(panelIndex)
+  })
+
+  it('keeps drawer controls compact and unlabeled', () => {
+    const source = readFileSync(appDrawerUrl, 'utf8')
+
+    expect(source).not.toContain("t('drawer.domain')")
+    expect(source).not.toContain("t('drawer.sessions')")
+    expect(source).toContain('h-14 flex-row items-center')
+    expect(source).toContain('h-11 w-11 items-center justify-center rounded-full bg-accentSoft')
   })
 
   it('defaults the bilingual interface to Simplified Chinese', async () => {

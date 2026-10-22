@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
+import { Image } from 'expo-image'
 import { Circle, Defs, RadialGradient, Stop, Svg } from 'react-native-svg'
 
 export function BrandBackdrop({ includeWarmth = true }: { includeWarmth?: boolean }) {
@@ -8,6 +9,18 @@ export function BrandBackdrop({ includeWarmth = true }: { includeWarmth?: boolea
         colors={includeWarmth ? ['#fffdf9', '#f8f1e6', '#f8f9fb'] : ['#ffffff', '#f8f9fb']}
         locations={[0, 0.52, 1]}
         style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
+      />
+      <Image
+        source={require('../../../assets/brand-hero.png')}
+        contentFit="cover"
+        style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          opacity: 0.34,
+        }}
       />
       <Svg
         pointerEvents="none"

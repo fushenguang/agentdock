@@ -106,3 +106,12 @@
 - [x] 10.5 Update generated/platform docs, machine-readable maps, and registry dependency tests.
 - [x] 10.6 Rebuild the iOS development client and run template, CLI, repo, OpenSpec, format, and
       secret checks.
+
+## 11. Visual density refinements
+
+- [x] 11.1 Remove redundant drawer section labels and repair the inline session-search layout.
+- [x] 11.2 Add a user-center Home control and repair secondary-page back navigation.
+- [x] 11.3 Remove the workspace-dock bar background, simplify the Domain hero, and align detail
+      cards and quick actions horizontally.
+- [x] 11.4 Review adjacent spacing and update tests/specification.
+- [x] 11.5 Re-run template, CLI, repo, OpenSpec, format, and secret checks.

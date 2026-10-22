@@ -10,6 +10,7 @@ export const DEFAULT_INTERFACE_LANGUAGE: InterfaceLanguage = INTERFACE_LANGUAGES
 const enUS = {
   'workspace.domain': 'TheFoolAI',
   'workspace.heroTag': 'Local agent host ready',
+  'workspace.heroReady': 'Ready',
   'workspace.heroBody':
     'Your private agent workspace is online, local-first, and ready for voice, text, and structured results.',
   'workspace.heroCta': 'Start talking',
@@ -129,6 +130,7 @@ const enUS = {
   'search.suggestionTasks': 'Find unfinished tasks',
   'search.suggestionDomain': 'Inspect this domain',
   'user.title': 'User',
+  'user.backHome': 'Home',
   'user.greeting': 'Your TheFoolAI identity',
   'user.subtitle': 'Language, privacy, storage, and sync controls in one place.',
   'user.accountGroup': 'Account',
@@ -212,6 +214,7 @@ const enUS = {
 const zhCN: typeof enUS = {
   'workspace.domain': 'TheFoolAI',
   'workspace.heroTag': '本地 Agent Host 已就绪',
+  'workspace.heroReady': '已就绪',
   'workspace.heroBody': '你的私有 Agent 工作区已可用：本地优先，支持语音、文本和结构化结果。',
   'workspace.heroCta': '开始对话',
   'workspace.quickActions': '快捷操作',
@@ -326,6 +329,7 @@ const zhCN: typeof enUS = {
   'search.suggestionTasks': '找未完成任务',
   'search.suggestionDomain': '查看当前领域',
   'user.title': '用户',
+  'user.backHome': '首页',
   'user.greeting': '你的 TheFoolAI 身份',
   'user.subtitle': '语言、隐私、存储与同步控制集中在此。',
   'user.accountGroup': '账户',

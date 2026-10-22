@@ -138,7 +138,6 @@ export function AppDrawer({
             style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
           />
           <View className="gap-3 px-5">
-            <Text className="text-xs uppercase text-muted">{t('drawer.domain')}</Text>
             <Pressable
               testID="drawer-domain-selector"
               accessibilityRole="button"
@@ -180,16 +179,13 @@ export function AppDrawer({
                 ))}
               </View>
             ) : null}
-            <View className="relative">
-              <View
-                className="absolute left-3 top-3 z-10 h-6 w-6 items-center justify-center"
-                pointerEvents="none"
-              >
+            <View className="h-14 flex-row items-center gap-2 rounded-3xl border border-white/70 bg-white/72 px-2">
+              <View className="h-11 w-11 items-center justify-center rounded-full bg-accentSoft">
                 <AppIcon name="search" size={15} color="#b8731f" />
               </View>
               <Input
                 testID="drawer-session-search"
-                className="pl-10"
+                className="min-h-12 flex-1 border-0 bg-transparent pl-0"
                 placeholder={t('drawer.searchPlaceholder')}
                 value={search}
                 onChangeText={setSearch}
@@ -198,8 +194,7 @@ export function AppDrawer({
             </View>
           </View>
 
-          <View testID="drawer-session-list" className="flex-1 gap-2 px-5 pt-5">
-            <Text className="text-xs uppercase text-muted">{t('drawer.sessions')}</Text>
+          <View testID="drawer-session-list" className="flex-1 gap-2 px-5 pt-4">
             <ScrollView className="flex-1" contentContainerClassName="gap-2 pb-4">
               {history.state === HISTORY_LOAD_STATES.loading ? (
                 <Text className="px-1 py-3 text-sm text-muted">{t('drawer.loading')}</Text>

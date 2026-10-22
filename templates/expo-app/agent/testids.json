@@ -25,6 +25,8 @@
     "result-action-cancel": "result-action-cancel",
     "result-action-confirm": "result-action-confirm",
     "user-language-entry": "user-language-entry",
+    "user-home-entry": "user-home-entry",
+    "secondary-user-back": "secondary-user-back",
     "user-privacy-entry": "user-privacy-entry",
     "user-storage-entry": "user-storage-entry",
     "user-sync-entry": "user-sync-entry",

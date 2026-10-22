@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router'
-import { ScrollView, View } from 'react-native'
+import { Pressable, ScrollView, View } from 'react-native'
 import { useLanguage } from '../../src/components/settings/LanguageProvider'
 import {
+  AppIcon,
   DetailCard,
   GlassCard,
   IconBadge,
@@ -21,6 +22,19 @@ export default function UserDesktop() {
       contentContainerClassName="gap-6 px-5 pb-36 pt-4"
       showsVerticalScrollIndicator={false}
     >
+      <Pressable
+        testID="user-home-entry"
+        accessibilityRole="button"
+        accessibilityLabel={t('user.backHome')}
+        className="flex-row items-center gap-2 self-start rounded-full bg-white/70 px-3 py-2 active:bg-white"
+        onPress={() => {
+          tapFeedback()
+          router.navigate('/')
+        }}
+      >
+        <AppIcon name="home" size={15} color="#b8731f" />
+        <Text className="text-sm font-medium text-accentDark">{t('user.backHome')}</Text>
+      </Pressable>
       <GlassCard className="p-5">
         <View className="flex-row items-center gap-4">
           <IconBadge icon="profile" tone="violet" size={60} />

@@ -1,5 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient'
-import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
 import { ScrollView, View } from 'react-native'
 import { tapFeedback } from '../../lib/haptics'
@@ -29,36 +27,29 @@ export function DomainDesktop() {
       showsVerticalScrollIndicator={false}
     >
       <GlassCard className="p-5">
-        <Image
-          source={require('../../../assets/brand-hero.png')}
-          contentFit="cover"
-          style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
-        />
-        <LinearGradient
-          colors={['rgba(255,250,243,0.82)', 'rgba(217,141,45,0.16)', 'rgba(139,92,246,0.10)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0.9, y: 1 }}
-          style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
-        />
         <View className="relative gap-5">
           <View className="flex-row items-center gap-4">
-            <IconBadge icon="spark" tone="amber" size={58} />
-            <View className="flex-1 gap-2">
-              <StatusPill label={t('workspace.heroTag')} tone="green" />
+            <IconBadge icon="spark" tone="amber" size={54} />
+            <View className="flex-1 flex-row items-center justify-between gap-3">
               <Text variant="display">{t('workspace.domain')}</Text>
+              <StatusPill label={t('workspace.heroReady')} tone="green" />
             </View>
           </View>
           <Text className="text-base leading-6 text-inkSoft">{t('workspace.heroBody')}</Text>
-          <Button
-            testID="domain-desktop-new-session"
-            accessibilityLabel={t('workspace.startVoiceSession')}
-            label={t('workspace.heroCta')}
-            className="self-start"
-            onPress={() => {
-              tapFeedback()
-              startSession()
-            }}
-          />
+          <View className="flex-row items-center justify-between gap-3">
+            <Button
+              testID="domain-desktop-new-session"
+              accessibilityLabel={t('workspace.startVoiceSession')}
+              label={t('workspace.heroCta')}
+              onPress={() => {
+                tapFeedback()
+                startSession()
+              }}
+            />
+            <Text className="max-w-[52%] text-right text-xs leading-4 text-muted">
+              {t('workspace.startVoiceSessionBody')}
+            </Text>
+          </View>
         </View>
       </GlassCard>
 

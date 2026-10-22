@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'expo-router'
-import { BlurView } from 'expo-blur'
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AgentBottomSheet, AgentVoiceOrb } from '../agent'
@@ -50,21 +49,13 @@ function WorkspacePager({
 
   return (
     <View testID="workspace-pager" className="flex-1">
-      <View
-        testID="workspace-dock"
-        className="absolute left-0 right-0 top-0 z-10 overflow-hidden px-5 pb-2 pt-2"
-      >
-        <BlurView
-          tint="systemChromeMaterialLight"
-          intensity={72}
-          style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
-        />
+      <View testID="workspace-dock" className="absolute left-0 right-0 top-0 z-10 px-5 pb-2 pt-2">
         <View className="flex-row items-center">
           <Pressable
             testID="topbar-drawer"
             accessibilityRole="button"
             accessibilityLabel={t('topbar.openNavigation')}
-            className="h-12 w-12 items-center justify-center rounded-full border border-white/70 bg-white/60"
+            className="h-12 w-12 items-center justify-center rounded-full"
             onPress={() => {
               tapFeedback()
               onOpenDrawer()
@@ -110,7 +101,7 @@ function WorkspacePager({
       </View>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingTop: 84 }}
+        contentContainerStyle={{ paddingTop: 76 }}
         ref={scrollRef}
         horizontal
         pagingEnabled

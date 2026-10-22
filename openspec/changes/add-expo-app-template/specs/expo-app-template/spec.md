@@ -76,6 +76,19 @@ network-hosted asset.
   semantic iconography
 - **AND** language settings remain immediately actionable
 
+#### Scenario: The user refines visual density
+
+- **WHEN** the drawer opens
+- **THEN** its domain and session sections omit redundant labels and present a 56-pixel search field
+  with an aligned inline search icon
+- **WHEN** the user is in the user center
+- **THEN** a visible control returns to the Domain Desktop
+- **AND** secondary pages provide a working back control
+- **WHEN** the workspace dock renders
+- **THEN** the dock uses transparent chrome over the brand background instead of a separate
+  high-contrast bar
+- **AND** icon-plus-title detail surfaces align horizontally by default
+
 ### Requirement: Voice-first agent panel
 
 The template SHALL keep a persistent agent voice entry available on primary screens. Activating it

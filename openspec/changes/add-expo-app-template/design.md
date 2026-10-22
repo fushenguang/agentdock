@@ -80,6 +80,15 @@ Design references consulted for this pass:
 - Expo SDK references: BlurView, Linear Gradient, Image, and Symbols.
 - TheFoolAI Electron `src/renderer/index.css`: warm default theme and semantic token structure.
 
+## Visual density refinements
+
+The drawer omits section labels because its controls are self-describing, and search uses one
+56-pixel container with the icon and input aligned in the same row. The workspace dock uses
+transparent chrome so it floats over the brand backdrop rather than reading as a second header.
+Detail cards and quick actions use horizontal icon-plus-title rows to reduce vertical stacking.
+The user center provides an explicit Home control; secondary pages use native-feeling back behavior
+with a safe `/user` fallback.
+
 ## Agent output pipeline
 
 ```text

@@ -75,6 +75,16 @@
       "route": "user-index",
       "surface": "settings-list",
       "intent": "Open profile, privacy, storage, sync, notifications, or about"
+    },
+    "return-home-from-user": {
+      "route": "user-index",
+      "surface": "user-home-button",
+      "intent": "Return from user settings to the Domain Desktop"
+    },
+    "return-to-user-index": {
+      "route": "user-secondary",
+      "surface": "secondary-back-button",
+      "intent": "Return from a secondary settings page to the user index"
     }
   }
 }
