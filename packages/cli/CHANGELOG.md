@@ -1,5 +1,15 @@
 # @cogito.ai/cli
 
+## 0.29.0
+
+### Minor Changes
+
+- 2bce5e7: Add the `expo-app` template: an Expo SDK 57 mobile Agent Host optimized for TheFoolAI with Agent Core Lite boundaries, a voice-first `@expo/ui` bottom sheet, NativeWind + source-owned reusables, structured OpenUI results, local SQLite persistence, a guarded OpenAI-compatible development provider driver, and a warm product-grade visual system.
+
+### Patch Changes
+
+- 4849316: web-tanstackstart template: second-level pages are no longer wrapped in a card frame. `PageShell` drops its rounded/bordered/card-background frame and the `isFramed` prop, and `DESIGN.md`, `LLM.md` and the template docs now state that secondary pages are never wrapped in a card.
+
 ## 0.28.0
 
 ### Minor Changes
