@@ -41,7 +41,7 @@ WorkspaceShell
 ├── Search overlay (not a desktop)
 ├── User routes: /user/** (secondary)
 └── AgentVoiceOrb
-    └── AgentBottomSheet: 25% voice/status → 50% task/result → 90% full process/result
+    └── AgentBottomSheet: fixed 80% height → scrolled result/process → docked prompt composer
 ```
 
 The top bar has exactly two entries. The drawer is the only home for current domain, search, history,
@@ -49,8 +49,9 @@ and user summary. This prevents shortcut-row inflation and keeps primary surface
 
 The top-bar drawer entry is icon-only. The drawer enters from the left: a compact domain selector and
 session-history search stay at the top, the session list occupies all flexible height, and the user
-entry remains fixed at the bottom. Opening the drawer closes an expanded agent BottomSheet first. The
-two primary workspaces are horizontally pageable, with the route synchronized to the visible page.
+entry remains fixed at the bottom. Its leading edge stays aligned with the screen's left edge.
+Opening the drawer closes an expanded agent BottomSheet first. The two primary workspaces are
+horizontally pageable, with the route synchronized to the visible page.
 
 Visual language is minimal but not monochrome: a light neutral base, one current-domain accent,
 semantic state colors, and a fixed chart palette. Decoration that does not encode state is removed.
@@ -75,6 +76,10 @@ The envelope is an application contract, not UI content. Conversational answers 
 `text` result kind and render as native text; metrics, tables, OpenUI, and action requests are
 reserved for content that genuinely benefits from those structures. Envelope status, schema version,
 and other transport metadata are not shown to the user.
+
+Interface language starts at Simplified Chinese and can be switched to English from user profile
+settings. The selection is persisted as a SQLite user preference, drives shell/agent/user copy and
+speech recognition, and is passed to the provider as the preferred user-facing locale.
 
 ## Development provider boundary
 

@@ -1,10 +1,8 @@
+import { useLanguage } from '../../src/components/settings/LanguageProvider'
 import { SecondaryScreen } from '../../src/components/shell/SecondaryScreen'
 
 export default function SyncScreen() {
-  return (
-    <SecondaryScreen
-      title="Sync"
-      body="Remote mutations are queued as idempotent outbox operations; local use does not require sync."
-    />
-  )
+  const { t } = useLanguage()
+
+  return <SecondaryScreen title={t('user.sync')} body={t('user.syncBody')} />
 }

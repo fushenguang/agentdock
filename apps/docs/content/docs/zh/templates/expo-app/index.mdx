@@ -26,6 +26,7 @@ description: 面向 TheFoolAI 的 Expo 移动 Agent Host，内置 Agent Core Lit
 app/               Expo Router 路由
 src/components     Shell、Agent 面板与源码自有 UI primitives
 src/core/agent     Turn、context、memory、tool、permission、audit 与输出契约
+src/core/i18n      中/英界面词典
 src/core/voice     语音输入边界
 src/core/data      持久化与 outbox 契约
 src/infra/sqlite   本地 SQLite 实现
@@ -41,7 +42,9 @@ LLM loop、context、memory、tool policy 或 permission 权限。
 - Drawer 承载当前 domain、搜索、历史与用户摘要。
 - 主工作面只有 Domain Desktop 和 History & Tasks。
 - 搜索是 overlay；低频用户信息进入 `/user/**`。
-- 常驻语音 orb 打开 `@expo/ui` BottomSheet，支持 25%、50%、90%。
+- 常驻语音 orb 打开固定 80% 高度的 `@expo/ui` BottomSheet；Prompt 输入固定在底部，结果与执行过程
+  区域独立滚动。
+- 用户资料设置支持中文/English 切换；默认中文，选择会保存在本地。
 - 工具/脚本过程默认折叠；执行阶段、耗时、步骤数与取消始终可见。
 - 结果只从通过验证的 `agent_result` envelope 渲染。
 

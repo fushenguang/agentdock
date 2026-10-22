@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAgentSession } from '../agent/AgentProvider'
+import { useLanguage } from '../settings/LanguageProvider'
 import type { SessionRecord } from '../../core/data/contracts'
 import { getMobileDataStore } from '../../infra/sqlite/dataStore'
 import { Input } from '../ui'
@@ -51,6 +52,7 @@ export function AppDrawer({
 }: AppDrawerProps) {
   const router = useRouter()
   const { continueSession } = useAgentSession()
+  const { t, language } = useLanguage()
   const insets = useSafeAreaInsets()
   const { width } = useWindowDimensions()
   const [domainMenuOpen, setDomainMenuOpen] = useState(false)
@@ -112,11 +114,6 @@ export function AppDrawer({
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
       <View className="flex-1 flex-row bg-black/25">
-        <Pressable
-          accessibilityLabel="Close navigation drawer"
-          className="flex-1"
-          onPress={onClose}
-        />
         <Animated.View
           testID="navigation-drawer"
           className="h-full bg-surface"
@@ -128,11 +125,11 @@ export function AppDrawer({
           }}
         >
           <View className="gap-3 px-5">
-            <Text className="text-xs uppercase text-muted">Domain</Text>
+            <Text className="text-xs uppercase text-muted">{t('drawer.domain')}</Text>
             <Pressable
               testID="drawer-domain-selector"
               accessibilityRole="button"
-              accessibilityLabel={`Selected domain ${selectedDomain.label}`}
+              accessibilityLabel={t('drawer.selectedDomain', { value: selectedDomain.label })}
               accessibilityState={{ expanded: domainMenuOpen }}
               className="flex-row items-center justify-between rounded-2xl bg-canvas px-4 py-3"
               onPress={() => setDomainMenuOpen((current) => !current)}
@@ -146,7 +143,7 @@ export function AppDrawer({
                   <Pressable
                     key={domain.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`Switch to ${domain.label}`}
+                    accessibilityLabel={t('drawer.switchDomain', { value: domain.label })}
                     accessibilityState={{ selected: domain.id === selectedDomain.id }}
                     className="px-4 py-3 active:bg-line"
                     onPress={() => {
@@ -168,7 +165,7 @@ export function AppDrawer({
               <Input
                 testID="drawer-session-search"
                 className="pl-10"
-                placeholder="Search session history"
+                placeholder={t('drawer.searchPlaceholder')}
                 value={search}
                 onChangeText={setSearch}
                 returnKeyType="search"
@@ -177,24 +174,22 @@ export function AppDrawer({
           </View>
 
           <View testID="drawer-session-list" className="flex-1 gap-2 px-5 pt-5">
-            <Text className="text-xs uppercase text-muted">Sessions</Text>
+            <Text className="text-xs uppercase text-muted">{t('drawer.sessions')}</Text>
             <ScrollView className="flex-1" contentContainerClassName="gap-2 pb-4">
               {history.state === HISTORY_LOAD_STATES.loading ? (
-                <Text className="px-1 py-3 text-sm text-muted">Loading sessions…</Text>
+                <Text className="px-1 py-3 text-sm text-muted">{t('drawer.loading')}</Text>
               ) : null}
               {history.state === HISTORY_LOAD_STATES.failed ? (
-                <Text className="px-1 py-3 text-sm text-danger">
-                  Session history is unavailable. Restart the app and try again.
-                </Text>
+                <Text className="px-1 py-3 text-sm text-danger">{t('drawer.unavailable')}</Text>
               ) : null}
               {history.state === HISTORY_LOAD_STATES.ready && sessions.length === 0 ? (
-                <Text className="px-1 py-3 text-sm text-muted">No matching sessions.</Text>
+                <Text className="px-1 py-3 text-sm text-muted">{t('drawer.noMatching')}</Text>
               ) : null}
               {sessions.map((session) => (
                 <Pressable
                   key={session.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`Continue session ${session.title}`}
+                  accessibilityLabel={t('drawer.continueSession', { value: session.title })}
                   className="rounded-2xl bg-canvas px-4 py-3 active:bg-line"
                   onPress={() => {
                     onClose()
@@ -205,7 +200,7 @@ export function AppDrawer({
                     {session.title}
                   </Text>
                   <Text className="mt-1 text-xs text-muted">
-                    {new Date(session.updatedAt).toLocaleString()}
+                    {new Date(session.updatedAt).toLocaleString(language)}
                   </Text>
                 </Pressable>
               ))}
@@ -216,18 +211,19 @@ export function AppDrawer({
             <Pressable
               testID="drawer-user-entry"
               accessibilityRole="button"
-              accessibilityLabel="Open user information"
+              accessibilityLabel={t('drawer.openUser')}
               className="flex-row items-center gap-3 rounded-2xl px-1 py-2 active:bg-canvas"
               onPress={() => go('/user')}
             >
               <User size={20} color="#4f7c5b" />
               <View className="flex-1">
-                <Text className="text-base font-medium text-ink">User</Text>
-                <Text className="text-xs text-muted">Profile, privacy, storage, and sync</Text>
+                <Text className="text-base font-medium text-ink">{t('drawer.user')}</Text>
+                <Text className="text-xs text-muted">{t('drawer.userDetail')}</Text>
               </View>
             </Pressable>
           </View>
         </Animated.View>
+        <Pressable accessibilityLabel={t('drawer.close')} className="flex-1" onPress={onClose} />
       </View>
     </Modal>
   )

@@ -1,10 +1,8 @@
+import { useLanguage } from '../../src/components/settings/LanguageProvider'
 import { SecondaryScreen } from '../../src/components/shell/SecondaryScreen'
 
 export default function NotificationsScreen() {
-  return (
-    <SecondaryScreen
-      title="Notifications"
-      body="Long-running turn completion and permission requests are the only default notifications."
-    />
-  )
+  const { t } = useLanguage()
+
+  return <SecondaryScreen title={t('user.notifications')} body={t('user.notificationsBody')} />
 }

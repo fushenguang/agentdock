@@ -39,6 +39,17 @@ export interface OutboxRecord {
   readonly createdAt: string
 }
 
+export interface UserPreferenceRecord {
+  readonly key: string
+  readonly value: string
+  readonly updatedAt: string
+}
+
+export interface UserPreferenceRepository {
+  get(key: string): Promise<UserPreferenceRecord | undefined>
+  set(input: UserPreferenceRecord): Promise<UserPreferenceRecord>
+}
+
 export interface SessionRepository {
   create(input: Omit<SessionRecord, 'createdAt' | 'updatedAt'>): Promise<SessionRecord>
   ensure(input: Omit<SessionRecord, 'createdAt' | 'updatedAt'>): Promise<SessionRecord>

@@ -6,6 +6,7 @@ interface AgentTurnRequest {
   readonly context: {
     readonly sessionId: string
     readonly domainId: string
+    readonly locale: string
     readonly intentSummary: string
     readonly compactEntries: readonly unknown[]
     readonly totalTokenEstimate: number
@@ -27,6 +28,10 @@ interface ProviderDriverModule {
     readonly useJSONResponseFormat?: boolean
     readonly fetchImpl?: (url: string, init: RequestInit) => Promise<Response>
   }) => { readonly id: string; run(request: AgentTurnRequest): Promise<unknown> }
+  readonly createReferenceDriver: () => {
+    readonly id: string
+    run(request: AgentTurnRequest): Promise<unknown>
+  }
   readonly extractOpenAICompatibleContent: (rawResponse: string) => string
   readonly normalizeProviderEndpoint: (rawUrl: string) => string
 }
@@ -40,6 +45,21 @@ const cliPackageUrl = new URL('../../../package.json', import.meta.url)
 
 const agentResultModuleUrl = new URL(
   '../../../../../templates/expo-app/src/core/agent/agent-result.js',
+  import.meta.url,
+).href
+
+const agentBottomSheetUrl = new URL(
+  '../../../../../templates/expo-app/src/components/agent/AgentBottomSheet.tsx',
+  import.meta.url,
+)
+
+const appDrawerUrl = new URL(
+  '../../../../../templates/expo-app/src/components/shell/AppDrawer.tsx',
+  import.meta.url,
+)
+
+const translationsModuleUrl = new URL(
+  '../../../../../templates/expo-app/src/core/i18n/translations.js',
   import.meta.url,
 ).href
 
@@ -58,6 +78,7 @@ const REQUEST: AgentTurnRequest = {
   context: {
     sessionId: 'session-1',
     domainId: 'thefoolai',
+    locale: 'zh-CN',
     intentSummary: 'Summarize today',
     compactEntries: [],
     totalTokenEstimate: 0,
@@ -189,6 +210,7 @@ describe('createOpenAICompatibleDriver', () => {
     }
     expect(body.model).toBe('test-model')
     expect(body.messages[0]?.role).toBe('system')
+    expect(body.messages[0]?.content).toContain('Preferred user-facing language: zh-CN.')
     expect(body.messages[1]?.content).toBe('Summarize today')
     expect(body.response_format).toEqual({ type: 'json_object' })
     expect(JSON.stringify(body)).not.toContain('test-provider-key')
@@ -316,6 +338,18 @@ describe('createConfiguredDriver', () => {
       warning.mockRestore()
     }
   })
+
+  it('returns localized reference text for the default Chinese locale', async () => {
+    const { createReferenceDriver } = await loadDriverModule()
+    const output = await createReferenceDriver().run({
+      ...REQUEST,
+      userText: '你好',
+    })
+
+    expect(output).toMatchObject({
+      result: { kind: 'text', text: '你好！今天需要我帮你做什么？' },
+    })
+  })
 })
 
 describe('CLI template packaging', () => {
@@ -327,5 +361,36 @@ describe('CLI template packaging', () => {
     expect(pkg.scripts?.build).toContain("--exclude='.expo/'")
     expect(pkg.scripts?.build).toContain("--exclude='ios/'")
     expect(pkg.scripts?.build).toContain("--exclude='android/'")
+  })
+})
+
+describe('expo-app mobile acceptance layout', () => {
+  it('uses a fixed 80% session sheet with a docked two-row prompt composer', () => {
+    const source = readFileSync(agentBottomSheetUrl, 'utf8')
+
+    expect(source).toContain('AGENT_SHEET_HEIGHT_PERCENT')
+    expect(source).toContain('snapPoints={[`${AGENT_SHEET_HEIGHT_PERCENT}%`]}')
+    expect(source).toContain('minHeight: 72')
+    expect(source).toContain('multiline')
+  })
+
+  it('keeps the animated drawer panel before its right-hand scrim', () => {
+    const source = readFileSync(appDrawerUrl, 'utf8')
+    const panelIndex = source.indexOf('testID="navigation-drawer"')
+    const scrimIndex = source.indexOf("accessibilityLabel={t('drawer.close')}")
+
+    expect(panelIndex).toBeGreaterThan(-1)
+    expect(scrimIndex).toBeGreaterThan(panelIndex)
+  })
+
+  it('defaults the bilingual interface to Simplified Chinese', async () => {
+    const translations = (await import(translationsModuleUrl)) as unknown as {
+      DEFAULT_INTERFACE_LANGUAGE: string
+      TRANSLATIONS: Record<string, Record<string, string>>
+    }
+
+    expect(translations.DEFAULT_INTERFACE_LANGUAGE).toBe('zh-CN')
+    expect(translations.TRANSLATIONS['zh-CN']?.['agent.title']).toBe('语音 Agent')
+    expect(translations.TRANSLATIONS['en-US']?.['agent.title']).toBe('Voice agent')
   })
 })

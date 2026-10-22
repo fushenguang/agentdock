@@ -20,7 +20,7 @@ local persistence. Generalization to other products is deliberately deferred.
    NativeWind 4, and source-owned `react-native-reusables` primitives.
 2. Use `@expo/ui` as a targeted native-control supplement, starting with the agent BottomSheet.
 3. Add a two-layer mobile UI contract:
-   - the top layer is a floating voice agent orb and BottomSheet (25%/50%/90% snap points);
+   - the top layer is a floating voice agent orb and fixed-height 80% BottomSheet;
    - the lower layer is a two-entry shell: left domain/search/history/user drawer, right new-session
      action.
 4. Limit primary work surfaces to Domain Desktop and History & Tasks. Search is an overlay, and user

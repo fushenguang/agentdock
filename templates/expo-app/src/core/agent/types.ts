@@ -32,6 +32,7 @@ export interface AgentContextEntry {
 export interface AgentContextEnvelope {
   readonly sessionId: string
   readonly domainId: string
+  readonly locale: string
   readonly intentSummary: string
   readonly compactEntries: readonly AgentContextEntry[]
   readonly totalTokenEstimate: number

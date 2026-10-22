@@ -58,3 +58,14 @@
       an expanded agent sheet first.
 - [x] 6.4 Update machine-readable action/test-id maps and documentation.
 - [x] 6.5 Re-run template, CLI, OpenSpec, format, and secret checks.
+
+## 7. Session layout and bilingual acceptance refinements
+
+- [x] 7.1 Keep the left drawer's leading edge aligned with the screen edge during its left-to-right
+      animation.
+- [x] 7.2 Fix the agent session sheet at 80% height, dock the prompt composer at its bottom with a
+      two-row input minimum, and scroll result/process content independently above it.
+- [x] 7.3 Add persisted Simplified Chinese/English user settings with Chinese as the default, localized
+      primary UI, localized provider output, and locale-aware speech recognition.
+- [x] 7.4 Update machine-readable action/test-id maps, specifications, and bilingual documentation.
+- [ ] 7.5 Re-run template, CLI, OpenSpec, format, build, and secret checks.

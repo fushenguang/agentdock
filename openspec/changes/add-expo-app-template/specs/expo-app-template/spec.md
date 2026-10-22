@@ -31,6 +31,8 @@ new-session action.
 - **THEN** the top bar contains an icon-only drawer entry and new-session entry only
 - **AND** the drawer expands from the left with a domain selector and session-history search at the
   top, a session list filling the remaining height, and a fixed user entry at the bottom
+- **AND** the drawer's leading edge remains aligned with the physical screen's left edge while it
+  animates from left to right
 - **AND** primary navigation is limited to Domain Desktop and History & Tasks
 
 #### Scenario: The user switches primary workspaces
@@ -52,13 +54,14 @@ new-session action.
 ### Requirement: Voice-first agent panel
 
 The template SHALL keep a persistent agent voice entry available on primary screens. Activating it
-SHALL open a BottomSheet with approximately 25%, 50%, and 90% snap points for voice/status, focused
-task/result, and full result/process states respectively.
+SHALL open a BottomSheet fixed at approximately 80% of screen height. Prompt input controls SHALL be
+docked to the sheet bottom, the input SHALL have a two-row minimum height, and the result plus
+collapsed execution process SHALL occupy the remaining height in an independently scrolling region.
 
 #### Scenario: The user starts a new session
 
 - **WHEN** the new-session action is activated
-- **THEN** a draft session is created and the agent sheet opens at the voice/status snap point
+- **THEN** a draft session is created and the agent sheet opens at its fixed session height
 - **AND** the sheet remains reachable while the user moves between primary work surfaces
 
 #### Scenario: A long-running turn is visible
@@ -156,6 +159,25 @@ details MUST remain behind Agent Core data contracts.
 - **WHEN** the app restarts without connectivity
 - **THEN** local sessions, history, and audit events remain available
 - **AND** remote mutations remain represented as outbox operations
+
+### Requirement: Bilingual user preference
+
+The template SHALL provide a user profile language setting with Simplified Chinese and English
+options. Simplified Chinese SHALL be the default for a new installation, the selected preference
+SHALL persist locally, primary shell/agent/user text SHALL follow the selection, and provider
+user-facing output plus voice recognition SHALL receive the selected locale.
+
+#### Scenario: A new user opens the app
+
+- **WHEN** no language preference has been saved
+- **THEN** the interface starts in Simplified Chinese
+
+#### Scenario: The user changes language
+
+- **WHEN** the user chooses English or Simplified Chinese in user settings
+- **THEN** primary shell, agent, and user-setting copy update immediately
+- **AND** the choice persists across app restarts
+- **AND** subsequent provider output and speech recognition use the selected locale
 
 ### Requirement: Agent development surfaces
 

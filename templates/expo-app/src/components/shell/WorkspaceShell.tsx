@@ -4,17 +4,15 @@ import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AgentBottomSheet, AgentVoiceOrb } from '../agent'
 import { useAgentSession } from '../agent/AgentProvider'
+import { useLanguage } from '../settings/LanguageProvider'
 import { AppDrawer } from './AppDrawer'
 import { DomainDesktop } from './DomainDesktop'
 import { HistoryDesktop } from './HistoryDesktop'
 import { TopBar } from './TopBar'
 
-const WORKSPACES = [
-  { route: '/', label: 'TheFoolAI' },
-  { route: '/history', label: 'History & Tasks' },
-] as const
+const WORKSPACES = [{ route: '/' }, { route: '/history' }] as const
 
-const DOMAIN_OPTIONS = [{ id: 'thefoolai', label: 'TheFoolAI' }] as const
+const DOMAIN_OPTIONS = [{ id: 'thefoolai' }] as const
 
 function workspaceIndex(pathname: string): number {
   return WORKSPACES.findIndex((workspace) => workspace.route === pathname)
@@ -27,6 +25,7 @@ function WorkspacePager({
   initialIndex: number
   onWorkspaceChange(index: number): void
 }) {
+  const { t } = useLanguage()
   const { width } = useWindowDimensions()
   const scrollRef = useRef<ScrollView>(null)
   const [index, setIndex] = useState(initialIndex)
@@ -76,7 +75,9 @@ function WorkspacePager({
           <Pressable
             key={workspace.route}
             accessibilityRole="button"
-            accessibilityLabel={`Switch to ${workspace.label}`}
+            accessibilityLabel={
+              indicatorIndex === 0 ? t('workspace.switchDomain') : t('workspace.switchHistory')
+            }
             accessibilityState={{ selected: indicatorIndex === index }}
             className={`h-2 rounded-full ${
               indicatorIndex === index ? 'w-6 bg-accent' : 'w-2 bg-line'
@@ -91,12 +92,19 @@ function WorkspacePager({
 
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const [drawerVisible, setDrawerVisible] = useState(false)
+  const { t } = useLanguage()
   const [selectedDomainId, setSelectedDomainId] = useState<string>(DOMAIN_OPTIONS[0].id)
   const pathname = usePathname()
   const router = useRouter()
   const { startSession, sheetOpen, closeAgent, setDomainId } = useAgentSession()
-  const activeDomain =
-    DOMAIN_OPTIONS.find((domain) => domain.id === selectedDomainId) ?? DOMAIN_OPTIONS[0]
+  const domainOptions = DOMAIN_OPTIONS.map((domain) => ({
+    ...domain,
+    label: domain.id === 'thefoolai' ? t('workspace.domain') : domain.id,
+  }))
+  const activeDomain = domainOptions.find((domain) => domain.id === selectedDomainId) ?? {
+    id: selectedDomainId,
+    label: selectedDomainId,
+  }
   const activeWorkspaceIndex = workspaceIndex(pathname)
   const insets = useSafeAreaInsets()
 
@@ -123,7 +131,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       <AgentVoiceOrb hidden={sheetOpen} />
       <AppDrawer
         visible={drawerVisible}
-        domains={DOMAIN_OPTIONS}
+        domains={domainOptions}
         selectedDomainId={activeDomain.id}
         onSelectDomain={(domainId) => {
           setSelectedDomainId(domainId)

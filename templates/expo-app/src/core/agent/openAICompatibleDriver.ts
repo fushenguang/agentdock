@@ -7,6 +7,8 @@ import {
   type AgentTurnStep,
 } from './types'
 
+export { createReferenceDriver }
+
 const REQUEST_TIMEOUT_MS = 60_000
 const MAX_RESPONSE_CHARS = 1_000_000
 
@@ -189,7 +191,12 @@ export function createOpenAICompatibleDriver(options: {
         const requestBody: Record<string, unknown> = {
           model: options.model,
           messages: [
-            { role: 'system', content: AGENT_RESULT_SYSTEM_PROMPT },
+            {
+              role: 'system',
+              content: `${AGENT_RESULT_SYSTEM_PROMPT}\nPreferred user-facing language: ${
+                request.context.locale ?? 'zh-CN'
+              }.`,
+            },
             {
               role: 'user',
               content: `${request.userText}${retryInstruction}`,

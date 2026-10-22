@@ -52,9 +52,13 @@ so it stays disabled under pnpm's build-script policy.
 app/               Expo Router routes
 src/components     Shell, agent panel, and source-owned UI primitives
 src/core/agent     Agent Core Lite: turn, context, tools, permissions, audit, output gate
+src/core/i18n      Chinese/English interface dictionaries
 src/core/data      Persistence and outbox contracts
 src/infra          SQLite implementation
 agent/             Machine-readable route, action, and test-id surfaces
 ```
 
 See `DESIGN.md` for UI/UX rules and `LLM.md` for the implementation workflow.
+
+The interface starts in Simplified Chinese. Switch to English from user profile settings; the choice
+is stored in SQLite and also drives speech recognition and provider output language.

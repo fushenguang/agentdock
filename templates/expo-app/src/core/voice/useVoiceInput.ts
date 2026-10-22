@@ -36,12 +36,34 @@ export interface VoiceInputState {
   readonly error: string | undefined
 }
 
-const ERROR_MESSAGES: Record<string, string> = {
-  'not-allowed': 'Microphone or speech recognition permission was not granted.',
-  'service-not-allowed': 'Speech recognition is not allowed on this device.',
-  'no-speech': 'No speech was detected. Please try again.',
-  network: 'Speech recognition is unavailable because the network failed.',
-  'audio-capture': 'No microphone is available on this device.',
+const ERROR_MESSAGES: Record<'en-US' | 'zh-CN', Record<string, string>> = {
+  'en-US': {
+    'not-allowed': 'Microphone or speech recognition permission was not granted.',
+    'service-not-allowed': 'Speech recognition is not allowed on this device.',
+    'no-speech': 'No speech was detected. Please try again.',
+    network: 'Speech recognition is unavailable because the network failed.',
+    'audio-capture': 'No microphone is available on this device.',
+    unknown: 'Voice input failed. Please try again.',
+    nomatch: 'No matching speech was recognized. Please try again.',
+    developmentBuild:
+      'Voice input requires an app development build. Text input remains available.',
+    startFailed: 'Voice input failed to start.',
+  },
+  'zh-CN': {
+    'not-allowed': '未获得麦克风或语音识别权限。',
+    'service-not-allowed': '此设备不允许使用语音识别。',
+    'no-speech': '没有检测到语音，请重试。',
+    network: '网络不可用，暂时无法进行语音识别。',
+    'audio-capture': '此设备没有可用麦克风。',
+    unknown: '语音输入失败，请重试。',
+    nomatch: '没有识别到匹配语音，请重试。',
+    developmentBuild: '语音输入需要 app development build；仍可使用文本输入。',
+    startFailed: '语音输入启动失败。',
+  },
+}
+
+function voiceMessages(lang: string): Record<string, string> {
+  return ERROR_MESSAGES[lang === 'en-US' ? 'en-US' : 'zh-CN']
 }
 
 function loadSpeechModule(): SpeechRecognitionModule | undefined {
@@ -89,6 +111,7 @@ export function useVoiceInput({
 
   useEffect(() => {
     if (!speechModule?.addListener) return undefined
+    const messages = voiceMessages(lang)
 
     const subscriptions = [
       speechModule.addListener('result', (event) => {
@@ -118,7 +141,7 @@ export function useVoiceInput({
           return
         }
 
-        const message = ERROR_MESSAGES[errorCode] ?? 'Voice input failed. Please try again.'
+        const message = messages[errorCode] ?? messages.unknown
         setState((current) => ({
           ...current,
           status:
@@ -143,13 +166,13 @@ export function useVoiceInput({
           ...current,
           status: VOICE_INPUT_STATUSES.idle,
           transcript: '',
-          error: 'No matching speech was recognized. Please try again.',
+          error: messages.nomatch,
         }))
       }),
     ]
 
     return () => subscriptions.forEach((subscription) => subscription.remove())
-  }, [])
+  }, [lang])
 
   useEffect(() => {
     mountedRef.current = true
@@ -163,13 +186,14 @@ export function useVoiceInput({
   const start = useCallback(async () => {
     if (startingRef.current || state.status === VOICE_INPUT_STATUSES.listening) return
     startingRef.current = true
+    const messages = voiceMessages(lang)
 
     try {
       if (!speechModule?.addListener) {
         setState((current) => ({
           ...current,
           status: VOICE_INPUT_STATUSES.failed,
-          error: 'Voice input requires an app development build. Text input remains available.',
+          error: messages.developmentBuild,
         }))
         return
       }
@@ -180,7 +204,7 @@ export function useVoiceInput({
         setState((current) => ({
           ...current,
           status: VOICE_INPUT_STATUSES.denied,
-          error: 'Microphone or speech recognition permission was not granted.',
+          error: messages['not-allowed'],
         }))
         return
       }
@@ -203,7 +227,7 @@ export function useVoiceInput({
       setState((current) => ({
         ...current,
         status: VOICE_INPUT_STATUSES.failed,
-        error: error instanceof Error ? error.message : 'Voice input failed to start.',
+        error: error instanceof Error ? error.message : messages.startFailed,
       }))
     } finally {
       startingRef.current = false

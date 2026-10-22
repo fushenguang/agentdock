@@ -129,4 +129,14 @@ export const MOBILE_MIGRATIONS: readonly MobileMigration[] = [
          ON sync_outbox(status, attempts, created_at)`,
     ],
   },
+  {
+    id: '0003_user_preferences',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS user_preferences (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+    ],
+  },
 ]

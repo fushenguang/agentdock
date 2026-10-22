@@ -1,5 +1,6 @@
 import { Menu, Plus } from 'lucide-react-native'
 import { Pressable, View } from 'react-native'
+import { useLanguage } from '../settings/LanguageProvider'
 
 export interface TopBarProps {
   domainLabel: string
@@ -8,11 +9,13 @@ export interface TopBarProps {
 }
 
 export function TopBar({ domainLabel, onOpenDrawer, onNewSession }: TopBarProps) {
+  const { t } = useLanguage()
+
   return (
     <View className="flex-row items-center justify-between px-5 pb-4 pt-3">
       <Pressable
         testID="topbar-drawer"
-        accessibilityLabel={`Open navigation for ${domainLabel}`}
+        accessibilityLabel={`${t('topbar.openNavigation')} — ${domainLabel}`}
         className="h-11 w-11 items-center justify-center rounded-full bg-surface"
         onPress={onOpenDrawer}
       >
@@ -20,7 +23,7 @@ export function TopBar({ domainLabel, onOpenDrawer, onNewSession }: TopBarProps)
       </Pressable>
       <Pressable
         testID="topbar-new-session"
-        accessibilityLabel="New session"
+        accessibilityLabel={t('topbar.newSession')}
         className="h-11 w-11 items-center justify-center rounded-full bg-accent"
         onPress={onNewSession}
       >

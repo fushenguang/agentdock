@@ -27,6 +27,7 @@ Agent Host before any generic mobile abstraction is extracted.
 app/               Expo Router routes
 src/components     Shell, agent panel, and source-owned UI primitives
 src/core/agent     Turn, context, memory, tool, permission, audit, and output contracts
+src/core/i18n      Chinese/English interface dictionaries
 src/core/voice     Voice input boundary
 src/core/data      Persistence and outbox contracts
 src/infra/sqlite   Local SQLite implementation
@@ -42,7 +43,10 @@ surfaces and never own the LLM loop, context, memory, tool policy, or permission
 - The drawer contains current domain, search, history, and user summary.
 - Primary work surfaces are only Domain Desktop and History & Tasks.
 - Search is an overlay; low-frequency user information lives under `/user/**`.
-- The persistent voice orb opens an `@expo/ui` BottomSheet at 25%, 50%, or 90%.
+- The persistent voice orb opens a fixed-height 80% `@expo/ui` BottomSheet with a docked prompt
+  composer and independently scrolling result/process content.
+- User profile settings switch between Simplified Chinese and English; Chinese is the default and the
+  preference is stored locally.
 - Tool/script process events are collapsed; execution stage, elapsed time, step count, and cancel stay
   visible.
 - Results render only from a validated `agent_result` envelope.

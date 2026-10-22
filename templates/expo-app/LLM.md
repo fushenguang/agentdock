@@ -27,6 +27,9 @@ driver; do not add prose fallback to the gate.
 Use the `text` result kind for conversational answers. The text field is the complete user-facing
 answer; envelope status, schema metadata, and JSON syntax must never be rendered as content.
 
+The interface locale defaults to `zh-CN` and can be switched to `en-US` from user settings. Keep new
+user-facing copy in both dictionaries and pass the selected locale through Agent context.
+
 ## Provider driver
 
 `createConfiguredDriver` uses the OpenAI-compatible driver only when both the public base URL and

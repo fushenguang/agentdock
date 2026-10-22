@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, View } from 'react-native'
 import { useAgentSession } from '../agent'
+import { useLanguage } from '../settings/LanguageProvider'
 import { Card, Section, Text } from '../ui'
 import type { SessionRecord } from '../../core/data/contracts'
 import { getMobileDataStore } from '../../infra/sqlite/dataStore'
@@ -13,12 +14,6 @@ const HISTORY_LOAD_STATES = {
 
 type HistoryLoadState = (typeof HISTORY_LOAD_STATES)[keyof typeof HISTORY_LOAD_STATES]
 
-const SESSION_STATUS_LABELS: Record<SessionRecord['status'], string> = {
-  draft: 'Draft',
-  active: 'Active',
-  archived: 'Archived',
-}
-
 interface HistoryState {
   readonly state: HistoryLoadState
   readonly sessions: readonly SessionRecord[]
@@ -26,6 +21,7 @@ interface HistoryState {
 
 export function HistoryDesktop() {
   const { continueSession, turn } = useAgentSession()
+  const { t, language } = useLanguage()
   const [history, setHistory] = useState<HistoryState>({
     state: HISTORY_LOAD_STATES.loading,
     sessions: [],
@@ -57,41 +53,45 @@ export function HistoryDesktop() {
       contentContainerClassName="gap-8 px-5 pb-32"
     >
       <View className="gap-3 pt-4">
-        <Text variant="display">History & Tasks</Text>
-        <Text variant="muted">Continue local sessions even when the network is unavailable.</Text>
+        <Text variant="display">{t('workspace.history')}</Text>
+        <Text variant="muted">{t('workspace.historyDescription')}</Text>
       </View>
-      <Section title="Recent">
+      <Section title={t('workspace.recent')}>
         <View className="gap-4">
           {history.state === HISTORY_LOAD_STATES.loading ? (
             <Card>
-              <Text variant="muted">Loading local sessions…</Text>
+              <Text variant="muted">{t('workspace.loadingSessions')}</Text>
             </Card>
           ) : null}
           {history.state === HISTORY_LOAD_STATES.failed ? (
             <Card>
-              <Text variant="title">Local history is unavailable</Text>
-              <Text className="mt-2">Restart the app or check local storage permissions.</Text>
+              <Text variant="title">{t('workspace.historyUnavailable')}</Text>
+              <Text className="mt-2">{t('workspace.historyUnavailableBody')}</Text>
             </Card>
           ) : null}
           {history.state === HISTORY_LOAD_STATES.ready && history.sessions.length === 0 ? (
             <Card>
-              <Text variant="title">No sessions yet</Text>
-              <Text className="mt-2">Start a voice session to create local history.</Text>
+              <Text variant="title">{t('workspace.noSessions')}</Text>
+              <Text className="mt-2">{t('workspace.noSessionsBody')}</Text>
             </Card>
           ) : null}
           {history.sessions.map((session) => (
             <Pressable
               key={session.id}
               accessibilityRole="button"
-              accessibilityLabel={`Continue session ${session.title}`}
+              accessibilityLabel={t('drawer.continueSession', { value: session.title })}
               accessibilityHint="Opens this session in the agent panel"
               onPress={() => continueSession(session.id, session.title)}
             >
               <Card>
                 <Text variant="title">{session.title}</Text>
                 <Text className="mt-2">
-                  {SESSION_STATUS_LABELS[session.status]} ·{' '}
-                  {new Date(session.updatedAt).toLocaleString()}
+                  {session.status === 'draft'
+                    ? t('status.draft')
+                    : session.status === 'active'
+                      ? t('status.active')
+                      : t('status.archived')}{' '}
+                  · {new Date(session.updatedAt).toLocaleString(language)}
                 </Text>
               </Card>
             </Pressable>

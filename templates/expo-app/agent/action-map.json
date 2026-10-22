@@ -60,6 +60,11 @@
       "route": "shell",
       "surface": "agent-bottom-sheet",
       "intent": "Cancel the active turn"
+    },
+    "select-interface-language": {
+      "route": "user-profile",
+      "surface": "language-settings",
+      "intent": "Switch the bilingual interface between Chinese and English"
     }
   }
 }

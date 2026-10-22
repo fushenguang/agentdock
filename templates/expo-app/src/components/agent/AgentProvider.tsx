@@ -22,28 +22,21 @@ import {
 } from '../../core/agent'
 import { getMobileDataStore, type MobileDataStore } from '../../infra/sqlite/dataStore'
 import { newId } from '../../lib/id'
+import { useLanguage } from '../settings/LanguageProvider'
 
-export const AGENT_SHEET_SNAP_POINTS = {
-  voice: 25,
-  task: 50,
-  full: 90,
-} as const
-
-export type AgentSheetSnap = (typeof AGENT_SHEET_SNAP_POINTS)[keyof typeof AGENT_SHEET_SNAP_POINTS]
+export const AGENT_SHEET_HEIGHT_PERCENT = 80
 
 export interface AgentSessionContextValue {
   readonly turn: AgentTurnState
   readonly sheetOpen: boolean
-  readonly snapPoint: AgentSheetSnap
   readonly result: AgentResultEnvelope | undefined
   readonly structuredOutputError: string | undefined
   readonly structuredOutputIssues: readonly StructuredOutputIssue[]
   readonly genericError: string | undefined
   readonly driverId: string
   readonly domainId: string
-  openAgent(snap?: AgentSheetSnap): void
+  openAgent(): void
   closeAgent(): void
-  setSnapPoint(snap: AgentSheetSnap): void
   startSession(): void
   continueSession(sessionId: string, title?: string): void
   dismissResult(): void
@@ -55,9 +48,9 @@ export interface AgentSessionContextValue {
 const AgentSessionContext = createContext<AgentSessionContextValue | undefined>(undefined)
 
 export function AgentSessionProvider({ children }: { children: ReactNode }) {
+  const { language } = useLanguage()
   const [turn, setTurn] = useState<AgentTurnState>(createInitialTurnState)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [snapPoint, setSnapPoint] = useState<AgentSheetSnap>(AGENT_SHEET_SNAP_POINTS.voice)
   const [result, setResult] = useState<AgentResultEnvelope | undefined>(undefined)
   const [structuredOutputError, setStructuredOutputError] = useState<string | undefined>(undefined)
   const [structuredOutputIssues, setStructuredOutputIssues] = useState<
@@ -73,9 +66,8 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
   const dataStoreRef = useRef<MobileDataStore | undefined>(undefined)
   const driver = useMemo(createConfiguredDriver, [])
 
-  const openAgent = useCallback((snap = AGENT_SHEET_SNAP_POINTS.voice) => {
+  const openAgent = useCallback(() => {
     if (activeSessionIdRef.current === 'local-current') activeSessionIdRef.current = newId()
-    setSnapPoint(snap)
     setSheetOpen(true)
   }, [])
 
@@ -141,7 +133,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
       failureCode: undefined,
       failureMessage: undefined,
     })
-    openAgent(AGENT_SHEET_SNAP_POINTS.voice)
+    openAgent()
   }, [cancelActiveTurn, openAgent])
 
   const continueSession = useCallback(
@@ -154,7 +146,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
       setStructuredOutputIssues([])
       setGenericError(undefined)
       setTurn(createInitialTurnState())
-      openAgent(AGENT_SHEET_SNAP_POINTS.voice)
+      openAgent()
     },
     [cancelActiveTurn, openAgent],
   )
@@ -185,13 +177,12 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
         failureCode: undefined,
         failureMessage: undefined,
       })
-      setSnapPoint(AGENT_SHEET_SNAP_POINTS.task)
-
       const request = {
         userText: text,
         context: {
           sessionId,
           domainId,
+          locale: language,
           intentSummary: text,
           compactEntries: [] as const,
           totalTokenEstimate: 0,
@@ -231,7 +222,6 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
           result: envelope,
           updatedAt: Date.now(),
         }))
-        setSnapPoint(AGENT_SHEET_SNAP_POINTS.full)
         return true
       } catch (error) {
         if (cancelledTurnsRef.current.has(turnId)) return false
@@ -274,7 +264,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
         return false
       }
     },
-    [domainId, driver, recordAudit],
+    [domainId, driver, language, recordAudit],
   )
 
   const cancelTurn = useCallback(() => {
@@ -295,7 +285,6 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
     () => ({
       turn,
       sheetOpen,
-      snapPoint,
       result,
       structuredOutputError,
       structuredOutputIssues,
@@ -305,7 +294,6 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
       setDomainId,
       openAgent,
       closeAgent,
-      setSnapPoint,
       startSession,
       continueSession,
       dismissResult,
@@ -315,7 +303,6 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
     [
       turn,
       sheetOpen,
-      snapPoint,
       result,
       structuredOutputError,
       structuredOutputIssues,

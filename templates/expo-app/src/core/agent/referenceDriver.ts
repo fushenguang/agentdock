@@ -49,6 +49,11 @@ export function createReferenceDriver(): AgentTurnDriver {
       const isGreeting = /^(?:hi|hello|hey|你好|您好|嗨)[!.。]?$/.test(
         request.userText.trim().toLowerCase(),
       )
+      const greeting =
+        request.context.locale === 'en-US'
+          ? 'Hi! How can I help you today?'
+          : '你好！今天需要我帮你做什么？'
+      const isEnglish = request.context.locale === 'en-US'
       const envelope = createResultEnvelope({
         status: 'ok',
         title: isGreeting
@@ -58,16 +63,29 @@ export function createReferenceDriver(): AgentTurnDriver {
             : request.userText,
         generated_at: new Date().toISOString(),
         result: isGreeting
-          ? { kind: 'text', text: 'Hi! How can I help you today?' }
+          ? { kind: 'text', text: greeting }
           : {
               kind: 'summary',
               metrics: [
-                { label: 'Domain', value: request.context.domainId },
-                { label: 'Context', value: `${request.context.compactEntries.length} entries` },
-                { label: 'Turn', value: 'ready to connect' },
+                {
+                  label: isEnglish ? 'Domain' : '领域',
+                  value: request.context.domainId,
+                },
+                {
+                  label: isEnglish ? 'Context' : '上下文',
+                  value: isEnglish
+                    ? `${request.context.compactEntries.length} entries`
+                    : `${request.context.compactEntries.length} 条记录`,
+                },
+                {
+                  label: isEnglish ? 'Turn' : 'Turn',
+                  value: isEnglish ? 'ready to connect' : '可接入 provider',
+                },
               ],
             },
-        follow_ups: ['Connect a provider driver', 'Add a domain-specific tool'],
+        follow_ups: isEnglish
+          ? ['Connect a provider driver', 'Add a domain-specific tool']
+          : ['连接 provider driver', '添加领域工具'],
       })
       observe(step('schema', 'Validate result envelope', 'validation'))
       return envelope

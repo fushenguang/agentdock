@@ -21,7 +21,8 @@ The top bar has exactly two controls:
 
 The left drawer entry is icon-only. The drawer enters from the left: domain selection and session
 history search stay at the top, the session list fills the remaining height, and the user entry is
-fixed at the bottom. Opening the drawer automatically closes an expanded agent sheet.
+fixed at the bottom. The drawer's leading edge remains aligned with the screen's left edge. Opening
+the drawer automatically closes an expanded agent sheet.
 
 There are only two primary work surfaces: Domain Desktop and History & Tasks. Swipe horizontally (or
 use the page indicator) to move between them. Search is an overlay. Profile, privacy, storage, sync,
@@ -29,17 +30,16 @@ notifications, and about are secondary `/user/**` routes.
 
 ## Agent panel
 
-Snap points are 25%, 50%, and 90%:
-
-| Snap | Job                                                  |
-| ---- | ---------------------------------------------------- |
-| 25%  | voice input, current execution state, quick continue |
-| 50%  | approval, focused task status, compact result        |
-| 90%  | full high-density result and expandable process      |
+The agent session sheet is a fixed 80% of screen height. Its prompt composer is docked to the bottom;
+the input has a two-row minimum and the area above it scrolls independently through the collapsed
+execution process and validated result.
 
 Process events are collapsed by default. Execution state is always visible: after three seconds show
 the stage; after ten seconds also show elapsed time and step count; always expose expandable process
 and cancel while a turn is active.
+
+Interface language defaults to Simplified Chinese. User profile settings can switch between Chinese
+and English; the choice persists locally and flows into speech recognition and provider output.
 
 ## Structured results
 

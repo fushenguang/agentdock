@@ -10,6 +10,8 @@ import type {
   SessionEventRecord,
   SessionRecord,
   SessionRepository,
+  UserPreferenceRecord,
+  UserPreferenceRepository,
 } from '../../core/data/contracts'
 import { MOBILE_MIGRATIONS } from '../../core/data/migrations'
 import { newId } from '../../lib/id'
@@ -44,6 +46,12 @@ interface OutboxRow {
   last_error: string | null
   created_at: string
   updated_at: string
+}
+
+interface UserPreferenceRow {
+  readonly key: string
+  readonly value: string
+  readonly updated_at: string
 }
 
 function now(): string {
@@ -93,6 +101,14 @@ function decodeOutbox(row: OutboxRow): OutboxRecord {
     status: row.status,
     idempotencyKey: row.idempotency_key,
     createdAt: row.created_at,
+  }
+}
+
+function decodeUserPreference(row: UserPreferenceRow): UserPreferenceRecord {
+  return {
+    key: row.key,
+    value: row.value,
+    updatedAt: row.updated_at,
   }
 }
 
@@ -280,12 +296,34 @@ function createOutboxRepository(db: SQLite.SQLiteDatabase): OutboxRepository {
   }
 }
 
+function createUserPreferenceRepository(db: SQLite.SQLiteDatabase): UserPreferenceRepository {
+  return {
+    async get(key) {
+      const row = db.getFirstSync<UserPreferenceRow>(
+        'SELECT key, value, updated_at FROM user_preferences WHERE key = ?',
+        [key],
+      )
+      return row ? decodeUserPreference(row) : undefined
+    },
+    async set(input) {
+      db.runSync(
+        `INSERT INTO user_preferences (key, value, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+        [input.key, input.value, input.updatedAt],
+      )
+      return input
+    },
+  }
+}
+
 export interface MobileDataStore {
   readonly sessions: SessionRepository
   readonly events: AgentAuditRepository
   readonly memory: MemoryRepository
   readonly permissions: PermissionRepository
   readonly outbox: OutboxRepository
+  readonly preferences: UserPreferenceRepository
   close(): void
 }
 
@@ -325,6 +363,7 @@ export function openMobileDataStore(databaseName = 'thefoolai-agent.db'): Mobile
     memory: createMemoryRepository(db),
     permissions: createPermissionRepository(db),
     outbox: createOutboxRepository(db),
+    preferences: createUserPreferenceRepository(db),
     close: () => db.closeSync(),
   }
 }
