@@ -88,6 +88,19 @@ Interface language starts at Simplified Chinese and can be switched to English f
 settings. The selection is persisted as a SQLite user preference, drives shell/agent/user copy and
 speech recognition, and is passed to the provider as the preferred user-facing locale.
 
+## Active session lifecycle
+
+One in-memory active session represents the current interaction. Collapsing and reopening the sheet
+reuses it, and completed user/assistant turns are retained as compact context for the next provider
+request. The explicit new-session action is the only user-initiated way to rotate a session while one
+is active.
+
+If no active session exists, opening or submitting creates one automatically. If the sheet remains
+collapsed for more than five minutes, the active in-memory session is cleared and the next opening
+starts a fresh one; persisted history remains untouched. Automatic rotation for repeated-compaction
+quality loss is intentionally reserved as a future context-quality evaluator, analogous to
+longer-running coding-agent session management.
+
 ## Development provider boundary
 
 The default driver remains the deterministic local reference driver. When

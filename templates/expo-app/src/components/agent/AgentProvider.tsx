@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -13,9 +14,12 @@ import {
   createInitialTurnState,
   createConfiguredDriver,
   isActiveTurn,
+  resolveActiveSession,
   runVerifiedAgentTurn,
+  ACTIVE_SESSION_IDLE_TTL_MS,
   StructuredOutputTurnError,
   type AgentAuditEvent,
+  type AgentContextEntry,
   type AgentResultEnvelope,
   type StructuredOutputIssue,
   type AgentTurnState,
@@ -35,6 +39,7 @@ export interface AgentSessionContextValue {
   readonly genericError: string | undefined
   readonly driverId: string
   readonly domainId: string
+  readonly activeSessionId: string | undefined
   openAgent(): void
   closeAgent(): void
   startSession(): void
@@ -60,18 +65,77 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
   const cancelledTurnsRef = useRef(new Set<string>())
   const ensuredSessionsRef = useRef(new Set<string>())
   const activeTurnIdRef = useRef<string | undefined>(undefined)
-  const activeSessionIdRef = useRef('local-current')
+  const [activeSessionId, setActiveSessionId] = useState<string | undefined>(undefined)
   const activeSessionTitleRef = useRef('New voice session')
+  const sessionClosedAtRef = useRef<number | undefined>(undefined)
+  const sessionIdleTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const conversationEntriesRef = useRef<readonly AgentContextEntry[]>([])
   const [domainId, setDomainId] = useState('thefoolai')
   const dataStoreRef = useRef<MobileDataStore | undefined>(undefined)
   const driver = useMemo(createConfiguredDriver, [])
 
-  const openAgent = useCallback(() => {
-    if (activeSessionIdRef.current === 'local-current') activeSessionIdRef.current = newId()
-    setSheetOpen(true)
+  const clearSessionIdleTimer = useCallback(() => {
+    if (!sessionIdleTimerRef.current) return
+    clearTimeout(sessionIdleTimerRef.current)
+    sessionIdleTimerRef.current = undefined
   }, [])
 
-  const closeAgent = useCallback(() => setSheetOpen(false), [])
+  useEffect(() => clearSessionIdleTimer, [clearSessionIdleTimer])
+
+  const cancelActiveTurn = useCallback(() => {
+    const activeTurnId = activeTurnIdRef.current
+    if (!activeTurnId) return
+    cancelledTurnsRef.current.add(activeTurnId)
+    activeTurnIdRef.current = undefined
+    setTurn((current) => ({
+      ...current,
+      phase: AGENT_PHASES.cancelled,
+      stage: 'Cancelled',
+      updatedAt: Date.now(),
+    }))
+  }, [])
+
+  const clearActiveSession = useCallback(() => {
+    cancelActiveTurn()
+    setActiveSessionId(undefined)
+    activeSessionTitleRef.current = 'New voice session'
+    conversationEntriesRef.current = []
+    setResult(undefined)
+    setStructuredOutputError(undefined)
+    setStructuredOutputIssues([])
+    setGenericError(undefined)
+    setTurn(createInitialTurnState())
+  }, [cancelActiveTurn])
+
+  const openAgent = useCallback(() => {
+    clearSessionIdleTimer()
+    const resolved = resolveActiveSession({
+      sessionId: activeSessionId,
+      closedAt: sessionClosedAtRef.current,
+    })
+    sessionClosedAtRef.current = undefined
+
+    if (!resolved.sessionId) {
+      if (resolved.reason === 'idle-timeout') clearActiveSession()
+      setActiveSessionId(newId())
+      activeSessionTitleRef.current = 'New voice session'
+      conversationEntriesRef.current = []
+    }
+    setSheetOpen(true)
+  }, [activeSessionId, clearActiveSession, clearSessionIdleTimer])
+
+  const closeAgent = useCallback(() => {
+    setSheetOpen(false)
+    if (!activeSessionId) return
+
+    sessionClosedAtRef.current = Date.now()
+    clearSessionIdleTimer()
+    sessionIdleTimerRef.current = setTimeout(() => {
+      sessionClosedAtRef.current = undefined
+      clearSessionIdleTimer()
+      clearActiveSession()
+    }, ACTIVE_SESSION_IDLE_TTL_MS)
+  }, [activeSessionId, clearActiveSession, clearSessionIdleTimer])
 
   const getDataStore = useCallback(() => {
     dataStoreRef.current ??= getMobileDataStore()
@@ -100,24 +164,14 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
     [domainId, getDataStore],
   )
 
-  const cancelActiveTurn = useCallback(() => {
-    const activeTurnId = activeTurnIdRef.current
-    if (!activeTurnId) return
-    cancelledTurnsRef.current.add(activeTurnId)
-    activeTurnIdRef.current = undefined
-    setTurn((current) => ({
-      ...current,
-      phase: AGENT_PHASES.cancelled,
-      stage: 'Cancelled',
-      updatedAt: Date.now(),
-    }))
-  }, [])
-
   const startSession = useCallback(() => {
     cancelActiveTurn()
+    clearSessionIdleTimer()
+    sessionClosedAtRef.current = undefined
     const now = Date.now()
-    activeSessionIdRef.current = newId()
+    setActiveSessionId(newId())
     activeSessionTitleRef.current = 'New voice session'
+    conversationEntriesRef.current = []
     setResult(undefined)
     setStructuredOutputError(undefined)
     setStructuredOutputIssues([])
@@ -133,22 +187,25 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
       failureCode: undefined,
       failureMessage: undefined,
     })
-    openAgent()
-  }, [cancelActiveTurn, openAgent])
+    setSheetOpen(true)
+  }, [cancelActiveTurn, clearSessionIdleTimer])
 
   const continueSession = useCallback(
     (sessionId: string, title = 'Continued session') => {
       cancelActiveTurn()
-      activeSessionIdRef.current = sessionId
+      clearSessionIdleTimer()
+      sessionClosedAtRef.current = undefined
+      setActiveSessionId(sessionId)
       activeSessionTitleRef.current = title
+      conversationEntriesRef.current = []
       setResult(undefined)
       setStructuredOutputError(undefined)
       setStructuredOutputIssues([])
       setGenericError(undefined)
       setTurn(createInitialTurnState())
-      openAgent()
+      setSheetOpen(true)
     },
-    [cancelActiveTurn, openAgent],
+    [cancelActiveTurn, clearSessionIdleTimer],
   )
 
   const dismissResult = useCallback(() => setResult(undefined), [])
@@ -157,9 +214,15 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
     async (text: string): Promise<boolean> => {
       if (activeTurnIdRef.current) return false
 
+      let sessionId = activeSessionId
+      if (!sessionId) {
+        sessionId = newId()
+        setActiveSessionId(sessionId)
+      }
       const turnId = newId()
-      const sessionId = activeSessionIdRef.current
-      activeSessionTitleRef.current = text.length > 40 ? `${text.slice(0, 40)}…` : text
+      if (activeSessionTitleRef.current === 'New voice session') {
+        activeSessionTitleRef.current = text.length > 40 ? `${text.slice(0, 40)}…` : text
+      }
       const startedAt = Date.now()
       activeTurnIdRef.current = turnId
       setResult(undefined)
@@ -184,8 +247,11 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
           domainId,
           locale: language,
           intentSummary: text,
-          compactEntries: [] as const,
-          totalTokenEstimate: 0,
+          compactEntries: conversationEntriesRef.current,
+          totalTokenEstimate: conversationEntriesRef.current.reduce(
+            (total, entry) => total + entry.tokenEstimate,
+            0,
+          ),
         },
         isCancelled: () => cancelledTurnsRef.current.has(turnId),
       }
@@ -215,6 +281,22 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
         if (cancelledTurnsRef.current.has(turnId)) return false
         activeTurnIdRef.current = undefined
         setResult(envelope)
+        conversationEntriesRef.current = [
+          ...conversationEntriesRef.current,
+          { id: `user-${turnId}`, summary: text, tokenEstimate: Math.ceil(text.length / 4) },
+          {
+            id: `assistant-${turnId}`,
+            summary:
+              envelope.result.kind === 'text'
+                ? envelope.result.text
+                : `${envelope.title} (${envelope.result.kind})`,
+            tokenEstimate: Math.ceil(
+              (envelope.result.kind === 'text'
+                ? envelope.result.text.length
+                : envelope.title.length * 2) / 4,
+            ),
+          },
+        ]
         setTurn((current) => ({
           ...current,
           phase: AGENT_PHASES.completed,
@@ -264,7 +346,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
         return false
       }
     },
-    [domainId, driver, language, recordAudit],
+    [activeSessionId, domainId, driver, language, recordAudit],
   )
 
   const cancelTurn = useCallback(() => {
@@ -291,6 +373,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
       genericError,
       driverId: driver.id,
       domainId,
+      activeSessionId,
       setDomainId,
       openAgent,
       closeAgent,
@@ -309,6 +392,7 @@ export function AgentSessionProvider({ children }: { children: ReactNode }) {
       genericError,
       driver,
       domainId,
+      activeSessionId,
       setDomainId,
       openAgent,
       closeAgent,

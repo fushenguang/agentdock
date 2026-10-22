@@ -61,8 +61,10 @@ docked to the sheet bottom, the input SHALL have a two-row minimum height, and t
 collapsed execution process SHALL occupy the remaining height in an independently scrolling region.
 The sheet SHALL NOT render a duplicate grab handle, a persistent panel title, a provider identity
 block, or an event-count block; execution state SHALL remain part of the collapsed process surface.
-The microphone and circular send action SHALL be embedded in the input container, and send SHALL use
-an upward-arrow icon rather than a text button.
+The microphone and circular primary action SHALL be embedded in the input container with safe-area
+padding. When idle, the primary action SHALL use an upward-arrow send icon; while a turn is running,
+it SHALL become a pause icon that cancels the active turn. The sheet SHALL NOT render a separate
+top-level cancel block.
 
 #### Scenario: The user starts a new session
 
@@ -77,6 +79,42 @@ an upward-arrow icon rather than a text button.
 - **WHEN** it runs longer than ten seconds
 - **THEN** elapsed time and completed step count remain visible
 - **AND** the process log stays collapsed by default but can be expanded, and cancel remains available
+
+### Requirement: Active session continuity
+
+The template SHALL maintain one active agent session for a continuous interaction. Collapsing and
+re-expanding the session sheet SHALL reuse that active session and its compact conversation context
+rather than creating another session. A new session SHALL be created only by the explicit
+new-session action or an automatic start rule.
+
+#### Scenario: The user collapses and reopens the active session
+
+- **WHEN** an active session exists and the user collapses the sheet for less than five minutes
+- **THEN** reopening the sheet reuses the active session
+- **AND** subsequent prompts append to that session and receive prior compact conversation context
+
+#### Scenario: The user explicitly starts a session
+
+- **WHEN** the user activates the new-session action in the workspace dock
+- **THEN** a new active session begins and replaces the previous in-memory active session
+
+#### Scenario: No active session remains
+
+- **WHEN** the user opens the agent sheet with no active session
+- **THEN** the host automatically starts one session
+
+#### Scenario: The active sheet has been collapsed too long
+
+- **WHEN** an active session has been collapsed for more than five minutes
+- **THEN** its in-memory active-session state is cleared
+- **AND** the next sheet opening automatically starts a fresh session
+
+#### Scenario: Context quality degrades after repeated compaction
+
+- **WHEN** a future context-quality evaluator determines that repeated compaction is degrading output
+  quality
+- **THEN** the host may automatically rotate to a new session
+- **AND** that evaluator remains a future extension until its threshold and audit behavior are specified
 
 ### Requirement: Agent Core Lite boundary
 

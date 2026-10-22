@@ -51,6 +51,11 @@
       "surface": "agent-bottom-sheet",
       "intent": "Start or stop the primary voice input surface"
     },
+    "submit-prompt": {
+      "route": "shell",
+      "surface": "agent-prompt-send-action",
+      "intent": "Submit the current prompt to the active session"
+    },
     "expand-agent-process": {
       "route": "shell",
       "surface": "agent-bottom-sheet",
@@ -58,8 +63,8 @@
     },
     "cancel-agent-turn": {
       "route": "shell",
-      "surface": "agent-bottom-sheet",
-      "intent": "Cancel the active turn"
+      "surface": "agent-prompt-send-action",
+      "intent": "While running, the send action becomes pause/cancel; otherwise it submits the prompt"
     },
     "select-interface-language": {
       "route": "user-profile",

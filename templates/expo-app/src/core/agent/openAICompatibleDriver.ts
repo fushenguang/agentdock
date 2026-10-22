@@ -187,6 +187,9 @@ export function createOpenAICompatibleDriver(options: {
       try {
         const headers: Record<string, string> = { 'Content-Type': 'application/json' }
         if (options.apiKey) headers.Authorization = `Bearer ${options.apiKey}`
+        const compactContext = request.context.compactEntries
+          .map((entry) => `- ${entry.summary}`)
+          .join('\n')
 
         const requestBody: Record<string, unknown> = {
           model: options.model,
@@ -197,6 +200,14 @@ export function createOpenAICompatibleDriver(options: {
                 request.context.locale ?? 'zh-CN'
               }.`,
             },
+            ...(compactContext.length > 0
+              ? [
+                  {
+                    role: 'system',
+                    content: `Conversation so far in the active session:\n${compactContext}`,
+                  },
+                ]
+              : []),
             {
               role: 'user',
               content: `${request.userText}${retryInstruction}`,

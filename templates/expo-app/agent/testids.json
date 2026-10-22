@@ -21,7 +21,6 @@
     "agent-input": "agent-input",
     "agent-send": "agent-send",
     "agent-process-toggle": "agent-process-toggle",
-    "agent-cancel": "agent-cancel",
     "result-canvas": "result-canvas",
     "result-action-cancel": "result-action-cancel",
     "result-action-confirm": "result-action-confirm",

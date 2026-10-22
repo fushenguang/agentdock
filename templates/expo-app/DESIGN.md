@@ -37,9 +37,16 @@ minimum, embeds the microphone and circular send arrow inside its container, and
 scrolls independently through execution state, the collapsed process, and the validated result. Do
 not add a persistent panel title, provider identity block, or event-count block.
 
+While a turn is running, the circular prompt action becomes pause and cancels the turn. There is no
+separate top-level cancel chip.
+
 Process events are collapsed by default. Execution state is always visible: after three seconds show
 the stage; after ten seconds also show elapsed time and step count; always expose expandable process
 and cancel while a turn is active.
+
+Collapsing and reopening the sheet reuses the active session. Only the explicit new-session action
+rotates it while active; a collapsed active session expires after five minutes. Automatic rotation
+after repeated context compaction is reserved for a future quality evaluator.
 
 Interface language defaults to Simplified Chinese. User profile settings can switch between Chinese
 and English; the choice persists locally and flows into speech recognition and provider output.

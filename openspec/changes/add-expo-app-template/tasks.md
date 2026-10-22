@@ -80,3 +80,16 @@
       block, and floating-orb `agent` label; retain execution state in the process surface.
 - [x] 8.4 Record the no-Zustand runtime-state decision and update machine-readable maps/docs.
 - [ ] 8.5 Re-run template type, CLI test/build, OpenSpec, format, lint, and secret checks.
+
+## 9. Session sheet continuity refinements
+
+- [x] 9.1 Stabilize the prompt composer layout inside the sheet, preserve safe-area bottom padding,
+      and prevent the microphone/input/send controls from being clipped.
+- [x] 9.2 Change the running prompt action to pause/cancel and remove the separate top-level cancel
+      chip.
+- [x] 9.3 Reuse one active session across collapse/reopen, retain compact conversation context between
+      prompts, and rotate sessions only through explicit new-session or automatic lifecycle rules.
+- [x] 9.4 Implement no-active-session and five-minute collapsed-session automatic starts; record the
+      future context-quality rotation rule as a placeholder.
+- [x] 9.5 Update machine-readable maps and documentation.
+- [x] 9.6 Re-run template type, CLI tests/type/build, OpenSpec, format, lint, and secret checks.

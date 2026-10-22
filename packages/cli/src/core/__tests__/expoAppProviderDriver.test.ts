@@ -73,10 +73,23 @@ const translationsModuleUrl = new URL(
   import.meta.url,
 ).href
 
+const sessionLifecycleModuleUrl = new URL(
+  '../../../../../templates/expo-app/src/core/agent/sessionLifecycle.js',
+  import.meta.url,
+).href
+
 interface AgentResultModule {
   readonly agentResultEnvelopeSchema: {
     safeParse(input: unknown): { readonly success: boolean }
   }
+}
+
+interface SessionLifecycleModule {
+  readonly ACTIVE_SESSION_IDLE_TTL_MS: number
+  readonly resolveActiveSession: (
+    snapshot: { sessionId: string | undefined; closedAt: number | undefined },
+    now?: number,
+  ) => { sessionId: string | undefined; reason: string | undefined }
 }
 
 async function loadDriverModule(): Promise<ProviderDriverModule> {
@@ -149,6 +162,32 @@ describe('extractOpenAICompatibleContent', () => {
     )
     expect(() => extractOpenAICompatibleContent(JSON.stringify({ choices: [] }))).toThrow(
       'Provider returned an empty completion.',
+    )
+  })
+})
+
+describe('active session lifecycle', () => {
+  it('reuses an active session until it has been collapsed for over five minutes', async () => {
+    const lifecycle = (await import(sessionLifecycleModuleUrl)) as unknown as SessionLifecycleModule
+
+    expect(lifecycle.ACTIVE_SESSION_IDLE_TTL_MS).toBe(5 * 60 * 1000)
+    expect(
+      lifecycle.resolveActiveSession({ sessionId: 'session-1', closedAt: 1_000 }, 301_000),
+    ).toEqual({ sessionId: 'session-1', reason: undefined })
+    expect(
+      lifecycle.resolveActiveSession({ sessionId: 'session-1', closedAt: 1_000 }, 301_001),
+    ).toEqual({ sessionId: undefined, reason: 'idle-timeout' })
+  })
+
+  it('automatically starts a session only when no active session remains', async () => {
+    const lifecycle = (await import(sessionLifecycleModuleUrl)) as unknown as SessionLifecycleModule
+
+    expect(lifecycle.resolveActiveSession({ sessionId: undefined, closedAt: undefined })).toEqual({
+      sessionId: undefined,
+      reason: 'no-active-session',
+    })
+    expect(lifecycle.resolveActiveSession({ sessionId: 'session-1', closedAt: undefined })).toEqual(
+      { sessionId: 'session-1', reason: undefined },
     )
   })
 })
@@ -241,6 +280,40 @@ describe('createOpenAICompatibleDriver', () => {
 
     await driver.run(REQUEST)
     expect(capturedBody.response_format).toBeUndefined()
+  })
+
+  it('carries prior turns in the active session as compact conversation context', async () => {
+    const { createOpenAICompatibleDriver } = await loadDriverModule()
+    let messages: { role: string; content: string }[] = []
+    const driver = createOpenAICompatibleDriver({
+      baseURL: 'https://provider.example/v1',
+      model: 'test-model',
+      fetchImpl: async (_url: string, init?: RequestInit) => {
+        const body = JSON.parse(init?.body as string) as {
+          messages: { role: string; content: string }[]
+        }
+        messages = body.messages
+        return completionResponse('{}')
+      },
+    })
+
+    await driver.run({
+      ...REQUEST,
+      context: {
+        ...REQUEST.context,
+        compactEntries: [
+          { id: 'user-turn-1', summary: 'User asked: hello', tokenEstimate: 5 },
+          { id: 'assistant-turn-1', summary: 'Agent answered: hi', tokenEstimate: 4 },
+        ],
+      },
+    })
+
+    expect(messages[1]).toMatchObject({
+      role: 'system',
+      content:
+        'Conversation so far in the active session:\n- User asked: hello\n- Agent answered: hi',
+    })
+    expect(messages.at(-1)).toMatchObject({ role: 'user', content: 'Summarize today' })
   })
 
   it('fails closed when the provider response exceeds the transport safety limit', async () => {
@@ -380,14 +453,18 @@ describe('expo-app mobile acceptance layout', () => {
 
     expect(source).toContain('AGENT_SHEET_HEIGHT_PERCENT')
     expect(source).toContain('snapPoints={[`${AGENT_SHEET_HEIGHT_PERCENT}%`]}')
-    expect(source).toContain('minHeight: 72')
+    expect(source).toContain('minHeight: 78')
     expect(source).toContain('multiline')
     expect(source).toContain('testID="agent-send"')
     expect(source).toContain('<ArrowUp size={20}')
-    expect(source).toContain('className="relative flex-1"')
+    expect(source).toContain('<Pause size={20}')
+    expect(source).toContain('paddingBottom: Math.max(insets.bottom, 16)')
+    expect(source).toContain('className="relative w-full"')
+    expect(source).toContain('paddingRight: 62')
+    expect(source).toContain('paddingLeft: 54')
     expect(source).not.toContain('AgentStatusStrip')
     expect(source).not.toContain('agent-provider')
-    expect(source).not.toContain('rounded-full bg-line" />')
+    expect(source).not.toContain('testID="agent-cancel"')
   })
 
   it('combines primary shortcuts and desktop indicators in one centered dock', () => {

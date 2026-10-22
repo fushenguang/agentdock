@@ -1,7 +1,8 @@
 import { BottomSheet } from '@expo/ui/community/bottom-sheet'
-import { ArrowUp, Mic, Square } from 'lucide-react-native'
+import { ArrowUp, Mic, Pause, Square } from 'lucide-react-native'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { isExecutingTurn } from '../../core/agent'
 import { useVoiceInput } from '../../core/voice/useVoiceInput'
 import { useLanguage } from '../settings/LanguageProvider'
@@ -23,6 +24,7 @@ export function AgentBottomSheet() {
     genericError,
   } = useAgentSession()
   const { t, language } = useLanguage()
+  const insets = useSafeAreaInsets()
   const [input, setInput] = useState('')
   const [inputError, setInputError] = useState<string | undefined>(undefined)
   const typedPrefixRef = useRef('')
@@ -70,20 +72,6 @@ export function AgentBottomSheet() {
       backgroundStyle={{ backgroundColor: '#ffffff' }}
     >
       <View testID="agent-bottom-sheet" className="flex-1">
-        <View className="px-5 pt-2">
-          {running ? (
-            <Pressable
-              testID="agent-cancel"
-              accessibilityRole="button"
-              accessibilityLabel={t('agent.cancelTurn')}
-              className="self-end rounded-full bg-danger/10 px-3 py-2"
-              onPress={cancelTurn}
-            >
-              <Text className="text-xs font-medium text-danger">{t('agent.cancel')}</Text>
-            </Pressable>
-          ) : null}
-        </View>
-
         <ScrollView
           className="flex-1"
           contentContainerClassName="gap-4 px-5 pb-4 pt-4"
@@ -130,8 +118,11 @@ export function AgentBottomSheet() {
           <ProcessDrawer steps={turn.steps} turn={turn} />
         </ScrollView>
 
-        <View className="gap-2 border-t border-line bg-surface px-5 pb-8 pt-3">
-          <View className="relative flex-1">
+        <View
+          className="shrink-0 gap-2 border-t border-line bg-surface px-5 pt-3"
+          style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        >
+          <View className="relative w-full" style={{ width: '100%' }}>
             <Pressable
               testID="agent-voice-toggle"
               accessibilityRole="button"
@@ -157,20 +148,30 @@ export function AgentBottomSheet() {
             <Pressable
               testID="agent-send"
               accessibilityRole="button"
-              accessibilityLabel={t('agent.send')}
-              accessibilityState={{ disabled: running }}
-              disabled={running}
-              className={`absolute bottom-2 right-2 h-11 w-11 items-center justify-center rounded-full ${
-                running ? 'bg-line' : 'bg-accent'
+              accessibilityLabel={running ? t('agent.cancelTurn') : t('agent.send')}
+              accessibilityState={{ busy: running }}
+              className={`absolute bottom-1.5 right-1.5 h-11 w-11 items-center justify-center rounded-full ${
+                running ? 'bg-danger' : 'bg-accent'
               }`}
-              onPress={runTurn}
+              onPress={() => (running ? cancelTurn() : runTurn())}
             >
-              <ArrowUp size={20} color={running ? '#69746f' : '#ffffff'} />
+              {running ? (
+                <Pause size={20} color="#ffffff" />
+              ) : (
+                <ArrowUp size={20} color="#ffffff" />
+              )}
             </Pressable>
             <TextInput
               testID="agent-input"
               className="rounded-3xl border border-line bg-canvas py-3 pl-14 pr-16 text-base text-ink"
-              style={{ minHeight: 72, textAlignVertical: 'top' }}
+              style={{
+                minHeight: 78,
+                paddingLeft: 54,
+                paddingRight: 62,
+                paddingTop: 14,
+                paddingBottom: 14,
+                textAlignVertical: 'top',
+              }}
               value={input}
               onChangeText={setInput}
               placeholder={
