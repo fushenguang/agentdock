@@ -1,12 +1,11 @@
 import { BottomSheet } from '@expo/ui/community/bottom-sheet'
-import { Mic, Square } from 'lucide-react-native'
+import { ArrowUp, Mic, Square } from 'lucide-react-native'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { isExecutingTurn } from '../../core/agent'
 import { useVoiceInput } from '../../core/voice/useVoiceInput'
 import { useLanguage } from '../settings/LanguageProvider'
 import { AGENT_SHEET_HEIGHT_PERCENT, useAgentSession } from './AgentProvider'
-import { AgentStatusStrip } from './AgentStatusStrip'
 import { ProcessDrawer } from './ProcessDrawer'
 import { ResultCanvas } from './ResultCanvas'
 
@@ -17,7 +16,6 @@ export function AgentBottomSheet() {
     result,
     structuredOutputError,
     structuredOutputIssues,
-    driverId,
     closeAgent,
     submit,
     cancelTurn,
@@ -72,30 +70,18 @@ export function AgentBottomSheet() {
       backgroundStyle={{ backgroundColor: '#ffffff' }}
     >
       <View testID="agent-bottom-sheet" className="flex-1">
-        <View className="gap-3 px-5 pt-3">
-          <View className="flex-row items-center justify-center gap-2">
-            <View className="h-1.5 w-10 rounded-full bg-line" />
-          </View>
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1 gap-1">
-              <Text className="text-lg font-semibold text-ink">{t('agent.title')}</Text>
-              <Text testID="agent-provider" className="text-xs text-muted" numberOfLines={1}>
-                {driverId}
-              </Text>
-            </View>
-            {running ? (
-              <Pressable
-                testID="agent-cancel"
-                accessibilityRole="button"
-                accessibilityLabel={t('agent.cancelTurn')}
-                className="rounded-full bg-danger/10 px-3 py-2"
-                onPress={cancelTurn}
-              >
-                <Text className="text-xs font-medium text-danger">{t('agent.cancel')}</Text>
-              </Pressable>
-            ) : null}
-          </View>
-          <AgentStatusStrip turn={turn} />
+        <View className="px-5 pt-2">
+          {running ? (
+            <Pressable
+              testID="agent-cancel"
+              accessibilityRole="button"
+              accessibilityLabel={t('agent.cancelTurn')}
+              className="self-end rounded-full bg-danger/10 px-3 py-2"
+              onPress={cancelTurn}
+            >
+              <Text className="text-xs font-medium text-danger">{t('agent.cancel')}</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <ScrollView
@@ -141,18 +127,18 @@ export function AgentBottomSheet() {
               }}
             />
           ) : null}
-          <ProcessDrawer steps={turn.steps} />
+          <ProcessDrawer steps={turn.steps} turn={turn} />
         </ScrollView>
 
         <View className="gap-2 border-t border-line bg-surface px-5 pb-8 pt-3">
-          <View className="flex-row items-end gap-2">
+          <View className="relative flex-1">
             <Pressable
               testID="agent-voice-toggle"
               accessibilityRole="button"
               accessibilityLabel={
                 voice.status === 'listening' ? t('agent.stopVoice') : t('agent.startVoice')
               }
-              className="mb-1 h-11 w-11 items-center justify-center rounded-full bg-canvas"
+              className="absolute left-2 top-3 h-10 w-10 items-center justify-center rounded-full"
               onPress={() => {
                 if (voice.status === 'listening') {
                   voice.stop()
@@ -163,14 +149,27 @@ export function AgentBottomSheet() {
               }}
             >
               {voice.status === 'listening' ? (
-                <Square size={16} color="#bd4535" />
+                <Square size={15} color="#bd4535" />
               ) : (
-                <Mic size={18} color="#4f7c5b" />
+                <Mic size={17} color="#4f7c5b" />
               )}
+            </Pressable>
+            <Pressable
+              testID="agent-send"
+              accessibilityRole="button"
+              accessibilityLabel={t('agent.send')}
+              accessibilityState={{ disabled: running }}
+              disabled={running}
+              className={`absolute bottom-2 right-2 h-11 w-11 items-center justify-center rounded-full ${
+                running ? 'bg-line' : 'bg-accent'
+              }`}
+              onPress={runTurn}
+            >
+              <ArrowUp size={20} color={running ? '#69746f' : '#ffffff'} />
             </Pressable>
             <TextInput
               testID="agent-input"
-              className="flex-1 rounded-2xl border border-line bg-canvas px-4 py-3 text-base text-ink"
+              className="rounded-3xl border border-line bg-canvas py-3 pl-14 pr-16 text-base text-ink"
               style={{ minHeight: 72, textAlignVertical: 'top' }}
               value={input}
               onChangeText={setInput}
@@ -181,18 +180,6 @@ export function AgentBottomSheet() {
               multiline
               editable={!running}
             />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('agent.runTurn')}
-              accessibilityState={{ disabled: running }}
-              disabled={running}
-              className={`mb-1 rounded-full px-4 py-3 ${running ? 'bg-line' : 'bg-accent'}`}
-              onPress={runTurn}
-            >
-              <Text className={`text-sm font-medium ${running ? 'text-muted' : 'text-white'}`}>
-                {running ? t('agent.running') : t('agent.run')}
-              </Text>
-            </Pressable>
           </View>
           {voice.error ? <Text className="text-xs text-danger">{voice.error}</Text> : null}
           {inputError ? <Text className="text-xs text-danger">{inputError}</Text> : null}

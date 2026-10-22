@@ -1,11 +1,10 @@
 import { Mic } from 'lucide-react-native'
-import { Pressable, Text } from 'react-native'
-import { isActiveTurn } from '../../core/agent'
+import { Pressable } from 'react-native'
 import { useLanguage } from '../settings/LanguageProvider'
 import { useAgentSession } from './AgentProvider'
 
 export function AgentVoiceOrb({ hidden = false }: { hidden?: boolean }) {
-  const { openAgent, turn } = useAgentSession()
+  const { openAgent } = useAgentSession()
   const { t } = useLanguage()
   if (hidden) return null
 
@@ -17,9 +16,6 @@ export function AgentVoiceOrb({ hidden = false }: { hidden?: boolean }) {
       onPress={() => openAgent()}
     >
       <Mic size={24} color="#ffffff" />
-      {isActiveTurn(turn) ? (
-        <Text className="absolute bottom-1 text-[9px] font-medium text-white">agent</Text>
-      ) : null}
     </Pressable>
   )
 }

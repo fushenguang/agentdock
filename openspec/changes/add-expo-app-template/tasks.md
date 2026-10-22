@@ -69,3 +69,14 @@
       primary UI, localized provider output, and locale-aware speech recognition.
 - [x] 7.4 Update machine-readable action/test-id maps, specifications, and bilingual documentation.
 - [ ] 7.5 Re-run template, CLI, OpenSpec, format, build, and secret checks.
+
+## 8. Workspace dock and prompt acceptance refinements
+
+- [x] 8.1 Consolidate the drawer shortcut, multi-desktop indicator, and new-session shortcut into one
+      horizontally centered workspace dock.
+- [x] 8.2 Embed the microphone and circular upward-arrow send action inside the prompt input
+      container.
+- [x] 8.3 Remove the duplicate sheet grab handle, persistent agent title/provider block, event-count
+      block, and floating-orb `agent` label; retain execution state in the process surface.
+- [x] 8.4 Record the no-Zustand runtime-state decision and update machine-readable maps/docs.
+- [ ] 8.5 Re-run template type, CLI test/build, OpenSpec, format, lint, and secret checks.

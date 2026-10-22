@@ -36,7 +36,7 @@ memory, tool policy, or permission decisions.
 
 ```text
 WorkspaceShell
-├── TopBar: [drawer/domain] ... [new session]
+├── WorkspaceDock: [drawer] [desktop indicator] [new session]
 ├── Primary surfaces: Domain Desktop | History & Tasks
 ├── Search overlay (not a desktop)
 ├── User routes: /user/** (secondary)
@@ -44,8 +44,9 @@ WorkspaceShell
     └── AgentBottomSheet: fixed 80% height → scrolled result/process → docked prompt composer
 ```
 
-The top bar has exactly two entries. The drawer is the only home for current domain, search, history,
-and user summary. This prevents shortcut-row inflation and keeps primary surfaces at two.
+The workspace dock is one horizontally centered row. The drawer is the only home for current domain,
+search, history, and user summary. Consolidating the dock keeps shortcuts and desktop context in the
+same place while limiting primary surfaces to two.
 
 The top-bar drawer entry is icon-only. The drawer enters from the left: a compact domain selector and
 session-history search stay at the top, the session list occupies all flexible height, and the user
@@ -76,6 +77,11 @@ The envelope is an application contract, not UI content. Conversational answers 
 `text` result kind and render as native text; metrics, tables, OpenUI, and action requests are
 reserved for content that genuinely benefits from those structures. Envelope status, schema version,
 and other transport metadata are not shown to the user.
+
+Zustand is intentionally not introduced in this cut. Current runtime state is low-frequency and
+scoped to language plus one active agent session; React Context, local refs, and SQLite cover those
+boundaries without a new runtime dependency. Reconsider a store only when multiple independently
+updating app domains need selective subscriptions or middleware.
 
 Interface language starts at Simplified Chinese and can be switched to English from user profile
 settings. The selection is persisted as a SQLite user preference, drives shell/agent/user copy and

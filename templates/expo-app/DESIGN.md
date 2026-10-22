@@ -14,10 +14,11 @@ Upper layer: Agent voice orb → BottomSheet → process + structured result
 Lower layer: Domain workspace → domain desktop / history & tasks
 ```
 
-The top bar has exactly two controls:
+The workspace dock is one horizontally centered row:
 
-1. Left: drawer/domain entry.
-2. Right: new session.
+1. Drawer entry.
+2. Multi-desktop indicator.
+3. New session entry.
 
 The left drawer entry is icon-only. The drawer enters from the left: domain selection and session
 history search stay at the top, the session list fills the remaining height, and the user entry is
@@ -30,9 +31,11 @@ notifications, and about are secondary `/user/**` routes.
 
 ## Agent panel
 
-The agent session sheet is a fixed 80% of screen height. Its prompt composer is docked to the bottom;
-the input has a two-row minimum and the area above it scrolls independently through the collapsed
-execution process and validated result.
+The agent session sheet is a fixed 80% of screen height. It relies on the system grab handle rather
+than drawing a duplicate. Its prompt composer is docked to the bottom; the input has a two-row
+minimum, embeds the microphone and circular send arrow inside its container, and the area above it
+scrolls independently through execution state, the collapsed process, and the validated result. Do
+not add a persistent panel title, provider identity block, or event-count block.
 
 Process events are collapsed by default. Execution state is always visible: after three seconds show
 the stage; after ten seconds also show elapsed time and step count; always expose expandable process

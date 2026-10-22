@@ -22,13 +22,14 @@ source-owned `react-native-reusables` primitives, and `@expo/ui` for selected na
 ### Requirement: Two-layer mobile information architecture
 
 The template SHALL provide a two-layer mobile UI: an agent interaction layer above a domain workspace
-layer. The shell top bar SHALL expose exactly two entries: a left drawer/domain entry and a right
-new-session action.
+layer. Primary shell shortcuts SHALL be consolidated into one horizontally centered workspace dock:
+a drawer entry, the multi-desktop indicator, and a new-session entry.
 
 #### Scenario: The user opens the shell
 
 - **WHEN** Domain Desktop renders
-- **THEN** the top bar contains an icon-only drawer entry and new-session entry only
+- **THEN** a centered dock places the icon-only drawer entry, workspace indicator, and new-session
+  entry in one row
 - **AND** the drawer expands from the left with a domain selector and session-history search at the
   top, a session list filling the remaining height, and a fixed user entry at the bottom
 - **AND** the drawer's leading edge remains aligned with the physical screen's left edge while it
@@ -37,19 +38,19 @@ new-session action.
 
 #### Scenario: The user switches primary workspaces
 
-- **WHEN** the user horizontally swipes the workspace layer or uses the workspace page indicator
+- **WHEN** the user horizontally swipes the workspace layer or uses the dock page indicator
 - **THEN** the shell pages between Domain Desktop and History & Tasks
 - **AND** the active route remains synchronized with the visible primary workspace
 
 #### Scenario: The drawer opens over an expanded agent session
 
-- **WHEN** the agent BottomSheet is open and the user activates the top-bar drawer entry
+- **WHEN** the agent BottomSheet is open and the user activates the dock drawer entry
 - **THEN** the agent sheet closes before the left drawer expands
 
 #### Scenario: Low-frequency user information opens as a secondary route
 
 - **WHEN** the user needs profile, privacy, storage, sync, notification, or about information
-- **THEN** navigation goes to `/user/**` rather than adding a primary desktop or top-bar shortcut
+- **THEN** navigation goes to `/user/**` rather than adding a primary desktop or workspace-dock shortcut
 
 ### Requirement: Voice-first agent panel
 
@@ -57,6 +58,10 @@ The template SHALL keep a persistent agent voice entry available on primary scre
 SHALL open a BottomSheet fixed at approximately 80% of screen height. Prompt input controls SHALL be
 docked to the sheet bottom, the input SHALL have a two-row minimum height, and the result plus
 collapsed execution process SHALL occupy the remaining height in an independently scrolling region.
+The sheet SHALL NOT render a duplicate grab handle, a persistent panel title, a provider identity
+block, or an event-count block; execution state SHALL remain part of the collapsed process surface.
+The microphone and circular send action SHALL be embedded in the input container, and send SHALL use
+an upward-arrow icon rather than a text button.
 
 #### Scenario: The user starts a new session
 

@@ -1,7 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react-native'
 import { Pressable, Text, View } from 'react-native'
-import type { AgentTurnStep } from '../../core/agent'
+import {
+  executionStatus,
+  isExecutingTurn,
+  type AgentTurnStep,
+  type AgentTurnState,
+} from '../../core/agent'
 import { useLanguage } from '../settings/LanguageProvider'
 
 const STATUS_COLORS = {
@@ -35,9 +40,23 @@ function latestSteps(steps: readonly AgentTurnStep[]): readonly AgentTurnStep[] 
   return [...latestById.values()]
 }
 
-export function ProcessDrawer({ steps }: { steps: readonly AgentTurnStep[] }) {
+export function ProcessDrawer({
+  steps,
+  turn,
+}: {
+  steps: readonly AgentTurnStep[]
+  turn: AgentTurnState
+}) {
   const [expanded, setExpanded] = useState(false)
   const { t } = useLanguage()
+  const [now, setNow] = useState(() => Date.now())
+  const active = isExecutingTurn(turn)
+
+  useEffect(() => {
+    if (!active) return
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [active])
   const kindLabels = {
     reasoning: t('process.reasoning'),
     tool: t('process.tool'),
@@ -59,7 +78,10 @@ export function ProcessDrawer({ steps }: { steps: readonly AgentTurnStep[] }) {
         className="flex-row items-center justify-between"
         onPress={() => setExpanded((current) => !current)}
       >
-        <Text className="text-sm font-medium text-ink">{t('process.title')}</Text>
+        <Text className="flex-1 text-sm font-medium text-ink">{t('process.title')}</Text>
+        <Text className="max-w-48 text-right text-xs text-muted" numberOfLines={1}>
+          {executionStatus(turn, now).label}
+        </Text>
         {expanded ? (
           <ChevronUp size={18} color="#17211d" />
         ) : (

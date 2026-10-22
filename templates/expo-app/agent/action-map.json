@@ -3,7 +3,7 @@
   "actions": {
     "open-navigation-drawer": {
       "route": "shell",
-      "surface": "top-bar-left",
+      "surface": "workspace-dock-left",
       "intent": "Open the left navigation drawer"
     },
     "select-domain": {
@@ -28,12 +28,12 @@
     },
     "switch-workspace": {
       "route": "shell",
-      "surface": "workspace-pager",
+      "surface": "workspace-dock-center",
       "intent": "Swipe or use the page indicator to switch primary workspaces"
     },
     "create-session": {
       "route": "shell",
-      "surface": "top-bar-right",
+      "surface": "workspace-dock-right",
       "intent": "Create a draft session and open the voice agent panel"
     },
     "start-session-from-domain": {

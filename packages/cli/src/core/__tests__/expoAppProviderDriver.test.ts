@@ -58,6 +58,16 @@ const appDrawerUrl = new URL(
   import.meta.url,
 )
 
+const workspaceShellUrl = new URL(
+  '../../../../../templates/expo-app/src/components/shell/WorkspaceShell.tsx',
+  import.meta.url,
+)
+
+const agentVoiceOrbUrl = new URL(
+  '../../../../../templates/expo-app/src/components/agent/AgentVoiceOrb.tsx',
+  import.meta.url,
+)
+
 const translationsModuleUrl = new URL(
   '../../../../../templates/expo-app/src/core/i18n/translations.js',
   import.meta.url,
@@ -372,6 +382,33 @@ describe('expo-app mobile acceptance layout', () => {
     expect(source).toContain('snapPoints={[`${AGENT_SHEET_HEIGHT_PERCENT}%`]}')
     expect(source).toContain('minHeight: 72')
     expect(source).toContain('multiline')
+    expect(source).toContain('testID="agent-send"')
+    expect(source).toContain('<ArrowUp size={20}')
+    expect(source).toContain('className="relative flex-1"')
+    expect(source).not.toContain('AgentStatusStrip')
+    expect(source).not.toContain('agent-provider')
+    expect(source).not.toContain('rounded-full bg-line" />')
+  })
+
+  it('combines primary shortcuts and desktop indicators in one centered dock', () => {
+    const source = readFileSync(workspaceShellUrl, 'utf8')
+    const dockIndex = source.indexOf('testID="workspace-dock"')
+    const drawerIndex = source.indexOf('testID="topbar-drawer"')
+    const indicatorIndex = source.indexOf('testID="workspace-page-indicator"')
+    const newSessionIndex = source.indexOf('testID="topbar-new-session"')
+
+    expect(dockIndex).toBeGreaterThan(-1)
+    expect(drawerIndex).toBeGreaterThan(dockIndex)
+    expect(indicatorIndex).toBeGreaterThan(drawerIndex)
+    expect(newSessionIndex).toBeGreaterThan(indicatorIndex)
+    expect(source).toContain('justify-center')
+  })
+
+  it('keeps the floating agent orb icon-only', () => {
+    const source = readFileSync(agentVoiceOrbUrl, 'utf8')
+
+    expect(source).not.toContain('<Text')
+    expect(source).not.toContain('>agent<')
   })
 
   it('keeps the animated drawer panel before its right-hand scrim', () => {

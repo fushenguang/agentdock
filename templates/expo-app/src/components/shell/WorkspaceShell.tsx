@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'expo-router'
+import { Menu, Plus } from 'lucide-react-native'
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AgentBottomSheet, AgentVoiceOrb } from '../agent'
@@ -8,7 +9,6 @@ import { useLanguage } from '../settings/LanguageProvider'
 import { AppDrawer } from './AppDrawer'
 import { DomainDesktop } from './DomainDesktop'
 import { HistoryDesktop } from './HistoryDesktop'
-import { TopBar } from './TopBar'
 
 const WORKSPACES = [{ route: '/' }, { route: '/history' }] as const
 
@@ -21,9 +21,13 @@ function workspaceIndex(pathname: string): number {
 function WorkspacePager({
   initialIndex,
   onWorkspaceChange,
+  onOpenDrawer,
+  onNewSession,
 }: {
   initialIndex: number
   onWorkspaceChange(index: number): void
+  onOpenDrawer(): void
+  onNewSession(): void
 }) {
   const { t } = useLanguage()
   const { width } = useWindowDimensions()
@@ -44,7 +48,50 @@ function WorkspacePager({
 
   return (
     <View testID="workspace-pager" className="flex-1">
+      <View
+        testID="workspace-dock"
+        className="absolute left-0 right-0 top-0 z-10 flex-row justify-center"
+      >
+        <View className="flex-row items-center gap-3 rounded-full bg-surface p-2 shadow-lg">
+          <Pressable
+            testID="topbar-drawer"
+            accessibilityRole="button"
+            accessibilityLabel={t('topbar.openNavigation')}
+            className="h-10 w-10 items-center justify-center rounded-full bg-canvas"
+            onPress={onOpenDrawer}
+          >
+            <Menu size={18} color="#17211d" />
+          </Pressable>
+          <View testID="workspace-page-indicator" className="flex-row items-center gap-2 px-1">
+            {WORKSPACES.map((workspace, indicatorIndex) => (
+              <Pressable
+                key={workspace.route}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  indicatorIndex === 0 ? t('workspace.switchDomain') : t('workspace.switchHistory')
+                }
+                accessibilityState={{ selected: indicatorIndex === index }}
+                className={`h-2 rounded-full ${
+                  indicatorIndex === index ? 'w-8 bg-accent' : 'w-3 bg-line'
+                }`}
+                onPress={() => selectWorkspace(indicatorIndex)}
+              />
+            ))}
+          </View>
+          <Pressable
+            testID="topbar-new-session"
+            accessibilityRole="button"
+            accessibilityLabel={t('topbar.newSession')}
+            className="h-10 w-10 items-center justify-center rounded-full bg-accent"
+            onPress={onNewSession}
+          >
+            <Plus size={20} color="#ffffff" />
+          </Pressable>
+        </View>
+      </View>
       <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingTop: 76 }}
         ref={scrollRef}
         horizontal
         pagingEnabled
@@ -67,25 +114,6 @@ function WorkspacePager({
           <HistoryDesktop />
         </View>
       </ScrollView>
-      <View
-        testID="workspace-page-indicator"
-        className="absolute bottom-5 left-0 right-0 flex-row justify-center gap-2"
-      >
-        {WORKSPACES.map((workspace, indicatorIndex) => (
-          <Pressable
-            key={workspace.route}
-            accessibilityRole="button"
-            accessibilityLabel={
-              indicatorIndex === 0 ? t('workspace.switchDomain') : t('workspace.switchHistory')
-            }
-            accessibilityState={{ selected: indicatorIndex === index }}
-            className={`h-2 rounded-full ${
-              indicatorIndex === index ? 'w-6 bg-accent' : 'w-2 bg-line'
-            }`}
-            onPress={() => selectWorkspace(indicatorIndex)}
-          />
-        ))}
-      </View>
     </View>
   )
 }
@@ -110,19 +138,16 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
 
   return (
     <View className="min-h-full flex-1 bg-canvas" style={{ paddingTop: Math.max(insets.top, 12) }}>
-      <TopBar
-        domainLabel={activeDomain.label}
-        onOpenDrawer={() => {
-          if (sheetOpen) closeAgent()
-          setDrawerVisible(true)
-        }}
-        onNewSession={startSession}
-      />
       <View className="flex-1">
         {activeWorkspaceIndex >= 0 ? (
           <WorkspacePager
             initialIndex={activeWorkspaceIndex}
             onWorkspaceChange={(index) => router.replace(WORKSPACES[index]?.route ?? '/')}
+            onOpenDrawer={() => {
+              if (sheetOpen) closeAgent()
+              setDrawerVisible(true)
+            }}
+            onNewSession={startSession}
           />
         ) : (
           children
