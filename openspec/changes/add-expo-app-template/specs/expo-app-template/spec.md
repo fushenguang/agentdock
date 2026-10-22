@@ -22,14 +22,15 @@ source-owned `react-native-reusables` primitives, and `@expo/ui` for selected na
 ### Requirement: Two-layer mobile information architecture
 
 The template SHALL provide a two-layer mobile UI: an agent interaction layer above a domain workspace
-layer. Primary shell shortcuts SHALL be consolidated into one horizontally centered workspace dock:
-a drawer entry, the multi-desktop indicator, and a new-session entry.
+layer. Primary shell shortcuts SHALL be consolidated into one fixed full-width workspace dock. The
+dock SHALL place the drawer entry at its leading edge, the new-session entry at its trailing edge,
+and the multi-desktop indicator in the horizontal center of the row.
 
 #### Scenario: The user opens the shell
 
 - **WHEN** Domain Desktop renders
-- **THEN** a centered dock places the icon-only drawer entry, workspace indicator, and new-session
-  entry in one row
+- **THEN** the full-width dock spans the screen width with the icon-only drawer entry at its leading
+  edge, the new-session entry at its trailing edge, and the workspace indicator centered between them
 - **AND** the drawer expands from the left with a domain selector and session-history search at the
   top, a session list filling the remaining height, and a fixed user entry at the bottom
 - **AND** the drawer's leading edge remains aligned with the physical screen's left edge while it

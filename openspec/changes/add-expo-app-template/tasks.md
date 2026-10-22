@@ -73,7 +73,7 @@
 ## 8. Workspace dock and prompt acceptance refinements
 
 - [x] 8.1 Consolidate the drawer shortcut, multi-desktop indicator, and new-session shortcut into one
-      horizontally centered workspace dock.
+      fixed full-width workspace dock with a horizontally centered indicator.
 - [x] 8.2 Embed the microphone and circular upward-arrow send action inside the prompt input
       container.
 - [x] 8.3 Remove the duplicate sheet grab handle, persistent agent title/provider block, event-count

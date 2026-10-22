@@ -14,10 +14,10 @@ Upper layer: Agent voice orb → BottomSheet → process + structured result
 Lower layer: Domain workspace → domain desktop / history & tasks
 ```
 
-The workspace dock is one horizontally centered row:
+The workspace dock is one fixed full-width row:
 
 1. Drawer entry.
-2. Multi-desktop indicator.
+2. Multi-desktop indicator, horizontally centered.
 3. New session entry.
 
 The left drawer entry is icon-only. The drawer enters from the left: domain selection and session

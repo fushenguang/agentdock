@@ -44,9 +44,10 @@ WorkspaceShell
     └── AgentBottomSheet: fixed 80% height → scrolled result/process → docked prompt composer
 ```
 
-The workspace dock is one horizontally centered row. The drawer is the only home for current domain,
-search, history, and user summary. Consolidating the dock keeps shortcuts and desktop context in the
-same place while limiting primary surfaces to two.
+The workspace dock is a fixed full-width row. The drawer sits at its leading edge, new session sits
+at its trailing edge, and the desktop indicator is horizontally centered. The drawer is the only home
+for current domain, search, history, and user summary. Consolidating the dock keeps shortcuts and
+desktop context in the same place while limiting primary surfaces to two.
 
 The top-bar drawer entry is icon-only. The drawer enters from the left: a compact domain selector and
 session-history search stay at the top, the session list occupies all flexible height, and the user

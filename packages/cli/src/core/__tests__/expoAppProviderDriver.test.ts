@@ -401,7 +401,8 @@ describe('expo-app mobile acceptance layout', () => {
     expect(drawerIndex).toBeGreaterThan(dockIndex)
     expect(indicatorIndex).toBeGreaterThan(drawerIndex)
     expect(newSessionIndex).toBeGreaterThan(indicatorIndex)
-    expect(source).toContain('justify-center')
+    expect(source).toContain('absolute left-0 right-0 top-0')
+    expect(source).toContain('className="flex-1 flex-row items-center justify-center gap-2 px-1"')
   })
 
   it('keeps the floating agent orb icon-only', () => {
