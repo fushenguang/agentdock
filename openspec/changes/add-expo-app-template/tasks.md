@@ -68,7 +68,7 @@
 - [x] 7.3 Add persisted Simplified Chinese/English user settings with Chinese as the default, localized
       primary UI, localized provider output, and locale-aware speech recognition.
 - [x] 7.4 Update machine-readable action/test-id maps, specifications, and bilingual documentation.
-- [ ] 7.5 Re-run template, CLI, OpenSpec, format, build, and secret checks.
+- [x] 7.5 Re-run template, CLI, OpenSpec, format, build, and secret checks.
 
 ## 8. Workspace dock and prompt acceptance refinements
 
@@ -79,7 +79,7 @@
 - [x] 8.3 Remove the duplicate sheet grab handle, persistent agent title/provider block, event-count
       block, and floating-orb `agent` label; retain execution state in the process surface.
 - [x] 8.4 Record the no-Zustand runtime-state decision and update machine-readable maps/docs.
-- [ ] 8.5 Re-run template type, CLI test/build, OpenSpec, format, lint, and secret checks.
+- [x] 8.5 Re-run template type, CLI test/build, OpenSpec, format, lint, and secret checks.
 
 ## 9. Session sheet continuity refinements
 
@@ -93,3 +93,16 @@
       future context-quality rotation rule as a placeholder.
 - [x] 9.5 Update machine-readable maps and documentation.
 - [x] 9.6 Re-run template type, CLI tests/type/build, OpenSpec, format, lint, and secret checks.
+
+## 10. Product-quality visual redesign
+
+- [x] 10.1 Repair the prompt composer icon layout with a stable flex-row input container.
+- [x] 10.2 Add TheFoolAI warm brand tokens, local generated artwork, layered gradients, glass cards,
+      and native icon/haptic primitives.
+- [x] 10.3 Redesign the Domain Desktop, History desktop, search overlay, drawer, floating orb, and
+      workspace dock around the brand system.
+- [x] 10.4 Redesign all user secondary routes as page-specific product settings surfaces with
+      bilingual content and semantic actions.
+- [x] 10.5 Update generated/platform docs, machine-readable maps, and registry dependency tests.
+- [x] 10.6 Rebuild the iOS development client and run template, CLI, repo, OpenSpec, format, and
+      secret checks.

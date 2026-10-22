@@ -58,6 +58,28 @@ horizontally pageable, with the route synchronized to the visible page.
 Visual language is minimal but not monochrome: a light neutral base, one current-domain accent,
 semantic state colors, and a fixed chart palette. Decoration that does not encode state is removed.
 
+### Product visual system
+
+The mobile brand system extends TheFoolAI Electron's warm, healing palette: a soft off-white canvas,
+near-black ink, amber `#D98D2D` as the primary action color, warm amber-tinted surfaces, and calm
+violet/blue/green support colors for domain actions. A locally generated abstract artwork anchors the
+Domain Desktop so first-run branding never depends on a remote image.
+
+Expo modules are used where they materially improve perceived quality: `expo-blur` for the full-width
+dock and glass cards, `expo-linear-gradient` for icon and orb depth, `expo-image` for the cached local
+brand artwork, `expo-symbols` for native iOS icons, and `expo-haptics` for tactile state changes.
+Android falls back to Lucide SVG icons and translucent surfaces rather than depending on SF Symbols.
+Every page uses iconography, layered surfaces, and purposeful copy instead of bare text blocks.
+
+Design references consulted for this pass:
+
+- Rakazo's Expo app: production-shaped settings groups, glass navigation, native sheet composers,
+  and mobile-first inbox/list behavior.
+- UI/UX Pro Max: accessibility and touch-target guidance, semantic color tokens, icon rules, and
+  pre-delivery checks.
+- Expo SDK references: BlurView, Linear Gradient, Image, and Symbols.
+- TheFoolAI Electron `src/renderer/index.css`: warm default theme and semantic token structure.
+
 ## Agent output pipeline
 
 ```text

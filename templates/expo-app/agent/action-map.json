@@ -70,6 +70,11 @@
       "route": "user-profile",
       "surface": "language-settings",
       "intent": "Switch the bilingual interface between Chinese and English"
+    },
+    "open-secondary-setting": {
+      "route": "user-index",
+      "surface": "settings-list",
+      "intent": "Open profile, privacy, storage, sync, notifications, or about"
     }
   }
 }

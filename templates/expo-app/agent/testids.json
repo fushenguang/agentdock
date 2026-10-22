@@ -24,6 +24,12 @@
     "result-canvas": "result-canvas",
     "result-action-cancel": "result-action-cancel",
     "result-action-confirm": "result-action-confirm",
+    "user-language-entry": "user-language-entry",
+    "user-privacy-entry": "user-privacy-entry",
+    "user-storage-entry": "user-storage-entry",
+    "user-sync-entry": "user-sync-entry",
+    "user-notifications-entry": "user-notifications-entry",
+    "user-about-entry": "user-about-entry",
     "language-zh-CN": "language-zh-CN",
     "language-en-US": "language-en-US"
   }

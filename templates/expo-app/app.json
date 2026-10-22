@@ -27,7 +27,8 @@
           "microphonePermission": "The agent uses the microphone for voice-first sessions.",
           "speechRecognitionPermission": "The agent transcribes voice requests."
         }
-      ]
+      ],
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true

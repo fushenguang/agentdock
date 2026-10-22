@@ -15,7 +15,10 @@ function SummaryResult({ metrics }: { metrics: readonly AgentMetric[] }) {
   return (
     <View className="gap-3">
       {metrics.map((metric, index) => (
-        <View key={`metric-${index}`} className="rounded-3xl bg-surface p-5">
+        <View
+          key={`metric-${index}`}
+          className="rounded-[28px] border border-white/70 bg-white/80 p-5"
+        >
           <Text className="text-xs text-muted">{metric.label}</Text>
           <Text className="mt-1 text-2xl font-semibold text-ink">{metric.value}</Text>
           {metric.delta ? (
@@ -31,7 +34,7 @@ function SummaryResult({ metrics }: { metrics: readonly AgentMetric[] }) {
 
 function TableResult({ table }: { table: AgentTable }) {
   return (
-    <View className="rounded-3xl bg-surface p-4">
+    <View className="overflow-hidden rounded-[28px] border border-white/70 bg-white/82 p-4">
       <View className="flex-row border-b border-line pb-2">
         {table.columns.map((column) => (
           <Text key={column.key} className="flex-1 text-xs font-medium text-muted">
@@ -53,7 +56,11 @@ function TableResult({ table }: { table: AgentTable }) {
 }
 
 function TextResult({ text }: { text: string }) {
-  return <Text className="text-base leading-6 text-ink">{text}</Text>
+  return (
+    <View className="rounded-[28px] border border-white/70 bg-white/84 p-5">
+      <Text className="text-lg leading-7 text-ink">{text}</Text>
+    </View>
+  )
 }
 
 interface OpenUIResultState {
@@ -109,14 +116,14 @@ export function ResultCanvas({
       {result.result.kind === 'table' ? <TableResult table={result.result.table} /> : null}
       {result.result.kind === 'openui' ? <OpenUIResult source={result.result.source} /> : null}
       {result.result.kind === 'action-request' ? (
-        <View className="gap-3 rounded-3xl bg-attention/10 p-5">
+        <View className="gap-4 rounded-[30px] border border-white/70 bg-attention/12 p-5">
           <Text className="text-base text-ink">{result.result.message}</Text>
           <View className="flex-row justify-end gap-2">
             <Pressable
               testID="result-action-cancel"
               accessibilityRole="button"
               accessibilityLabel={result.result.cancelLabel}
-              className="rounded-full bg-surface px-4 py-2"
+              className="rounded-full bg-white/85 px-4 py-2"
               onPress={onCancel}
             >
               <Text className="text-sm font-medium text-ink">{result.result.cancelLabel}</Text>
@@ -125,7 +132,7 @@ export function ResultCanvas({
               testID="result-action-confirm"
               accessibilityRole="button"
               accessibilityLabel={result.result.confirmLabel}
-              className="rounded-full bg-accent px-4 py-2"
+              className="rounded-full bg-accent px-5 py-2"
               onPress={onConfirm}
             >
               <Text className="text-sm font-medium text-white">{result.result.confirmLabel}</Text>

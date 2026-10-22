@@ -453,15 +453,19 @@ describe('expo-app mobile acceptance layout', () => {
 
     expect(source).toContain('AGENT_SHEET_HEIGHT_PERCENT')
     expect(source).toContain('snapPoints={[`${AGENT_SHEET_HEIGHT_PERCENT}%`]}')
-    expect(source).toContain('minHeight: 78')
+    expect(source).toContain('min-h-[78px]')
     expect(source).toContain('multiline')
     expect(source).toContain('testID="agent-send"')
-    expect(source).toContain('<ArrowUp size={20}')
-    expect(source).toContain('<Pause size={20}')
+    expect(source).toContain('name="send"')
+    expect(source).toContain('name="pause"')
+    expect(source).toContain('name="mic"')
     expect(source).toContain('paddingBottom: Math.max(insets.bottom, 16)')
-    expect(source).toContain('className="relative w-full"')
-    expect(source).toContain('paddingRight: 62')
-    expect(source).toContain('paddingLeft: 54')
+    expect(source).toContain('flex-row w-full items-end')
+    expect(source.indexOf('testID="agent-input"')).toBeLessThan(
+      source.indexOf('testID="agent-send"'),
+    )
+    expect(source).not.toContain('absolute left-2')
+    expect(source).not.toContain('absolute bottom-')
     expect(source).not.toContain('AgentStatusStrip')
     expect(source).not.toContain('agent-provider')
     expect(source).not.toContain('testID="agent-cancel"')
@@ -480,6 +484,8 @@ describe('expo-app mobile acceptance layout', () => {
     expect(newSessionIndex).toBeGreaterThan(indicatorIndex)
     expect(source).toContain('absolute left-0 right-0 top-0')
     expect(source).toContain('className="flex-1 flex-row items-center justify-center gap-2 px-1"')
+    expect(source).toContain('<BlurView')
+    expect(source).toContain('<BrandBackdrop />')
   })
 
   it('keeps the floating agent orb icon-only', () => {

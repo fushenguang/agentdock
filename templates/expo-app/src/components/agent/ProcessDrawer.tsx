@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react-native'
 import { Pressable, Text, View } from 'react-native'
 import {
   executionStatus,
@@ -8,6 +7,8 @@ import {
   type AgentTurnState,
 } from '../../core/agent'
 import { useLanguage } from '../settings/LanguageProvider'
+import { AppIcon } from '../ui'
+import { tapFeedback } from '../../lib/haptics'
 
 const STATUS_COLORS = {
   running: 'text-accent',
@@ -71,22 +72,21 @@ export function ProcessDrawer({
   } as const
 
   return (
-    <View className="gap-2">
+    <View className="overflow-hidden rounded-[28px] border border-white/70 bg-white/76 p-4">
       <Pressable
         testID="agent-process-toggle"
         accessibilityLabel={expanded ? t('process.collapse') : t('process.expand')}
-        className="flex-row items-center justify-between"
-        onPress={() => setExpanded((current) => !current)}
+        className="flex-row items-center gap-3"
+        onPress={() => {
+          tapFeedback()
+          setExpanded((current) => !current)
+        }}
       >
-        <Text className="flex-1 text-sm font-medium text-ink">{t('process.title')}</Text>
-        <Text className="max-w-48 text-right text-xs text-muted" numberOfLines={1}>
+        <Text className="flex-1 text-sm font-semibold text-ink">{t('process.title')}</Text>
+        <Text className="max-w-44 text-right text-xs text-muted" numberOfLines={1}>
           {executionStatus(turn, now).label}
         </Text>
-        {expanded ? (
-          <ChevronUp size={18} color="#17211d" />
-        ) : (
-          <ChevronDown size={18} color="#17211d" />
-        )}
+        <AppIcon name={expanded ? 'chevronUp' : 'chevronDown'} size={17} color="#1a1d23" />
       </Pressable>
       {expanded ? (
         <View>

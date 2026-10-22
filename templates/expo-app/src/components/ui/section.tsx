@@ -11,8 +11,10 @@ export interface SectionProps {
 export function Section({ title, action, children }: SectionProps) {
   return (
     <View className="gap-3">
-      <View className="flex-row items-center justify-between">
-        <Text variant="caption">{title}</Text>
+      <View className="flex-row items-center justify-between px-1">
+        <Text className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+          {title}
+        </Text>
         {action}
       </View>
       {children}

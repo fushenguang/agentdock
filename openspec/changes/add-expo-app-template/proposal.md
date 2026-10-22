@@ -39,6 +39,9 @@ local persistence. Generalization to other products is deliberately deferred.
 10. Add an OpenAI-compatible development provider driver with an explicit HTTPS/localhost boundary,
     injectable network transport for tests, and a production guard that refuses to embed a public API
     key in a release bundle.
+11. Productize the generated mobile UI with TheFoolAI's warm Electron brand palette, layered Expo
+    visuals, native symbols, local generated artwork, glass surfaces, and redesigned primary and
+    secondary screens that remain useful immediately after `agentdock init`.
 
 ## Capabilities
 

@@ -125,11 +125,11 @@ describe('registry — expo-app template', () => {
   it('pins the approved Expo 57 and NativeWind baseline', () => {
     const template = getTemplate('expo-app')
     expect(template).toBeDefined()
-    expect(template?.resolvedDependencies.expo).toBe('~57.0.30')
+    expect(template?.resolvedDependencies.expo).toBe('~57.0.31')
     expect(template?.resolvedDependencies['react-native']).toBe('0.86.3')
     expect(template?.resolvedDependencies.react).toBe('19.2.3')
-    expect(template?.resolvedDependencies['expo-router']).toBe('57.0.28')
-    expect(template?.resolvedDependencies['@expo/ui']).toBe('57.0.25')
+    expect(template?.resolvedDependencies['expo-router']).toBe('57.0.29')
+    expect(template?.resolvedDependencies['@expo/ui']).toBe('57.0.26')
     expect(template?.resolvedDependencies.nativewind).toBe('4.2.7')
     expect(template?.resolvedDependencies['react-native-css-interop']).toBe('0.2.7')
   })
@@ -453,6 +453,9 @@ describe('scaffoldProject', () => {
     expect(existsSync(join(targetDir, 'src', 'core', 'agent', 'structured-output-gate.ts'))).toBe(
       true,
     )
+    expect(existsSync(join(targetDir, 'src', 'components', 'ui', 'BrandBackdrop.tsx'))).toBe(true)
+    expect(existsSync(join(targetDir, 'src', 'components', 'ui', 'GlassCard.tsx'))).toBe(true)
+    expect(existsSync(join(targetDir, 'assets', 'brand-hero.png'))).toBe(true)
     expect(existsSync(join(targetDir, 'src', 'infra', 'sqlite', 'dataStore.ts'))).toBe(true)
     expect(existsSync(join(targetDir, 'agent', 'route-map.json'))).toBe(true)
     expect(existsSync(join(targetDir, 'agent', 'action-map.json'))).toBe(true)

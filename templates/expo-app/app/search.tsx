@@ -1,33 +1,156 @@
-import { useState } from 'react'
-import { Pressable, View } from 'react-native'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'expo-router'
-import { X } from 'lucide-react-native'
+import { Pressable, ScrollView, View } from 'react-native'
+import { useAgentSession } from '../src/components/agent'
 import { useLanguage } from '../src/components/settings/LanguageProvider'
-import { Input, Text } from '../src/components/ui'
+import {
+  AppIcon,
+  GlassCard,
+  IconBadge,
+  Input,
+  Section,
+  StatusPill,
+  Text,
+} from '../src/components/ui'
+import { tapFeedback } from '../src/lib/haptics'
+import type { SessionRecord } from '../src/core/data/contracts'
+import { getMobileDataStore } from '../src/infra/sqlite/dataStore'
 
 export default function SearchOverlay() {
   const [query, setQuery] = useState('')
+  const [sessions, setSessions] = useState<readonly SessionRecord[]>([])
   const router = useRouter()
-  const { t } = useLanguage()
+  const { continueSession } = useAgentSession()
+  const { t, language } = useLanguage()
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const values = await getMobileDataStore().sessions.list(100)
+        if (!cancelled) setSessions(values)
+      } catch (error) {
+        console.warn('Search failed to load sessions', error)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const normalizedQuery = query.trim().toLowerCase()
+  const results = normalizedQuery
+    ? sessions.filter(
+        (session) =>
+          session.title.toLowerCase().includes(normalizedQuery) ||
+          session.domainId.toLowerCase().includes(normalizedQuery),
+      )
+    : []
+
+  const suggestions = [
+    t('search.suggestionToday'),
+    t('search.suggestionTasks'),
+    t('search.suggestionDomain'),
+  ]
+
   return (
-    <View className="gap-4 px-5 pb-32 pt-4">
-      <Text variant="display">{t('search.title')}</Text>
-      <Input
-        testID="search-input"
-        autoFocus
-        value={query}
-        onChangeText={setQuery}
-        placeholder={t('search.placeholder')}
-      />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('search.close')}
-        className="absolute right-5 top-4 h-11 w-11 items-center justify-center rounded-full bg-surface"
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-      >
-        <X size={18} color="#17211d" />
-      </Pressable>
+    <ScrollView
+      className="flex-1"
+      contentContainerClassName="gap-5 px-5 pb-36 pt-4"
+      keyboardShouldPersistTaps="handled"
+    >
+      <View className="flex-row items-center justify-between">
+        <Text variant="display">{t('search.title')}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('search.close')}
+          className="h-12 w-12 items-center justify-center rounded-full border border-white/70 bg-white/70"
+          onPress={() => {
+            tapFeedback()
+            if (router.canGoBack()) router.back()
+            else router.replace('/')
+          }}
+        >
+          <AppIcon name="close" size={18} color="#bd4535" />
+        </Pressable>
+      </View>
+
+      <GlassCard className="p-4">
+        <View className="flex-row items-center gap-3">
+          <IconBadge icon="search" tone="sky" size={44} />
+          <Input
+            testID="search-input"
+            autoFocus
+            className="flex-1"
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('search.placeholder')}
+            returnKeyType="search"
+          />
+        </View>
+      </GlassCard>
+
+      <Section title={t('search.suggestions')}>
+        <View className="flex-row flex-wrap gap-2">
+          {suggestions.map((suggestion) => (
+            <Pressable
+              key={suggestion}
+              className="rounded-full bg-accentSoft px-4 py-2 active:bg-lineWarm"
+              onPress={() => {
+                tapFeedback()
+                setQuery(suggestion)
+              }}
+            >
+              <Text className="text-sm font-medium text-accentDark">{suggestion}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </Section>
+
+      {normalizedQuery ? (
+        <Section title={`${t('workspace.sessions')} · ${results.length}`}>
+          <View className="gap-3">
+            {results.length === 0 ? (
+              <GlassCard className="p-5">
+                <Text variant="muted">{t('drawer.noMatching')}</Text>
+              </GlassCard>
+            ) : null}
+            {results.map((session) => (
+              <Pressable
+                key={session.id}
+                className="flex-row items-center gap-3 rounded-[28px] border border-white/70 bg-white/76 p-4 active:bg-white"
+                onPress={() => {
+                  tapFeedback()
+                  continueSession(session.id, session.title)
+                }}
+              >
+                <IconBadge icon="agent" tone="amber" size={40} />
+                <View className="flex-1 gap-1">
+                  <Text className="text-base font-semibold text-ink" numberOfLines={1}>
+                    {session.title}
+                  </Text>
+                  <Text className="text-xs text-muted">
+                    {new Date(session.updatedAt).toLocaleString(language)}
+                  </Text>
+                </View>
+                <StatusPill
+                  label={
+                    session.status === 'draft'
+                      ? t('status.draft')
+                      : session.status === 'active'
+                        ? t('status.active')
+                        : t('status.archived')
+                  }
+                  tone="neutral"
+                />
+              </Pressable>
+            ))}
+          </View>
+        </Section>
+      ) : null}
+
       <Text variant="muted">{t('search.description')}</Text>
-    </View>
+    </ScrollView>
   )
 }

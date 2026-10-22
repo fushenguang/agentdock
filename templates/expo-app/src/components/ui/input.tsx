@@ -7,7 +7,7 @@ export function Input({ className, ...props }: TextInputProps) {
     <TextInput
       placeholderTextColor="#69746f"
       className={cn(
-        'min-h-12 rounded-2xl border border-line bg-surface px-4 text-base text-ink',
+        'min-h-13 rounded-3xl border border-line bg-surfaceWarm px-4 text-base text-ink',
         className,
       )}
       {...props}

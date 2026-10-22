@@ -3,11 +3,11 @@ import { Text as NativeText } from 'react-native'
 import { cn } from '../../lib/utils'
 
 const TEXT_VARIANTS = {
-  display: 'text-3xl font-semibold text-ink',
-  title: 'text-xl font-semibold text-ink',
+  display: 'text-[32px] leading-[38px] font-semibold tracking-[-0.02em] text-ink',
+  title: 'text-xl leading-7 font-semibold tracking-[-0.01em] text-ink',
   body: 'text-base text-ink',
   muted: 'text-sm text-muted',
-  caption: 'text-xs text-muted',
+  caption: 'text-xs leading-4 text-muted',
 } as const
 
 export type TextVariant = keyof typeof TEXT_VARIANTS

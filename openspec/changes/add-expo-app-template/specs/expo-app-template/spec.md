@@ -53,6 +53,29 @@ and the multi-desktop indicator in the horizontal center of the row.
 - **WHEN** the user needs profile, privacy, storage, sync, notification, or about information
 - **THEN** navigation goes to `/user/**` rather than adding a primary desktop or workspace-dock shortcut
 
+### Requirement: Product-quality visual system
+
+The generated app SHALL look and behave like a complete product rather than a demonstration shell. It
+SHALL use a TheFoolAI-aligned warm brand palette, local generated brand artwork, layered translucent
+surfaces, native icons, meaningful iconography, tactile feedback, and page-specific empty/detail
+states across primary and secondary routes. Visual effects MAY use Expo Blur, gradients, Image, and
+Symbols modules, but artwork SHALL remain local and the app SHALL still compile and run without a
+network-hosted asset.
+
+#### Scenario: A user opens the generated app for the first time
+
+- **WHEN** Domain Desktop renders
+- **THEN** the user sees a branded, layered workspace with local artwork, status, quick actions, and
+  capability details
+- **AND** no remote image or marketing asset is required
+
+#### Scenario: A user opens a secondary page
+
+- **WHEN** the user opens profile, privacy, storage, sync, notifications, or about
+- **THEN** the page presents a branded hero, a clear back path, page-specific detail cards, and
+  semantic iconography
+- **AND** language settings remain immediately actionable
+
 ### Requirement: Voice-first agent panel
 
 The template SHALL keep a persistent agent voice entry available on primary screens. Activating it

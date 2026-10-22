@@ -7,6 +7,22 @@ when information matters, and voice-first without hiding text access. Minimalism
 monochrome: use a light neutral base, the current domain's accent, semantic state colors, and one fixed
 chart palette.
 
+## Product palette
+
+The palette extends TheFoolAI Electron's warm, healing system:
+
+| Token          | Value                             | Use                                         |
+| -------------- | --------------------------------- | ------------------------------------------- |
+| Primary amber  | `#D98D2D`                         | Primary actions, active states, brand depth |
+| Deep amber     | `#B8731F`                         | Pressed actions and readable accent text    |
+| Warm surface   | `#FFFAF3` / `#FBF1E3`             | Canvas, inputs, selected chips              |
+| Calm ink       | `#1A1D23`                         | Primary text                                |
+| Support colors | `#8B5CF6` / `#3B82F6` / `#2F7D54` | Secondary domains and healthy states        |
+
+Use the local `assets/brand-hero.png`, layered gradients, translucent glass, and icon badges to create
+depth without depending on remote media. `expo-symbols` supplies native iOS icons; Android uses the
+Lucide SVG fallback. Primary interactions provide light haptic feedback.
+
 ## Two layers
 
 ```text

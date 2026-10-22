@@ -3,8 +3,8 @@ import { Pressable, Text as NativeText } from 'react-native'
 import { cn } from '../../lib/utils'
 
 const BUTTON_VARIANTS = {
-  primary: 'bg-accent rounded-full px-5 py-3 active:opacity-80',
-  secondary: 'bg-line rounded-full px-5 py-3 active:opacity-80',
+  primary: 'rounded-full bg-accent px-6 py-3 active:bg-accentDark',
+  secondary: 'rounded-full bg-accentSoft px-5 py-3 active:bg-lineWarm',
   ghost: 'rounded-full px-3 py-2 active:opacity-70',
   danger: 'bg-danger rounded-full px-5 py-3 active:opacity-80',
 } as const
@@ -12,7 +12,7 @@ const BUTTON_VARIANTS = {
 const BUTTON_TEXT_VARIANTS = {
   primary: 'text-base font-medium text-white',
   secondary: 'text-base font-medium text-ink',
-  ghost: 'text-sm font-medium text-accent',
+  ghost: 'text-sm font-medium text-accentDark',
   danger: 'text-base font-medium text-white',
 } as const
 

@@ -1,10 +1,11 @@
 import { BottomSheet } from '@expo/ui/community/bottom-sheet'
-import { ArrowUp, Mic, Pause, Square } from 'lucide-react-native'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { isExecutingTurn } from '../../core/agent'
 import { useVoiceInput } from '../../core/voice/useVoiceInput'
+import { tapFeedback } from '../../lib/haptics'
+import { AppIcon } from '../ui'
 import { useLanguage } from '../settings/LanguageProvider'
 import { AGENT_SHEET_HEIGHT_PERCENT, useAgentSession } from './AgentProvider'
 import { ProcessDrawer } from './ProcessDrawer'
@@ -122,15 +123,16 @@ export function AgentBottomSheet() {
           className="shrink-0 gap-2 border-t border-line bg-surface px-5 pt-3"
           style={{ paddingBottom: Math.max(insets.bottom, 16) }}
         >
-          <View className="relative w-full" style={{ width: '100%' }}>
+          <View className="flex-row w-full items-end rounded-[30px] border border-lineWarm bg-surfaceWarm p-1.5">
             <Pressable
               testID="agent-voice-toggle"
               accessibilityRole="button"
               accessibilityLabel={
                 voice.status === 'listening' ? t('agent.stopVoice') : t('agent.startVoice')
               }
-              className="absolute left-2 top-3 h-10 w-10 items-center justify-center rounded-full"
+              className="mb-1 ml-1 h-12 w-12 items-center justify-center rounded-full bg-accentSoft"
               onPress={() => {
+                tapFeedback()
                 if (voice.status === 'listening') {
                   voice.stop()
                   return
@@ -140,34 +142,15 @@ export function AgentBottomSheet() {
               }}
             >
               {voice.status === 'listening' ? (
-                <Square size={15} color="#bd4535" />
+                <AppIcon name="stop" size={16} color="#bd4535" />
               ) : (
-                <Mic size={17} color="#4f7c5b" />
-              )}
-            </Pressable>
-            <Pressable
-              testID="agent-send"
-              accessibilityRole="button"
-              accessibilityLabel={running ? t('agent.cancelTurn') : t('agent.send')}
-              accessibilityState={{ busy: running }}
-              className={`absolute bottom-1.5 right-1.5 h-11 w-11 items-center justify-center rounded-full ${
-                running ? 'bg-danger' : 'bg-accent'
-              }`}
-              onPress={() => (running ? cancelTurn() : runTurn())}
-            >
-              {running ? (
-                <Pause size={20} color="#ffffff" />
-              ) : (
-                <ArrowUp size={20} color="#ffffff" />
+                <AppIcon name="mic" size={18} color="#b8731f" />
               )}
             </Pressable>
             <TextInput
               testID="agent-input"
-              className="rounded-3xl border border-line bg-canvas py-3 pl-14 pr-16 text-base text-ink"
+              className="min-h-[78px] flex-1 bg-transparent px-2 py-3 text-base text-ink"
               style={{
-                minHeight: 78,
-                paddingLeft: 54,
-                paddingRight: 62,
                 paddingTop: 14,
                 paddingBottom: 14,
                 textAlignVertical: 'top',
@@ -181,6 +164,26 @@ export function AgentBottomSheet() {
               multiline
               editable={!running}
             />
+            <Pressable
+              testID="agent-send"
+              accessibilityRole="button"
+              accessibilityLabel={running ? t('agent.cancelTurn') : t('agent.send')}
+              accessibilityState={{ busy: running }}
+              className={`mb-1 mr-1 h-12 w-12 items-center justify-center rounded-full ${
+                running ? 'bg-danger' : 'bg-accent'
+              }`}
+              onPress={() => {
+                tapFeedback()
+                if (running) cancelTurn()
+                else runTurn()
+              }}
+            >
+              {running ? (
+                <AppIcon name="pause" size={21} color="#ffffff" />
+              ) : (
+                <AppIcon name="send" size={21} color="#ffffff" />
+              )}
+            </Pressable>
           </View>
           {voice.error ? <Text className="text-xs text-danger">{voice.error}</Text> : null}
           {inputError ? <Text className="text-xs text-danger">{inputError}</Text> : null}

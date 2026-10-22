@@ -10,16 +10,17 @@ Agent Host before any generic mobile abstraction is extracted.
 
 ## Stack
 
-| Layer           | Technology                                       |
-| --------------- | ------------------------------------------------ |
-| Runtime         | Expo SDK 57, React Native 0.86.3, React 19.2.3   |
-| Navigation      | Expo Router                                      |
-| Styling         | NativeWind 4.2.7 + Tailwind CSS 3.4              |
-| Components      | Source-owned `react-native-reusables` primitives |
-| Native controls | `@expo/ui` 57.0.25 BottomSheet                   |
-| Results         | `@openuidev/react-lang` 1.0.1 renderer adapter   |
-| Voice           | `expo-speech-recognition` 57.1.0                 |
-| Data            | `expo-sqlite` 57.0.4 migrations and outbox       |
+| Layer           | Technology                                          |
+| --------------- | --------------------------------------------------- |
+| Runtime         | Expo SDK 57, React Native 0.86.3, React 19.2.3      |
+| Navigation      | Expo Router                                         |
+| Styling         | NativeWind 4.2.7 + Tailwind CSS 3.4                 |
+| Components      | Source-owned `react-native-reusables` primitives    |
+| Native controls | `@expo/ui` 57.0.26 BottomSheet                      |
+| Brand visuals   | Expo Blur, Linear Gradient, Image, Symbols, Haptics |
+| Results         | `@openuidev/react-lang` 1.0.1 renderer adapter      |
+| Voice           | `expo-speech-recognition` 57.1.0                    |
+| Data            | `expo-sqlite` 57.0.4 migrations and outbox          |
 
 ## Architecture
 
@@ -41,6 +42,8 @@ surfaces and never own the LLM loop, context, memory, tool policy, or permission
 
 - One fixed full-width workspace dock places the drawer and new-session action at its edges and
   centers the multi-desktop indicator.
+- Primary and secondary screens use TheFoolAI's warm amber palette, local generated artwork, glass
+  layers, semantic icons, and tactile feedback.
 - The drawer contains current domain, search, history, and user summary.
 - Primary work surfaces are only Domain Desktop and History & Tasks.
 - Search is an overlay; low-frequency user information lives under `/user/**`.

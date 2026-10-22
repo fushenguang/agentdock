@@ -13,6 +13,7 @@ result rendering, and SQLite persistence before any generic abstraction is extra
 | Styling           | NativeWind 4 + Tailwind CSS 3                         |
 | Components        | Source-owned `react-native-reusables` primitives      |
 | Native supplement | `@expo/ui` BottomSheet                                |
+| Brand visuals     | Expo Blur, Linear Gradient, Image, Symbols, Haptics   |
 | Result rendering  | `@openuidev/react-lang` renderer adapter              |
 | Validation        | Zod internally; JSON Schema 2020-12 across boundaries |
 | Data              | `expo-sqlite` migrations and sync outbox              |

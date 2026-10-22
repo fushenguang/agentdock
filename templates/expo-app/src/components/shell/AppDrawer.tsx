@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'expo-router'
-import { ChevronDown, Search, User } from 'lucide-react-native'
+import { BlurView } from 'expo-blur'
+import { LinearGradient } from 'expo-linear-gradient'
 import {
   Animated,
   Modal,
@@ -15,7 +16,8 @@ import { useAgentSession } from '../agent/AgentProvider'
 import { useLanguage } from '../settings/LanguageProvider'
 import type { SessionRecord } from '../../core/data/contracts'
 import { getMobileDataStore } from '../../infra/sqlite/dataStore'
-import { Input } from '../ui'
+import { tapFeedback } from '../../lib/haptics'
+import { AppIcon, IconBadge, Input } from '../ui'
 
 export interface DrawerDomain {
   readonly id: string
@@ -116,7 +118,7 @@ export function AppDrawer({
       <View className="flex-1 flex-row bg-black/25">
         <Animated.View
           testID="navigation-drawer"
-          className="h-full bg-surface"
+          className="h-full overflow-hidden border-r border-white/60 bg-surfaceWarm"
           style={{
             width: panelWidth,
             transform: [{ translateX }],
@@ -124,6 +126,17 @@ export function AppDrawer({
             paddingBottom: Math.max(insets.bottom, 16),
           }}
         >
+          <LinearGradient
+            colors={['#fffaf3', '#f8f1e6', '#ffffff']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.7, y: 1 }}
+            style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
+          />
+          <BlurView
+            tint="systemUltraThinMaterialLight"
+            intensity={38}
+            style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
+          />
           <View className="gap-3 px-5">
             <Text className="text-xs uppercase text-muted">{t('drawer.domain')}</Text>
             <Pressable
@@ -131,11 +144,22 @@ export function AppDrawer({
               accessibilityRole="button"
               accessibilityLabel={t('drawer.selectedDomain', { value: selectedDomain.label })}
               accessibilityState={{ expanded: domainMenuOpen }}
-              className="flex-row items-center justify-between rounded-2xl bg-canvas px-4 py-3"
-              onPress={() => setDomainMenuOpen((current) => !current)}
+              className="flex-row items-center gap-3 rounded-3xl border border-white/70 bg-white/72 px-3 py-3"
+              onPress={() => {
+                tapFeedback()
+                setDomainMenuOpen((current) => !current)
+              }}
             >
-              <Text className="text-base font-medium text-ink">{selectedDomain.label}</Text>
-              <ChevronDown size={18} color="#17211d" />
+              <IconBadge icon="domain" tone="amber" size={40} />
+              <Text className="flex-1 text-base font-semibold text-ink">
+                {selectedDomain.label}
+              </Text>
+              <AppIcon
+                name="chevronRight"
+                size={16}
+                color="#6b7280"
+                weight={domainMenuOpen ? 'semibold' : 'regular'}
+              />
             </Pressable>
             {domainMenuOpen ? (
               <View className="overflow-hidden rounded-2xl bg-canvas">
@@ -157,11 +181,12 @@ export function AppDrawer({
               </View>
             ) : null}
             <View className="relative">
-              <Search
-                size={16}
-                color="#69746f"
-                style={{ position: 'absolute', left: 14, top: 17, zIndex: 1 }}
-              />
+              <View
+                className="absolute left-3 top-3 z-10 h-6 w-6 items-center justify-center"
+                pointerEvents="none"
+              >
+                <AppIcon name="search" size={15} color="#b8731f" />
+              </View>
               <Input
                 testID="drawer-session-search"
                 className="pl-10"
@@ -190,18 +215,24 @@ export function AppDrawer({
                   key={session.id}
                   accessibilityRole="button"
                   accessibilityLabel={t('drawer.continueSession', { value: session.title })}
-                  className="rounded-2xl bg-canvas px-4 py-3 active:bg-line"
+                  className="flex-row items-center gap-3 rounded-3xl border border-white/70 bg-white/76 px-3 py-3 active:bg-white"
                   onPress={() => {
+                    tapFeedback()
                     onClose()
                     continueSession(session.id, session.title)
                   }}
                 >
-                  <Text className="text-sm font-medium text-ink" numberOfLines={1}>
-                    {session.title}
-                  </Text>
-                  <Text className="mt-1 text-xs text-muted">
-                    {new Date(session.updatedAt).toLocaleString(language)}
-                  </Text>
+                  <View className="h-9 w-9 items-center justify-center rounded-full bg-accentSoft">
+                    <AppIcon name="agent" size={17} color="#b8731f" />
+                  </View>
+                  <View className="flex-1 gap-1">
+                    <Text className="text-sm font-semibold text-ink" numberOfLines={1}>
+                      {session.title}
+                    </Text>
+                    <Text className="text-xs text-muted">
+                      {new Date(session.updatedAt).toLocaleString(language)}
+                    </Text>
+                  </View>
                 </Pressable>
               ))}
             </ScrollView>
@@ -212,10 +243,13 @@ export function AppDrawer({
               testID="drawer-user-entry"
               accessibilityRole="button"
               accessibilityLabel={t('drawer.openUser')}
-              className="flex-row items-center gap-3 rounded-2xl px-1 py-2 active:bg-canvas"
-              onPress={() => go('/user')}
+              className="flex-row items-center gap-3 rounded-3xl px-1 py-2 active:opacity-70"
+              onPress={() => {
+                tapFeedback()
+                go('/user')
+              }}
             >
-              <User size={20} color="#4f7c5b" />
+              <IconBadge icon="user" tone="violet" size={42} />
               <View className="flex-1">
                 <Text className="text-base font-medium text-ink">{t('drawer.user')}</Text>
                 <Text className="text-xs text-muted">{t('drawer.userDetail')}</Text>
