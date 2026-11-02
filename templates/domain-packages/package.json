@@ -1,6 +1,6 @@
 {
   "name": "@cogito.ai/template-domain-packages",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Empty standards-driven domain-packages workspace with OpenSpec, docs, a deterministic package generator, agent practice pack, and package Web scaffolding.",
   "type": "module",
@@ -15,7 +15,7 @@
     "test": "node --test test/*.test.mjs"
   },
   "agentdock": {
-    "minCliVersion": "0.26.0",
+    "minCliVersion": "0.29.0",
     "packageManagerEnforced": true,
     "dataLayers": [
       "none"

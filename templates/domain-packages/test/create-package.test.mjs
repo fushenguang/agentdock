@@ -52,7 +52,7 @@ function mockNpx(root) {
     file,
     [
       '#!/bin/sh',
-      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.27.1"; then',
+      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.29.0"; then',
       '  echo "expected pinned AgentDock CLI" >&2',
       '  exit 2',
       'fi',
@@ -128,6 +128,56 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
 
     const catalog = JSON.parse(readFileSync(join(root, 'catalog.json'), 'utf8'))
     assert.equal(catalog.packages[0].contextEntry, 'apps/new-domain/AGENTS.md')
+    assert.equal(catalog.specVersion, '0.3.0')
+
+    const contract = JSON.parse(
+      readFileSync(join(root, 'apps', 'new-domain', 'contract.json'), 'utf8'),
+    )
+    assert.equal(contract.constraints.specVersion, '>=2.0.0-rc.2 <3.0.0')
+    assert.equal(contract.constraints.protocolVersion, '=2.0.0')
+    assert.equal(contract.collaborationMode, 'conversation-led')
+    assert.equal(contract.intent.intentSpace[0].fulfillment.skills[0], 'workbench-guide')
+
+    const surface = JSON.parse(
+      readFileSync(join(root, 'apps', 'new-domain', 'agent', 'surface.json'), 'utf8'),
+    )
+    assert.equal(surface.identity.audience, undefined)
+    assert.equal(surface.web.hasWeb, true)
+    assert.deepEqual(surface.web.topLevelRouteIds, ['workbench'])
+    assert.equal(surface.contextTiers.l1.queryCapabilityIds.length, 2)
+
+    const webSurface = JSON.parse(
+      readFileSync(join(root, 'apps', 'new-domain', 'agent', 'web-surface.json'), 'utf8'),
+    )
+    assert.equal(webSurface.routes[0].actions[0].authorization.caller, 'agent')
+    assert.equal(webSurface.routes[0].actions[0].authorization.audience, undefined)
+
+    const capability = JSON.parse(
+      readFileSync(
+        join(root, 'apps', 'new-domain', 'capabilities', 'new-domain-workbench-get-state.json'),
+        'utf8',
+      ),
+    )
+    assert.equal(capability.errors[0].when.length > 0, true)
+    assert.equal(capability.errors[0].message, undefined)
+
+    const skills = JSON.parse(
+      readFileSync(join(root, 'apps', 'new-domain', 'agent', 'skills-index.json'), 'utf8'),
+    )
+    assert.equal(skills[0].id, 'workbench-guide')
+    assert.deepEqual(skills[0].intents, ['new-domain-outcome'])
+
+    const standardsLock = JSON.parse(
+      readFileSync(join(root, 'apps', 'new-domain', 'standards-lock.json'), 'utf8'),
+    )
+    assert.equal(
+      standardsLock.standards.find((entry) => entry.id === 'domain-package-spec').version,
+      '2.0.0-rc.2',
+    )
+    assert.equal(
+      standardsLock.standards.find((entry) => entry.id === 'domain-package-spec').digest,
+      'sha256:72b200a8b77abbacfa63a8435aea575739a6bb1689566dfb0761f16598db88d9',
+    )
 
     const check = spawnSync(process.execPath, [checker, '--repo-root', root], {
       encoding: 'utf8',
