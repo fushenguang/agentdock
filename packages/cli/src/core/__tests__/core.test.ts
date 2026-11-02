@@ -89,7 +89,7 @@ describe('registry — domain-packages template', () => {
 
     expect(template).toBeDefined()
     expect(template?.source).toBe('templates/domain-packages')
-    expect(template?.minCliVersion).toBe('0.26.0')
+    expect(template?.minCliVersion).toBe('0.29.0')
     expect(template?.packageManager).toBe('pnpm')
     expect(template?.packageManagerVersion).toBe('12.4.1')
     expect(template?.packageManagerEnforced).toBe(true)

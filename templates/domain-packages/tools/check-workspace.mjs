@@ -69,7 +69,13 @@ for (const entry of catalog.packages) {
     error(`missing package root: apps/${entry.id}`)
     continue
   }
-  for (const file of ['package.json', 'contract.json', 'agent/surface.json', 'roadmap.yaml']) {
+  for (const file of [
+    'package.json',
+    'contract.json',
+    'standards-lock.json',
+    'agent/surface.json',
+    'roadmap.yaml',
+  ]) {
     if (!existsSync(join(packageRoot, file))) error(`apps/${entry.id}/${file} is missing`)
   }
   try {
@@ -80,7 +86,13 @@ for (const entry of catalog.packages) {
       error(`${entry.id}: catalog/package version mismatch`)
     if (contract.id !== entry.id) error(`${entry.id}: catalog/contract id mismatch`)
     if (contract.hasWeb !== entry.hasWeb) error(`${entry.id}: catalog/contract hasWeb mismatch`)
+    if (contract.constraints?.specVersion !== '>=2.0.0-rc.2 <3.0.0')
+      error(`${entry.id}: contract must target domain-package spec 2.0`)
+    if (contract.constraints?.protocolVersion !== '=2.0.0')
+      error(`${entry.id}: contract must target protocol 2.0.0`)
     if (surface.identity?.packageId !== entry.id) error(`${entry.id}: surface package id mismatch`)
+    if (surface.identity?.version !== packageJson.version)
+      error(`${entry.id}: surface/package version mismatch`)
     if (entry.contextEntry !== `apps/${entry.id}/AGENTS.md`)
       error(`${entry.id}: context entry must be apps/<package-id>/AGENTS.md`)
     if (entry.hasWeb) {

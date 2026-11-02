@@ -7,6 +7,58 @@ import { fileURLToPath } from 'node:url'
 
 const toolRoot = dirname(fileURLToPath(import.meta.url))
 const defaultWorkspaceRoot = resolve(toolRoot, '..')
+const PACKAGE_STANDARDS_LOCK = {
+  standards: [
+    {
+      id: 'domain-package-spec',
+      version: '2.0.0-rc.2',
+      commit: null,
+      digest: 'sha256:72b200a8b77abbacfa63a8435aea575739a6bb1689566dfb0761f16598db88d9',
+    },
+    {
+      id: 'ai-first-domain-package',
+      version: '1.0.0-rc.2',
+      commit: null,
+      digest: 'sha256:32eb07c89300d1d11c3c18ca468ca3b4448329f86dba2296ac7e5b580dea37f1',
+    },
+    {
+      id: 'ai-generated-media',
+      version: '1.1.0',
+      commit: null,
+      digest: 'sha256:331427fb915bd259e2f9e1c8b0870110b901e66bb9c7e398aa3e8d7394059c0d',
+    },
+    {
+      id: 'domain-package-repository',
+      version: '0.3.0',
+      commit: null,
+      digest: 'sha256:f1cb50e97cb3d5da699283540d44e00368f17b189efde3d530bc073b8bff4ba0',
+    },
+    {
+      id: 'media-assets',
+      version: '1.1.0',
+      commit: null,
+      digest: 'sha256:3ed23c6816bfdf7fa48fd330944158a410d3af59cff87f7673febad466805885',
+    },
+    {
+      id: 'package-callable-capabilities',
+      version: '1.0.0-rc.7',
+      commit: null,
+      digest: 'sha256:30897cf1c68ac733e4b991ae7225d1b51c3512ba481e162ef90125425e2a2571',
+    },
+    {
+      id: 'package-layout',
+      version: '2.0.0-rc.1',
+      commit: null,
+      digest: 'sha256:10913ea1e5af277e8b77b591020e14751e86d33322bebd9a936f2f4e3409f8e9',
+    },
+    {
+      id: 'web-scaffold',
+      version: '0.5.0',
+      commit: null,
+      digest: 'sha256:c12bcfcd78694fea7e1fb7ba58b3cafe59c9353c63806b0050a42c02c11787ab',
+    },
+  ],
+}
 
 function usage() {
   return `Create a conforming domain package.
@@ -229,9 +281,11 @@ function descriptor({ id, kind, title, description, access, risk, whenToUse }) {
     cancellable: false,
     errors: [
       {
-        code: 'not_ready',
-        category: 'system',
-        message: 'The package runtime is not ready.',
+        code: 'capability_failed',
+        category: 'capability',
+        when: 'The package runtime cannot complete the requested operation.',
+        recovery:
+          'Check package health, retry once after the runtime is ready, then report the failure without inventing a result.',
         retryable: true,
       },
     ],
@@ -243,12 +297,16 @@ function descriptor({ id, kind, title, description, access, risk, whenToUse }) {
   }
 }
 
-function packageFiles(spec, standards) {
+function packageFiles(spec) {
   const capabilitySlug = `${spec.id}.workbench.get-state`.replaceAll('.', '-')
+  const workflowIntentId = `${spec.id}-outcome`
+  const starterCapabilityId = `${spec.id}.workbench.get-state`
   const capabilityFiles = spec.hasWeb
     ? [
         `${capabilitySlug}.json`,
+        'system-delete-all-data.json',
         'system-health.json',
+        'system-self-check.json',
         'web-surface-describe.json',
         'web-surface-state.json',
       ]
@@ -266,7 +324,7 @@ function packageFiles(spec, standards) {
       id: spec.id,
       ownership: { dataOwner: 'user' },
       constraints: {
-        specVersion: '=0.6.0',
+        specVersion: '>=2.0.0-rc.2 <3.0.0',
         protocolVersion: '=2.0.0',
         contentVersion: `=${spec.version}`,
       },
@@ -278,8 +336,41 @@ function packageFiles(spec, standards) {
         ],
         outOfScopeAction: 'redirect_workspace',
       },
+      intent: {
+        endUser: {
+          segment: `${spec.displayName} users`,
+          cognitiveLevel:
+            'Needs a concrete, reviewable domain outcome without operating package internals.',
+          languageStyleHint:
+            'Use plain language and explain the next action only when it is needed.',
+        },
+        intentSpace: [
+          {
+            id: workflowIntentId,
+            description: spec.intent,
+            seedExamples: [
+              `帮我开始：${spec.displayName}`,
+              `查看当前 ${spec.displayName} 状态`,
+              `为 ${spec.displayName} 制定下一步`,
+            ],
+            keySlots: [],
+            fulfillment: {
+              capabilities: spec.hasWeb ? [starterCapabilityId] : [],
+              routes: spec.hasWeb ? ['workbench'] : [],
+              skills: ['workbench-guide'],
+            },
+          },
+        ],
+        clarificationPolicy: {
+          maxRounds: 2,
+          maxQuestionsPerRound: 2,
+          neverAsk: ['Information already present in the request or package state'],
+        },
+      },
       hasWeb: spec.hasWeb,
+      collaborationMode: 'conversation-led',
     },
+    'standards-lock.json': PACKAGE_STANDARDS_LOCK,
     'declarations.json': {
       starterPrompts: [
         `帮我开始：${spec.displayName}`,
@@ -366,7 +457,6 @@ function packageFiles(spec, standards) {
         packageId: spec.id,
         version: spec.version,
         purpose: spec.intent,
-        audience: ['user', 'App Agent'],
       },
       directoryGuide: [
         { path: 'agent/', role: 'Machine-readable package and Web surfaces.', contextTier: 'L1' },
@@ -381,7 +471,7 @@ function packageFiles(spec, standards) {
       capabilitySummary: spec.hasWeb
         ? [
             {
-              id: `${spec.id}.workbench.get-state`,
+              id: starterCapabilityId,
               title: 'Read the current workbench state',
               access: 'agent',
               risk: 'low',
@@ -389,8 +479,41 @@ function packageFiles(spec, standards) {
             },
           ]
         : [],
-      contextBudget: { maxL0Characters: 4000 },
-      standards,
+      web: {
+        hasWeb: spec.hasWeb,
+        entryRoute: spec.hasWeb ? '/$locale' : null,
+        readinessStates: ['starting', 'ready', 'degraded', 'not_ready', 'stopping'],
+        describeCapabilityId: spec.hasWeb ? 'web.surface.describe' : null,
+        stateCapabilityId: spec.hasWeb ? 'web.surface.state' : null,
+        topLevelRouteIds: spec.hasWeb ? ['workbench'] : [],
+      },
+      contextTiers: {
+        l0: {
+          description: 'Stable package identity, purpose, core capability and Web availability.',
+          fields: ['identity', 'purpose', 'coreCapabilities', 'webAvailability'],
+          queryCapabilityIds: [],
+          references: [],
+        },
+        l1: {
+          description: 'Structured package and Web details loaded on demand.',
+          fields: [
+            'directoryGuide',
+            'capabilityCatalog',
+            'routeDetails',
+            'actions',
+            'elements',
+            'runtimeState',
+          ],
+          queryCapabilityIds: spec.hasWeb ? ['web.surface.describe', 'web.surface.state'] : [],
+          references: ['agent/skills-index.json'],
+        },
+        l2: {
+          description: 'Deep domain workflow loaded only when the task requires it.',
+          fields: ['domainWorkflow'],
+          queryCapabilityIds: [],
+          references: ['skills/workbench-guide/SKILL.md'],
+        },
+      },
     },
     'agent/web-surface.json': {
       surfaceVersion: '1.0.0',
@@ -407,9 +530,9 @@ function packageFiles(spec, standards) {
               purpose: 'Return the current domain state summary and next action without writing.',
               inputSchema: jsonSchema({}),
               effects: { read: true, write: false, delete: false },
-              authorization: { required: true, audience: 'agent', risk: 'low' },
+              authorization: { required: true, caller: 'agent', risk: 'low' },
               agentSafe: true,
-              capabilityId: `${spec.id}.workbench.get-state`,
+              capabilityId: starterCapabilityId,
             },
           ],
           elements: [
@@ -426,12 +549,29 @@ function packageFiles(spec, standards) {
           ],
           capabilities: [],
           state: [
-            { key: 'stage', purpose: 'Current domain stage.', agentVisible: true },
-            { key: 'artifact', purpose: 'Current reviewable artifact.', agentVisible: true },
+            { key: 'stage', purpose: 'Current domain stage.', agentVisible: true, source: 'page' },
+            {
+              key: 'artifact',
+              purpose: 'Current reviewable artifact.',
+              agentVisible: true,
+              source: 'page',
+            },
           ],
+          prohibited: ['Do not mutate domain state through DOM selectors or coordinate clicks.'],
         },
       ],
     },
+    'agent/skills-index.json': [
+      {
+        id: 'workbench-guide',
+        whenToUse: `Use when the user needs a guided ${spec.displayName} workflow rather than one isolated read.`,
+        whenNotToUse:
+          'Do not use for unrelated domains or to bypass a declared package capability.',
+        intents: [workflowIntentId],
+        capabilities: spec.hasWeb ? [starterCapabilityId] : [],
+        references: [],
+      },
+    ],
     'capabilities/index.json': {
       protocolVersion: '=2.0.0',
       capabilities: capabilityFiles,
@@ -439,7 +579,7 @@ function packageFiles(spec, standards) {
       optionalHostCapabilities: [],
     },
     [`capabilities/${capabilitySlug}.json`]: descriptor({
-      id: `${spec.id}.workbench.get-state`,
+      id: starterCapabilityId,
       kind: 'query',
       title: 'Read workbench state',
       description: 'Return the current package workbench state summary and next action.',
@@ -452,9 +592,73 @@ function packageFiles(spec, standards) {
       kind: 'system',
       title: 'Runtime health',
       description: 'Read package runtime readiness without exposing user data.',
-      access: { web: false, agent: true, host: true },
+      access: { web: true, agent: true, host: true },
       risk: 'low',
       whenToUse: 'Use before relying on the package Web runtime.',
+    }),
+    'capabilities/system-delete-all-data.json': {
+      id: 'system.deleteAllData',
+      kind: 'system',
+      title: 'Delete all package data',
+      description: 'Delete package-owned data through the App maintenance confirmation path.',
+      inputSchema: {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        type: 'object',
+        properties: {
+          requestId: { type: 'string' },
+          grant: { type: 'string' },
+        },
+        required: ['requestId', 'grant'],
+        additionalProperties: false,
+      },
+      outputSchema: {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        type: 'object',
+        properties: { ok: { type: 'boolean' } },
+        required: ['ok'],
+        additionalProperties: false,
+      },
+      effects: { read: false, write: false, delete: true },
+      idempotency: 'natural',
+      cancellable: false,
+      errors: [
+        {
+          code: 'capability_failed',
+          category: 'capability',
+          when: 'Package data deletion fails.',
+          recovery:
+            'Do not retry from the Agent; report the failure in the App maintenance flow so the user can retry.',
+          retryable: true,
+        },
+      ],
+      examples: [
+        {
+          name: 'Confirmed maintenance deletion',
+          input: { requestId: 'maintenance-id', grant: 'one-shot-grant' },
+          output: { ok: true },
+        },
+      ],
+      inputSources: {
+        requestId: {
+          from: 'user',
+          prompt: 'Use the request id supplied by the App maintenance confirmation.',
+        },
+        grant: {
+          from: 'user',
+          prompt: 'Use only the one-shot grant supplied by the App maintenance confirmation.',
+        },
+      },
+      access: { web: false, agent: false, host: true },
+      risk: 'critical',
+    },
+    'capabilities/system-self-check.json': descriptor({
+      id: 'system.selfCheck',
+      kind: 'system',
+      title: 'Package self-check',
+      description: 'Re-run package integrity checks without mutating package or user state.',
+      access: { web: true, agent: true, host: true },
+      risk: 'low',
+      whenToUse: 'Use after installation, upgrade, or a suspected integrity failure.',
     }),
     'capabilities/web-surface-describe.json': descriptor({
       id: 'web.surface.describe',
@@ -476,14 +680,27 @@ function packageFiles(spec, standards) {
     }),
     'resources/README.md':
       '# Package resources\n\nAdd reviewed domain resources only; do not duplicate runtime truth.\n',
-    'skills/README.md':
-      '# Package skills\n\nAdd only long workflows that cannot be served by the Agent Surface.\n',
+    'skills/workbench-guide/SKILL.md': [
+      '---',
+      'name: workbench-guide',
+      `description: Guide one ${spec.displayName} outcome through declared capabilities and the package Web.`,
+      '---',
+      '',
+      '# Workbench guide',
+      '',
+      '1. Read the declared package surface and current workbench state.',
+      '2. Use only declared capabilities and intent-level Web actions.',
+      '3. Return one concrete next step and keep package-owned truth in the package.',
+      '',
+    ].join('\n'),
     'wiki/README.md':
       '# Knowledge vault seed\n\nThis directory is a seed bundle, not the runtime wiki or business truth store.\n',
   }
   if (!spec.hasWeb) {
     delete files['agent/web-surface.json']
     delete files[`capabilities/${capabilitySlug}.json`]
+    delete files['capabilities/system-delete-all-data.json']
+    delete files['capabilities/system-self-check.json']
     delete files['capabilities/web-surface-describe.json']
     delete files['capabilities/web-surface-state.json']
   }
@@ -600,7 +817,7 @@ async function main() {
     fail(`package path already exists: ${spec.id}`)
   }
 
-  for (const [relativePath, value] of Object.entries(packageFiles(spec, lock.standards))) {
+  for (const [relativePath, value] of Object.entries(packageFiles(spec))) {
     const target = join(packageRoot, relativePath)
     if (relativePath.endsWith('.json')) writeJson(target, value)
     else writeText(target, value)
