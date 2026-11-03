@@ -52,6 +52,18 @@
 - [x] 5.7 Run template tests, CLI tests, workspace-mode checks, type/build/lint/docs/OpenSpec gates,
       and real init/install/check/build smoke tests.
 
+## 6. Post-0.28.0 build artifact hardening
+
+- [x] 6.1 Make generated `pnpm check` include the fixed `web` member checks after package creation.
+- [x] 6.2 Make package `start:web` launch the fixed `apps/web` workspace member without falsely
+      advertising a standalone public hosted runtime.
+- [x] 6.3 Strip known build-machine paths from packaged text and fail closed on other absolute
+      build-path leaks.
+- [x] 6.4 Add template tests for launchable staging, metadata, path sanitization, and generated root
+      checks.
+- [ ] 6.5 Add a patch changeset and run the normal verification/release gate without manually
+      selecting a version.
+
 ## Verification log
 
 - `node --test templates/domain-packages/test/*.test.mjs` — 4/4 passed.
@@ -75,3 +87,6 @@
 - Real built-CLI agent smoke with package fields succeeded and generated `apps/smoke-domain/` plus `apps/web/`; real `pnpm install`, `pnpm check`, `pnpm check:smoke-domain`, and `pnpm build:smoke-domain-package` passed. `allowBuilds` produced no required root changes and `apps/smoke-domain/web/` was ignored.
 - Real PTY smoke passed for interactive `agentdock init` package onboarding and for `pnpm create:package` without a spec; both generated `apps/<id>/` and `apps/web/`, and no temporary `package-spec.json` was created.
 - Built `packages/cli/dist/templates/domain-packages/` contains root OpenSpec, `apps/docs/`, the `apps/web/.gitkeep` reservation, and the updated generator; built registry metadata exposes domain-package onboarding.
+- Post-0.28.0 audit: a real 0.28.0 workspace passed install, structural check, dev server, package Web checks, and package staging build, but package `start:web` failed because `apps/<id>/web/server.mjs` was absent; packaged TanStack manifests also retained build-machine absolute paths.
+- Post-0.28.0 hardening: template tests now cover generated root-check composition, package `start:web`, staging sanitization, and metadata behavior (7/7 passed).
+- Post-0.28.0 hardening: a real local-CLI workspace passed install, full root check, package build, absolute-path scan, production startup, and `/en` plus `/zh-CN` HTTP probes.

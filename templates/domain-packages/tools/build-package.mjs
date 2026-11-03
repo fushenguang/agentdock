@@ -1,6 +1,14 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { join, resolve } from 'node:path'
 
 const repositoryRoot = process.cwd()
@@ -43,6 +51,46 @@ for (const assetDirectory of ['client', 'server']) {
     cpSync(source, join(outputRoot, assetDirectory), { recursive: true })
   }
 }
+function packagedTextFiles(directory) {
+  const files = []
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const candidate = join(directory, entry.name)
+    if (entry.isDirectory()) {
+      files.push(...packagedTextFiles(candidate))
+    } else if (/\.(?:js|mjs|cjs|json|html|css|map|txt)$/.test(entry.name)) {
+      files.push(candidate)
+    }
+  }
+  return files
+}
+
+function stripBuildMachinePaths() {
+  const absoluteBuildPath =
+    /(?:\/(?:Users|home|root|github)\/[^\s"'`]+|\/(?:build|workspace|opt|srv|var)\/[^\s"'`/]+\/[^\s"'`]+|[A-Za-z]:\\(?:Users|home|root|build|workspace|github|opt|srv|var)\\[^\s"'`]+)/
+  const leaks = []
+  let rewritten = 0
+
+  for (const file of packagedTextFiles(outputRoot)) {
+    const source = readFileSync(file, 'utf8')
+    let next = source.split(`${appRoot}/`).join('apps/web/')
+    next = next.split(`${repositoryRoot}/`).join('')
+    if (next !== source) rewritten += 1
+    if (absoluteBuildPath.test(next)) leaks.push(file)
+    if (next !== source) writeFileSync(file, next)
+  }
+
+  if (leaks.length > 0) {
+    console.error(
+      `packaged output contains build-machine paths:\n  ${leaks
+        .map((file) => file.slice(outputRoot.length + 1))
+        .join('\n  ')}`,
+    )
+    process.exit(1)
+  }
+  console.log(`Rewrote build-machine paths in ${rewritten} packaged file(s); none remain`)
+}
+
+stripBuildMachinePaths()
 
 const packageJson = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'))
 const contract = JSON.parse(readFileSync(join(packageRoot, 'contract.json'), 'utf8'))
