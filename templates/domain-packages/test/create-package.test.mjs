@@ -133,7 +133,7 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
     const contract = JSON.parse(
       readFileSync(join(root, 'apps', 'new-domain', 'contract.json'), 'utf8'),
     )
-    assert.equal(contract.constraints.specVersion, '>=2.0.0-rc.2 <3.0.0')
+    assert.equal(contract.constraints.specVersion, '>=2.0.0 <3.0.0')
     assert.equal(contract.constraints.protocolVersion, '=2.0.0')
     assert.equal(contract.collaborationMode, 'conversation-led')
     assert.equal(contract.intent.intentSpace[0].fulfillment.skills[0], 'workbench-guide')
@@ -172,11 +172,11 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
     )
     assert.equal(
       standardsLock.standards.find((entry) => entry.id === 'domain-package-spec').version,
-      '2.0.0-rc.2',
+      '2.0.0',
     )
     assert.equal(
       standardsLock.standards.find((entry) => entry.id === 'domain-package-spec').digest,
-      'sha256:72b200a8b77abbacfa63a8435aea575739a6bb1689566dfb0761f16598db88d9',
+      'sha256:2f592b18b8e8bfc1d4f4fd608ea88e41f608ca7ed2e8ea7ebeec98792ee860c3',
     )
 
     const check = spawnSync(process.execPath, [checker, '--repo-root', root], {
@@ -265,3 +265,48 @@ test('duplicate package creation fails without overwriting', () => {
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+// Opt-in parity gate for the pinned standards lock. The pins in create-package.mjs are a snapshot
+// of standards owned by two other repositories, so any change to them (a spec seal, a re-pin of a
+// package-repository standard) must re-run this against real checkouts:
+//
+//   THEFOOLAI_ROOT=<TheFoolAI checkout> DOMAIN_PACKAGES_ROOT=<domain-packages checkout> pnpm test
+//
+// The digest algorithm is never re-implemented here: the package repository's own
+// `scripts/standards-lock.mjs` computes the fresh lock and the generated lock must equal it.
+const parityRoots = {
+  thefoolai: process.env.THEFOOLAI_ROOT,
+  domainPackages: process.env.DOMAIN_PACKAGES_ROOT,
+}
+const parityEnabled = Boolean(parityRoots.thefoolai && parityRoots.domainPackages)
+
+test(
+  'pinned standards lock equals the lock computed from the real standards',
+  { skip: parityEnabled ? false : 'set THEFOOLAI_ROOT and DOMAIN_PACKAGES_ROOT to run' },
+  () => {
+    const root = workspace()
+    const fresh = mkdtempSync(join(tmpdir(), 'agentdock-standards-lock-'))
+    try {
+      const result = createPackage(root, packageSpec(), mockNpx(root))
+      assert.equal(result.status, 0, result.stderr)
+      const computed = spawnSync(
+        process.execPath,
+        [
+          join(parityRoots.domainPackages, 'scripts', 'standards-lock.mjs'),
+          fresh,
+          '--thefoolai-root',
+          parityRoots.thefoolai,
+        ],
+        { encoding: 'utf8' },
+      )
+      assert.equal(computed.status, 0, `${computed.stdout}${computed.stderr}`)
+      assert.deepEqual(
+        JSON.parse(readFileSync(join(root, 'apps', 'new-domain', 'standards-lock.json'), 'utf8')),
+        JSON.parse(readFileSync(join(fresh, 'standards-lock.json'), 'utf8')),
+      )
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+      rmSync(fresh, { recursive: true, force: true })
+    }
+  },
+)

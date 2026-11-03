@@ -11,9 +11,9 @@ const PACKAGE_STANDARDS_LOCK = {
   standards: [
     {
       id: 'domain-package-spec',
-      version: '2.0.0-rc.2',
+      version: '2.0.0',
       commit: null,
-      digest: 'sha256:72b200a8b77abbacfa63a8435aea575739a6bb1689566dfb0761f16598db88d9',
+      digest: 'sha256:2f592b18b8e8bfc1d4f4fd608ea88e41f608ca7ed2e8ea7ebeec98792ee860c3',
     },
     {
       id: 'ai-first-domain-package',
@@ -324,7 +324,7 @@ function packageFiles(spec) {
       id: spec.id,
       ownership: { dataOwner: 'user' },
       constraints: {
-        specVersion: '>=2.0.0-rc.2 <3.0.0',
+        specVersion: '>=2.0.0 <3.0.0',
         protocolVersion: '=2.0.0',
         contentVersion: `=${spec.version}`,
       },

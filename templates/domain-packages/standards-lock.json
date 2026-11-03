@@ -4,6 +4,6 @@
   "agentdockCliVersion": "0.29.0",
   "standards": {
     "domain-package-workspace": "0.3.0",
-    "domain-package-spec": "2.0.0-rc.2"
+    "domain-package-spec": "2.0.0"
   }
 }
