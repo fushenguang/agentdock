@@ -5,8 +5,8 @@ Enterprise web starter built with TanStack Start, React, Astryx/StyleX and Drizz
 ## Stack
 
 - pnpm 10.34.5–12.x, Node 22.13+
-- TypeScript 7, Vite 8, TanStack Start/Router
-- React 19, Astryx 0.6 with prebuilt multi-theme support, StyleX 0.19
+- TypeScript 7, Vite 8, TanStack Start v1 / Router v1
+- React 19, Astryx 0.7 with prebuilt multi-theme support, StyleX 0.19
 - Drizzle ORM 0.45 with SQLite by default and Supabase Postgres as an alternate provider
 - Oxlint + type-aware Oxlint, Oxfmt, Vitest
 
