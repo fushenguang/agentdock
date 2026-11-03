@@ -86,7 +86,7 @@ for (const entry of catalog.packages) {
       error(`${entry.id}: catalog/package version mismatch`)
     if (contract.id !== entry.id) error(`${entry.id}: catalog/contract id mismatch`)
     if (contract.hasWeb !== entry.hasWeb) error(`${entry.id}: catalog/contract hasWeb mismatch`)
-    if (contract.constraints?.specVersion !== '>=2.0.0-rc.2 <3.0.0')
+    if (contract.constraints?.specVersion !== '>=2.0.0 <3.0.0')
       error(`${entry.id}: contract must target domain-package spec 2.0`)
     if (contract.constraints?.protocolVersion !== '=2.0.0')
       error(`${entry.id}: contract must target protocol 2.0.0`)

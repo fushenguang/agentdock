@@ -47,7 +47,7 @@ pnpm check
 The generator creates the package declarations under `apps/<package-id>/`, package-local agent
 context, machine-readable package and Web surfaces, capability catalog, roadmap, and the fixed
 `apps/web/` `web-tanstackstart` workspace member. Generated declarations target domain-package
-spec `>=2.0.0-rc.2 <3.0.0` and protocol `=2.0.0`, including the v2 surface, caller-based Web
+spec `>=2.0.0 <3.0.0` and protocol `=2.0.0`, including the v2 surface, caller-based Web
 authorization, structured capability errors, and the multi-skill index.
 
 ## Commands
