@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.30.3
+
+### Patch Changes
+
+- 252822c: Package the canonical hosted runtime into domain-package Web builds, bundle server dependencies into the OSS artifact, and fail the build unless the staged artifact starts and passes its readiness probe.
+
 ## 0.30.2
 
 ### Patch Changes
