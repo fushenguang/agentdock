@@ -64,6 +64,7 @@ After a package exists, the generator also adds:
 pnpm dev:<package-id>
 pnpm check:<package-id>
 pnpm build:<package-id>-package
+pnpm smoke:<package-id>-package
 ```
 
 The generated package Web commands target the fixed workspace member by its standard name:
@@ -73,14 +74,15 @@ pnpm --filter web dev
 pnpm --filter web check
 ```
 
-A generated package also exposes `start:web`, which launches the installed `apps/web` production server. The public template's `apps/<package-id>/web/` directory is release staging; TheFoolAI's private hosted-runtime assembly remains the packaging boundary for distributable OSS runtime artifacts.
+A generated package also exposes `start:web`, which launches the installed `apps/web` production server. The public template's `apps/<package-id>/web/` directory is release staging, and the build command automatically assembles the hosted runtime (`server.mjs`, protocol runtime, vault supply, and capability service) before running the startup smoke. Call `pnpm smoke:<package-id>-package` when the staged artifact needs an independent readiness check.
 
 ## Source and artifact boundary
 
 The source repository contains package content and Web source only. `apps/<package-id>/web/` and generated
 seed databases are ignored build staging. The build tool rewrites known build-machine paths and fails if
 packaged text still contains an absolute build path. A release pipeline must build them from a clean source clone
-and include them in an immutable artifact with checksum and metadata.
+and include them in an immutable artifact with checksum and metadata. The build fails unless the staged runtime
+starts and `/_thefoolai/v1/health` returns `200` with `status: ready`.
 
 ## AgentDock version
 

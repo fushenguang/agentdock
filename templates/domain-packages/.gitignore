@@ -6,6 +6,7 @@ coverage/
 .env.*
 !.env.example
 .turbo/
+.runtime-smoke/
 dist/
 apps/*/web/
 apps/*/seed/*.db

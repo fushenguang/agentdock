@@ -10,6 +10,8 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { copyHostedRuntimeOutputs } from './hosted-runtime/assemble.mjs'
+import { smokePackagedRuntime } from './smoke-package.mjs'
 
 const repositoryRoot = process.cwd()
 const packageId = process.argv[2]
@@ -51,6 +53,16 @@ for (const assetDirectory of ['client', 'server']) {
     cpSync(source, join(outputRoot, assetDirectory), { recursive: true })
   }
 }
+copyHostedRuntimeOutputs({ outputRoot })
+
+const capabilityServiceSource = join(appRoot, 'src', 'server', 'capability-service.mjs')
+if (!existsSync(capabilityServiceSource)) {
+  console.error(`missing hosted capability service: ${capabilityServiceSource}`)
+  process.exit(1)
+}
+mkdirSync(join(outputRoot, 'server', 'assets'), { recursive: true })
+cpSync(capabilityServiceSource, join(outputRoot, 'server', 'assets', 'capability-service.mjs'))
+
 function packagedTextFiles(directory) {
   const files = []
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -105,9 +117,12 @@ writeFileSync(
       packageId,
       packageVersion: packageJson.version,
       source: 'apps/web',
+      entry: 'server.mjs',
       specVersion: contract.constraints?.specVersion ?? null,
       protocolVersion: contract.constraints?.protocolVersion ?? null,
       contentVersion: contract.constraints?.contentVersion ?? null,
+      webApiVersion: '1.0.0',
+      apiVersion: '1.0.0',
       buildChannel: 'agentdock-domain-packages-template',
     },
     null,
@@ -115,5 +130,10 @@ writeFileSync(
   )}\n`,
 )
 
+const smoke = await smokePackagedRuntime({
+  packageRoot,
+  dataRoot: join(repositoryRoot, '.runtime-smoke', packageId),
+})
 console.log(`Built ${packageId} web staging at ${resolve(outputRoot)}`)
+console.log(`Startup smoke passed: HTTP ${smoke.health.status} on 127.0.0.1:${smoke.port}`)
 console.log('The staging directory is ignored by Git and must be packaged by release CI.')
