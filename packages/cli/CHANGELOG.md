@@ -1,5 +1,13 @@
 # @cogito.ai/cli
 
+## 0.30.4
+
+### Patch Changes
+
+- e5c1089: Sync the hosted runtime from web-scaffold 0.5.1: descriptor `execution` now takes precedence over
+  the legacy sidecar, execution conflicts fail closed, and SSR stream timeout or client replacement
+  no longer terminates the package runtime.
+
 ## 0.30.3
 
 ### Patch Changes
