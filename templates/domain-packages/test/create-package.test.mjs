@@ -66,6 +66,7 @@ function mockNpx(root) {
       'app="apps/web"',
       'mkdir -p "$app/src" "$app/scripts" "$app/dist/client" "$app/dist/server"',
       'printf \'{"name":"web","private":true,"scripts":{"dev":"echo dev","check":"node --test","build":"node scripts/fake-build.mjs"}}\\n\' > "$app/package.json"',
+      'printf "export default defineConfig({\\n  resolve: {\\n    alias: {},\\n  },\\n});\\n" > "$app/vite.config.ts"',
       'printf "import { serve } from \\"srvx\\"; import server from \\"./dist/server/server.js\\"; serve({ fetch: (request) => server.fetch(request) })\\n" > "$app/server.mjs"',
       'printf "export {}\\n" > "$app/src/placeholder.ts"',
       'cat > "$app/scripts/fake-build.mjs" <<\'EOF\'',
@@ -74,7 +75,7 @@ function mockNpx(root) {
       'const root = process.cwd();',
       'mkdirSync(join(root, "dist/client"), { recursive: true });',
       'mkdirSync(join(root, "dist/server"), { recursive: true });',
-      'writeFileSync(join(root, "dist/server/server.js"), "export default {};\\n");',
+      'writeFileSync(join(root, "dist/server/server.js"), "export default { async fetch() { return new Response(\\"ok\\"); } };\\n");',
       'writeFileSync(join(root, "dist/client/app.js"), `appPath=${join(root, "src/app.ts")}\n`);',
       'writeFileSync(join(root, "dist/server/manifest.js"), `filePath: ${JSON.stringify(join(root, "src/routes/__root.tsx"))}\n`);',
       'EOF',
@@ -127,6 +128,14 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
     assert.equal(existsSync(join(root, 'apps', 'new-domain', 'contract.json')), true)
     assert.equal(existsSync(join(root, 'apps', 'new-domain', 'agent', 'web-surface.json')), true)
     assert.equal(existsSync(join(root, 'apps', 'web', 'package.json')), true)
+    assert.equal(
+      existsSync(join(root, 'apps', 'web', 'src', 'server', 'capability-service.mjs')),
+      true,
+    )
+    assert.match(
+      readFileSync(join(root, 'apps', 'web', 'vite.config.ts'), 'utf8'),
+      /ssr:\s*\{[\s\S]*?noExternal:\s*true/,
+    )
     assert.equal(existsSync(join(root, 'apps', 'web', '.gitkeep')), false)
     assert.equal(existsSync(join(root, 'new-domain')), false)
     assert.equal(existsSync(join(root, 'apps', 'new-domain', 'web')), false)
@@ -140,6 +149,10 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
     assert.equal(
       rootPackage.scripts['build:new-domain-package'],
       'node tools/build-package.mjs new-domain',
+    )
+    assert.equal(
+      rootPackage.scripts['smoke:new-domain-package'],
+      'node tools/smoke-package.mjs new-domain',
     )
 
     const catalog = JSON.parse(readFileSync(join(root, 'catalog.json'), 'utf8'))
@@ -215,7 +228,17 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
     )
     assert.equal(packageJson.scripts['start:web'], 'pnpm --dir ../.. --filter web start')
     const metadata = JSON.parse(readFileSync(join(outputRoot, 'build.json'), 'utf8'))
-    assert.equal(metadata.entry, undefined)
+    assert.equal(metadata.entry, 'server.mjs')
+    assert.equal(metadata.webApiVersion, '1.0.0')
+    assert.equal(metadata.apiVersion, '1.0.0')
+    for (const artifact of [
+      'server.mjs',
+      'runtime/server/hosted-runtime.mjs',
+      'runtime/server/vault-supply.mjs',
+      'server/assets/capability-service.mjs',
+    ]) {
+      assert.equal(existsSync(join(outputRoot, artifact)), true, `missing artifact: ${artifact}`)
+    }
     const packagedText = [
       ...readdirSync(join(outputRoot, 'client'), { recursive: true }),
       ...readdirSync(join(outputRoot, 'server'), { recursive: true }),
@@ -225,6 +248,31 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
     const serverManifest = readFileSync(join(outputRoot, 'server', 'manifest.js'), 'utf8')
     assert.equal(clientApp, 'appPath=apps/web/src/app.ts\n')
     assert.equal(serverManifest, 'filePath: "apps/web/src/routes/__root.tsx"\n')
+
+    const smoke = spawnSync(
+      process.execPath,
+      [join(templateRoot, 'tools', 'smoke-package.mjs'), 'new-domain'],
+      {
+        cwd: root,
+        encoding: 'utf8',
+      },
+    )
+    assert.equal(smoke.status, 0, `${smoke.stdout}${smoke.stderr}`)
+    const smokeResult = JSON.parse(smoke.stdout.trim().split('\n').at(-1))
+    assert.equal(smokeResult.ok, true)
+    assert.equal(smokeResult.health.status, 'ready')
+
+    rmSync(join(outputRoot, 'server.mjs'))
+    const missingEntry = spawnSync(
+      process.execPath,
+      [join(templateRoot, 'tools', 'smoke-package.mjs'), 'new-domain'],
+      {
+        cwd: root,
+        encoding: 'utf8',
+      },
+    )
+    assert.equal(missingEntry.status, 1)
+    assert.match(missingEntry.stderr, /packaged runtime is incomplete/)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

@@ -44,6 +44,7 @@ function installMockNpx(): void {
       'app="apps/web"',
       'mkdir -p "$app/src"',
       'printf \'{"name":"web","private":true,"scripts":{"dev":"echo dev","check":"node --test","build":"echo build"}}\\n\' > "$app/package.json"',
+      'printf "export default defineConfig({\\n  resolve: {\\n    alias: {},\\n  },\\n});\\n" > "$app/vite.config.ts"',
       'printf "export {}\\n" > "$app/src/placeholder.ts"',
       '',
     ].join('\n'),
