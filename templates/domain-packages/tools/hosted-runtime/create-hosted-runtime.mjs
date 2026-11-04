@@ -282,6 +282,41 @@ function isSafeRequestId(value) {
   return typeof value === "string" && /^[A-Za-z0-9._-]+$/.test(value);
 }
 
+function isExpectedClientStreamClose(error, response) {
+  const code =
+    error && typeof error === "object" && "code" in error ? error.code : undefined;
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    code === "EPIPE" ||
+    code === "ECONNRESET" ||
+    code === "ERR_STREAM_PREMATURE_CLOSE" ||
+    /Stream lifetime exceeded|Premature close|closed or destroyed stream/i.test(
+      message,
+    ) ||
+    (response.destroyed &&
+      /socket hang up|aborted/i.test(message))
+  );
+}
+
+async function pipeFetchResponseBody(fetchResponse, response) {
+  const source = Readable.fromWeb(fetchResponse.body);
+  // A failed SSR transform can emit before pipeline installs its rejection path.
+  // Keep that lifecycle failure contained; the HTTP server remains reusable.
+  source.on("error", () => {});
+  const closeSource = () => {
+    if (!source.destroyed) source.destroy();
+  };
+  response.once("close", closeSource);
+  try {
+    await pipeline(source, response);
+  } catch (error) {
+    if (!isExpectedClientStreamClose(error, response)) throw error;
+    if (!response.destroyed && !response.writableEnded) response.end();
+  } finally {
+    response.off("close", closeSource);
+  }
+}
+
 function copyResponseHeaders(fetchResponse, response) {
   for (const [name, value] of fetchResponse.headers) {
     if (name.toLowerCase() === "set-cookie") continue;
@@ -316,8 +351,62 @@ export function createFetchRequestHandler(fetchHandler) {
       response.end();
       return;
     }
-    await pipeline(Readable.fromWeb(fetchResponse.body), response);
+    await pipeFetchResponseBody(fetchResponse, response);
   };
+}
+
+export function resolveEffectivePageBoundCapabilityIds(
+  capabilities,
+  sidecarPageBound,
+) {
+  const result = new Set();
+  const capabilityById = new Map(
+    capabilities.map((capability) => [capability.id, capability]),
+  );
+  for (const capabilityId of sidecarPageBound) {
+    if (!capabilityById.has(capabilityId)) {
+      throw new Error(
+        `page-bound declaration references unknown capability: ${capabilityId}`,
+      );
+    }
+  }
+  for (const capability of capabilities) {
+    const declaredExecution = capability.execution;
+    if (
+      declaredExecution !== undefined &&
+      declaredExecution !== "runtime" &&
+      declaredExecution !== "web"
+    ) {
+      throw new Error(
+        `invalid capability execution for ${capability.id}: ${String(declaredExecution)}`,
+      );
+    }
+    if (declaredExecution === "web") {
+      if (!capability.access?.web || !capability.access?.agent) {
+        throw new Error(
+          `page-bound capability must allow web and agent access: ${capability.id}`,
+        );
+      }
+      if (PROTOCOL_CAPABILITY_IDS.has(capability.id)) {
+        throw new Error(
+          `protocol capability cannot be page-bound: ${capability.id}`,
+        );
+      }
+    }
+    if (
+      declaredExecution === "runtime" &&
+      sidecarPageBound.has(capability.id)
+    ) {
+      throw new Error(
+        `execution conflict for ${capability.id}: descriptor runtime, sidecar web`,
+      );
+    }
+    const effectiveExecution =
+      declaredExecution ??
+      (sidecarPageBound.has(capability.id) ? "web" : "runtime");
+    if (effectiveExecution === "web") result.add(capability.id);
+  }
+  return result;
 }
 
 export function createHostedRuntime({
@@ -397,7 +486,11 @@ export function createHostedRuntime({
   }
 
   const capabilityById = new Map(capabilities.map((capability) => [capability.id, capability]));
-  const pageBoundCapabilities = loadPageBoundCapabilities();
+  const sidecarPageBound = loadPageBoundCapabilities();
+  const pageBoundCapabilities = resolveEffectivePageBoundCapabilityIds(
+    capabilities,
+    sidecarPageBound,
+  );
   const protocolVersion = capabilityIndex.protocolVersion ?? "=2.0.0";
   const parentPort = hosted ? (parentPortOption ?? process.parentPort) : null;
   if (
