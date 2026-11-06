@@ -45,6 +45,15 @@ now:
     status: done
     owner: "@sunny"
 
+  # 由 @sunny 于 2026-11-06 在对话中批准（方案 A：「A，但是只做规划，执行交给执行层 codex + deepseek-flash 实现」），
+  # 由 AI 规划层代为添加；合并本条所在的规划 PR 即 Gate ① 与 Gate ② 的批准。
+  # 决策与诊断见 thefoolai `apps/wiki/content/docs/prd/dp-web-design-system.mdx`（W1–W11）。
+  # 三个 change：astryx-web-integration → web-tanstackstart-page-from-template → web-tanstackstart-design-direction。
+  - id: web-design-system
+    title: "Design system for web-tanstackstart projects built by AI agents: Astryx integration with mobile-first page archetypes and design base, page:new entry with provenance checks, design-direction gate"
+    status: planned
+    owner: "@sunny"
+
 next:
   # 由 @sunny 于 2026-10-14 明确授权 AI 添加：为 domain-packages 平台提供
   # AgentDock 官方空仓库模板，并随 0.27.0 发布。
