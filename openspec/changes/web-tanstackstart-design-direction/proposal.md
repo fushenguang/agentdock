@@ -6,9 +6,8 @@ roadmap-id: web-design-system
 
 ## Why
 
-- **No human ever set the direction.** TheFoolAI's `lean-flowkit` Web has no `PRODUCT.md`; the
-  `impeccable` skill was read in 10 sessions but its `init` never ran, so brand, style, and color
-  were improvised in code. The owner's ruling (thefoolai PRD `dp-web-design-system` W4): after
+- **No human ever set the direction.** TheFoolAI's `lean-flowkit` Web has no `PRODUCT.md`, and the
+  `impeccable` skill's `init` never ran, so brand, style, and color were improvised in code. The owner's ruling (thefoolai PRD `dp-web-design-system` W4): after
   initialization and before any real requirement, the agent must hold a design discussion with the
   owner — product brand, UI, UX, color system — and settle the Web's design norms.
 - **The shared rules were overwritten.** The template's `DESIGN.md` held both the shared design
@@ -20,8 +19,8 @@ roadmap-id: web-design-system
   and the package Web is the main surface of the desktop App.
 - **Skills are not discovered.** Codex discovers `<dir>/.agents/skills` from the repository root to
   the working directory; Claude Code discovers `.claude/skills`. Neither reads
-  `apps/web/.github/skills` or the `domain-packages` template's `.agent/skills` (spike Q2; in 23
-  Codex sessions, `impeccable` and `add-web-route` were never in the injected skill list).
+  `apps/web/.github/skills` or the `domain-packages` template's `.agent/skills` (spike Q2, from the
+  Codex skills documentation and source and the Claude Code skills documentation).
 
 ## What Changes
 

@@ -1,7 +1,7 @@
 # Design — astryx-web-integration
 
-Facts this design relies on come from three spikes run on Astryx 0.7.5 (thefoolai
-`.materials/dp-web-design/2026-11-06-direction-research.md` §5–7). Where this document gives exact
+Facts this design relies on come from three spikes run on Astryx 0.7.5 (recorded with thefoolai PRD
+`dp-web-design-system`). Where this document gives exact
 text (Appendix A, B, C), implement it as written; it was written by the planning layer so the
 implementer does not have to make design judgement calls.
 
@@ -130,8 +130,8 @@ Before the first publish:
 
 1. Start the fixture's dev server with each archetype scaffolded as a route.
 2. Render every archetype with `astryx-web samples`: theme `neutral`, modes light and dark, sizes
-   390×844 and 1440×900. Output to
-   `/Users/sunny/Desktop/Workspace/CogitoTech/thefoolai/.materials/design/astryx-web/archetypes/`.
+   390×844 and 1440×900. Output to the directory in the `DESIGN_SAMPLES_DIR` environment variable
+   (the owner sets it in the handoff); never inside this repository.
 3. Check the renders against Appendix A yourself and fix everything you find in one batch, at most
    two rounds.
 4. **Stop.** Report the render directory to the owner and wait. Do not publish until the owner

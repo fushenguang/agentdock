@@ -10,7 +10,7 @@ The owner's ruling (thefoolai PRD `dp-web-design-system` W3): every page must st
 page template, all AI coding agents must follow this strictly, and it must be enforced
 programmatically — building a page means running `astryx build`. Today nothing enforces it:
 
-- In 13 agent sessions that built TheFoolAI's `lean-flowkit` Web, `astryx build` ran 0 times.
+- The agents that built TheFoolAI's `lean-flowkit` Web never ran `astryx build`.
 - The template's docs mention `astryx template` once, as a reference to read, not as the way pages
   are made.
 - A raw `astryx template` output dropped into `src/routes/` has no `Route` export. `tsr generate`

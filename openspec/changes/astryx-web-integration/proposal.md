@@ -8,11 +8,11 @@ roadmap-id: web-design-system
 
 Projects generated from `web-tanstackstart` are mostly written by AI coding agents, including weak
 models (Codex + deepseek-flash). Left alone, they lay pages out from scratch and stack components
-without a plan; the owner judged the first such Web (TheFoolAI `lean-flowkit`) unusable. An audit
-and three spikes on 2026-11-06 (thefoolai PRD `dp-web-design-system` §1, W1–W11) found:
+without a plan; the first such Web (TheFoolAI `lean-flowkit`) has to be redesigned. An audit and
+three spikes on 2026-11-06 (thefoolai PRD `dp-web-design-system` §1, W1–W11) found:
 
-- In 13 agent sessions that built `lean-flowkit`, `astryx build` ran 0 times; every page was
-  assembled from component APIs.
+- The agents that built `lean-flowkit` never ran `astryx build`; every page was assembled from
+  component APIs.
 - Astryx's own page templates cannot be used as-is in this template. Each one brings its own shell
   (`AppShell`, a local `Theme` with its own appearance state), viewport media queries, icon packages
   the template does not have (`@heroicons/react`, `lucide-react`), and 30–170 hard-coded English

@@ -1,7 +1,7 @@
 # Design — web-tanstackstart-design-direction
 
-Facts come from the thefoolai audit and spikes (`.materials/dp-web-design/2026-11-06-direction-research.md`
-§1, §6). Appendix A–C are exact text written by the planning layer; implement them as written.
+Facts come from the audit and spikes recorded with thefoolai PRD `dp-web-design-system`. Appendix
+A–C are exact text written by the planning layer; implement them as written.
 Paths are inside `templates/web-tanstackstart/` unless they say otherwise.
 
 ## D1 · Skill packaging and discovery

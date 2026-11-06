@@ -1,7 +1,6 @@
 # Design — web-tanstackstart-page-from-template
 
-Facts come from spike Q1 (thefoolai `.materials/dp-web-design/2026-11-06-direction-research.md`
-§5; prototype scripts were in that session's scratchpad). Paths below are inside
+Facts come from spike Q1 (recorded with thefoolai PRD `dp-web-design-system`). Paths below are inside
 `templates/web-tanstackstart/` unless they say otherwise.
 
 ## D1 · Dependency and the Astryx agent block
