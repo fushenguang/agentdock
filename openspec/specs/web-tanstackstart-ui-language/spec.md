@@ -9,22 +9,22 @@ with the CLI starts from the accepted design and interaction language instead of
 
 ### Requirement: Embedded App panel environment
 
-The template's UI guidance MUST state that the Web is embedded in the TheFoolAI App's right-hand
-panel as the auxiliary workbench of the App's coding agent, that the panel is the design target
-(default ~380px, hard minimum 360px, wider only as an enhancement), and that screen width is the
-scarcest resource. `DESIGN.md`, `LLM.md` and `AGENTS.md` MUST carry this context, and the layout
-MUST NOT introduce horizontal scrolling at any supported panel width.
+The template's UI guidance MUST state that the same Web runs in three first-class places: the
+TheFoolAI desktop App, where the package Web is the main surface; the mobile App's WebView on a
+phone with touch; and a standalone browser. Phone (390x844), desktop (1440x900), and the narrowest
+supported width (360px) MUST be explicit design targets. Widths MUST use container queries rather
+than viewport queries, and layouts MUST NOT introduce horizontal scrolling at any supported width.
 
 #### Scenario: Agent reads the environment before building UI
 
-- **WHEN** an agent or developer reads `DESIGN.md`, `LLM.md` or `AGENTS.md` in a generated project
-- **THEN** the embedded-App-panel context, the narrow default width, and the width-as-scarce-resource
-  rule are stated
+- **WHEN** an agent or developer reads `DESIGN.md`, `LLM.md`, or `AGENTS.md` in a generated project
+- **THEN** it states that phone and desktop are first-class surfaces and points to
+  `astryx docs dock-environment`
 
 #### Scenario: Layout holds at panel widths
 
-- **WHEN** a page renders at a forced 380px viewport and a forced 900px viewport
-- **THEN** no horizontal scrolling appears at either width
+- **WHEN** a page renders at 390x844 and 1440x900
+- **THEN** no horizontal scrolling appears, and width-dependent behavior follows container queries
 
 ### Requirement: Shared layout primitives
 
