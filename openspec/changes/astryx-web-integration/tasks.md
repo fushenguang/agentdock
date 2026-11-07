@@ -62,17 +62,17 @@
 - [x] 7.1 Render all six archetypes (theme `neutral`; light and dark; 390×844 and 1440×900) into the
       D9 directory. Check them against Appendix A and fix everything in one batch, at most two
       rounds.
-- [ ] 7.2 **Stop and wait for the owner.** Report the directory and its `index.json`. Continue only
+- [x] 7.2 **Stop and wait for the owner.** Report the directory and its `index.json`. Continue only
       after approval, and quote the approval (date and words) in the PR description.
 
 ## 8. Docs
 
-- [ ] 8.1 An `apps/docs` page in English and Chinese: what the integration contains, the six
+- [x] 8.1 An `apps/docs` page in English and Chinese: what the integration contains, the six
       archetypes, and how a project uses them.
 
 ## 9. Close
 
-- [ ] 9.1 `openspec validate astryx-web-integration --strict`, `pnpm check-types`, `pnpm lint`,
+- [x] 9.1 `openspec validate astryx-web-integration --strict`, `pnpm check-types`, `pnpm lint`,
       and `pnpm format` all clean; add a `minor` changeset for `@cogito.ai/astryx-web`.
 
 After the implementation PR merges (not a checkbox): publish from `main` per D10, then open a
