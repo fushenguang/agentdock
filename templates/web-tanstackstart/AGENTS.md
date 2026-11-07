@@ -69,6 +69,10 @@ The standalone project supports pnpm `>=10.34.5 <13` and recommends 12.4.1. The 
 
 ## UI Rules
 
+- Create every page with `pnpm page:new "<intent>" --route <path>`; never lay a page out from
+  scratch. Put the page type last (`mobile settings page`, not `settings page on mobile`). Change
+  an existing page only inside its existing sections.
+- `pnpm build` fails when a component route has no template provenance marker.
 - Use Astryx components for controls and structure; use StyleX only for remaining first-party layout or product styling.
 - Prefer native Astryx primitives (`Stack`, `Grid`, `Section`, `List`, `EmptyState`, `Center`, `Timestamp`, and component-specific APIs) over hand-rolled equivalent markup.
 - Use Astryx design tokens instead of hard-coded colors, spacing, radii, or shadows when a token exists.
@@ -88,3 +92,47 @@ Vendored skills live under `.github/skills/`. Their upstream revisions and licen
 - Use the Matt Pocock engineering skills for requirements, TDD, diagnosis, design, implementation, and review.
 - Use `impeccable` for UI critique, polish, responsive behavior, and accessibility checks.
 - Skills add task-specific guidance; they do not override this file.
+
+<!-- ASTRYX:START -->
+
+Astryx v0.7.5 · 173 components
+CLI: run every command as `pnpm exec astryx <cmd>` (shown below as `astryx ...`).
+
+SETUP (once, in app entry e.g. main.tsx) — without these, components render unstyled:
+import "@astryxdesign/core/reset.css";
+import "@astryxdesign/core/astryx.css";
+
+WORKFLOW — start every page from a template, never from scratch:
+
+1. `astryx build "<idea>"` — names the template to scaffold from and the parts it lacks.
+2. `astryx template <name> <path>` — scaffold it; keep its frame, gap and padding; replace the content.
+3. `astryx template <Block>` for parts it lacks; `astryx component <Name>` to read props before using one.
+   Changing an existing page? Keep it: skip step 2 and add blocks/components inside its sections.
+   Before you deliver a build, run `astryx doctor --built <dir>`; don't deliver it if it fails.
+
+RULES:
+
+- No <div> — components handle all layout and spacing.
+- Read `astryx docs layout` before changing a template's frame.
+- Dense data = rows (Table, List/Item), not Card-wrapped lists. Badge = counts only.
+- Style with component props first, then the xstyle prop / StyleX tokens. No raw hex/px.
+- Palettes and custom colors go through the theme, never :root overrides. Run `astryx theme add <slug>` to import; `theme eject <slug>` only forks source. See `astryx docs theme`.
+- SELF-CHECK: re-read the file; replace any className=, style={{…}}, raw <div>/<span>, imported .css/@apply, or hardcoded #hex/px with the component or the xstyle prop + a token.
+
+`astryx help` lists every command. Key ones beyond the workflow:
+search "<query>" find any component / hook / doc / template
+discover <words> integrations you could add
+docs <topic> getting-started, principles, tokens, theme … (`astryx docs` lists all)
+docs cli commands and API reference
+docs authoring build an integration package, and every field it holds
+upgrade --from <old version> --apply run after a dependency bump
+
+INTEGRATIONS:
+
+- `@cogito.ai/astryx-web`: Create every page from a template. Put the page type last: write "mobile settings page", not "settings page on mobile".
+- `@cogito.ai/astryx-web`: Prefer the dock-* archetypes; when you know the one you need, run astryx template <id> directly.
+- `@cogito.ai/astryx-web`: Read astryx docs dock-design-base before UI work. Phone (390px) and desktop (1440px) are both first-class; touch targets are at least 44px.
+- `@cogito.ai/astryx-web`: Keep every string in the app catalogs, every color a token, every breakpoint a container query; no style attributes and no viewport media queries.
+- `@cogito.ai/astryx-web`: Before calling UI work done, render it at 390x844 and 1440x900 in light and dark and check it against astryx docs dock-visual-acceptance.
+
+<!-- ASTRYX:END -->

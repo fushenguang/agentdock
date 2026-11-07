@@ -36,6 +36,9 @@ Data flow: route → feature → core repository contract → infra provider/imp
 10. Put user-facing strings in all `src/i18n/messages.ts` catalogs and resolve them with `useTranslator()`.
 11. Never commit secrets. `.env.example` contains placeholders only.
 12. Do not edit generated `src/routeTree.gen.ts` or Drizzle metadata by hand.
+13. Create every page with `pnpm page:new "<intent>" --route <path>`; never lay a page out from
+    scratch. Put the page type last (`mobile settings page`, not `settings page on mobile`).
+14. Do not ship a component route without the line-1 template provenance marker.
 
 ## Data Layer
 
@@ -72,6 +75,7 @@ npx --yes pnpm@12.4.1 install
 pnpm generate-routes
 pnpm format:check
 pnpm lint
+pnpm check:pages
 pnpm check-types
 pnpm test
 pnpm build
