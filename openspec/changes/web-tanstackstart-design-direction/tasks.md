@@ -13,7 +13,9 @@
 
 ## 2. Skill (D1, Appendix A)
 
-- [ ] 2.1 `packages/astryx-web/skills/astryx-web-design/` with the four files of Appendix A.
+- [ ] 2.1 `packages/astryx-web/skills/astryx-web-design/` with the four files of Appendix A. The
+      page-building reference tells agents to put the page type last (`mobile settings page`, not
+      `settings page on mobile`).
 - [ ] 2.2 Vendored copies and `.claude/skills` symlinks in both templates.
 - [ ] 2.3 `tools/check-skill.mjs` in `check`, and the `design:sync-skill` script. Prove it bites:
       editing one line of the vendored `SKILL.md` fails `pnpm check`; `pnpm design:sync-skill`

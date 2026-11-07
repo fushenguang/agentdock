@@ -1,0 +1,61 @@
+---
+title: Astryx Web 集成
+description: AgentDock Web 项目的手机优先页面骨架、设计指引与视觉检查。
+---
+
+# Astryx Web 集成
+
+`@cogito.ai/astryx-web` 是面向 `web-tanstackstart` 生成项目的 Astryx integration。它为 Agent
+提供一组有明确归属的页面模板、共享设计规则和可重复执行的视觉检查命令。
+
+## 包含什么
+
+- 6 个手机优先的页面骨架
+- 10 篇设计基座文档，使用 `pnpm exec astryx docs dock-design-base` 阅读
+- 5 条由 `astryx init` 写入 Agent 指引的内容
+- 样张渲染命令 `astryx-web samples`
+- 模板源码检查与页面意图回归检查
+
+## 页面骨架
+
+| Id                  | 用途                             |
+| ------------------- | -------------------------------- |
+| `dock-landing`      | 带模块入口的一级落地页           |
+| `dock-workbench`    | 二级一屏工作台                   |
+| `dock-list`         | 带空状态和无结果状态的列表       |
+| `dock-form-flow`    | 创建表单或手机优先的多步表单向导 |
+| `dock-settings`     | 设置导航与可滚动分区面板         |
+| `dock-editor-frame` | 带领域内容插槽的全幅编辑器框架   |
+
+列表、表单、设置和编辑器骨架会替换 Core 中相同意图的模板。Core 原模板仍可通过
+`--package @astryxdesign/core` 使用。
+
+## 在项目中使用
+
+先与 Astryx 一起安装 integration，再让 `astryx build` 选择页面：
+
+```bash
+pnpm add @cogito.ai/astryx-web
+pnpm exec astryx build "mobile settings page" --json
+pnpm exec astryx docs dock-design-base
+```
+
+把页面类型放在最后：写 `mobile settings page`，不要写 `settings page on mobile`。如果入口拒绝
+该意图，请从输出列表中选择骨架，并用模板 id 显式传入。
+
+在宣布 UI 完成前，为每个改动路由渲染两种尺寸和明暗模式：
+
+```bash
+astryx-web samples \
+  --base-url http://localhost:3000 \
+  --route /zh-CN/settings \
+  --theme neutral \
+  --mode light \
+  --mode dark \
+  --size 390x844 \
+  --size 1440x900 \
+  --out design-samples
+```
+
+`CHROME_PATH` 必须指向系统 Chrome 可执行文件。命令会为每个组合生成一张 PNG，并生成包含路由
+和 git commit 的 `index.json`。请按 `pnpm exec astryx docs dock-visual-acceptance` 检查这些图片。

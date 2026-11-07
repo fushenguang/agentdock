@@ -1,0 +1,26 @@
+{
+  "direct": [
+    { "intent": "landing page with module entries", "name": "dock-landing" },
+    { "intent": "workbench page with a top bar and sections", "name": "dock-workbench" },
+    {
+      "intent": "list page for documents with search and recent items",
+      "name": "dock-list"
+    },
+    { "intent": "settings page with sections", "name": "dock-settings" },
+    { "intent": "creation form with several steps", "name": "dock-form-flow" },
+    { "intent": "canvas editor workspace", "name": "dock-editor-frame" },
+    { "intent": "diagram editor page", "name": "dock-editor-frame" },
+    { "intent": "mobile landing page", "name": "dock-landing" },
+    { "intent": "mobile list page", "name": "dock-list" },
+    { "intent": "mobile settings page", "name": "dock-settings" },
+    { "intent": "mobile wizard form", "name": "dock-form-flow" },
+    { "intent": "list page for mobile", "name": "dock-list" }
+  ],
+  "rejected": [
+    { "intent": "landing page on mobile", "name": "dock-landing" },
+    { "intent": "list page on mobile", "name": "dock-list" },
+    { "intent": "settings page on mobile", "name": "dock-settings" },
+    { "intent": "wizard form on mobile", "name": "dock-form-flow" },
+    { "intent": "library page", "name": "dock-list" }
+  ]
+}
