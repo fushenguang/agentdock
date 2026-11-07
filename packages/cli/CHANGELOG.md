@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.32.0
+
+### Minor Changes
+
+- 4e33f44: Add the design-direction skill, style archetypes, project design contract and gate, sample rendering workflow, and generated-project skill discovery.
+
 ## 0.31.0
 
 ### Minor Changes
