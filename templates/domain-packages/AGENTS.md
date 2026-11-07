@@ -6,7 +6,7 @@ generator.
 
 ## Required order
 
-1. Read `README.md`, `standards-lock.json`, and the relevant skill under `.agent/skills/`.
+1. Read `README.md`, `standards-lock.json`, and the relevant skill under `.agents/skills/`.
 2. For agent/CI work, write a non-interactive `package-spec.json` matching
    `schemas/package-spec.schema.json`, then run `pnpm create:package --spec package-spec.json`.
 3. For an interactive human session, run `pnpm create:package` and answer the package id and intent

@@ -4,7 +4,8 @@
 
 ## Read First
 
-Read `LLM.md` before making changes. It is the authoritative guide for technology choices, architecture, data flow, feature recipes, UI conventions, and verification. This file is the compact execution checklist.
+Read `PRODUCT.md`, then `DESIGN.md`, then the `astryx-web-design` skill, then `LLM.md` before making
+changes. This file is the compact execution checklist.
 
 ## Stack
 
@@ -66,8 +67,10 @@ npx --yes pnpm@12.4.1 install
 - Write first-party component styles with `stylex.create`.
 - Keep theme CSS imports in `src/styles/app.css`; use `AppearanceProvider` for theme and mode selection.
 - Keep localized pages under `src/routes/$locale/` and preserve path/query/hash when switching locale.
+- Phone and desktop are both first-class: the same Web runs in the mobile App, the desktop App
+  (as the main surface), and a browser. Read `astryx docs dock-environment`.
 - Follow `DESIGN.md` before adding visual patterns.
-- Run the `impeccable` review for non-trivial UI work.
+- Run the `astryx-web-design` acceptance procedure for UI work.
 
 ## Validation
 
@@ -85,4 +88,8 @@ Use `pnpm check` for the complete gate. A change is not complete until the relev
 
 ## Skills
 
-Start with `.github/skills/THIRD_PARTY_SKILLS.md`, then load the smallest relevant skill. `keel` and `coding-protocol` govern architecture/risk; Matt Pocock's engineering skills govern development workflow; `impeccable` governs UI quality.
+Codex discovers repository skills under `.agents/skills`; Claude Code discovers them through
+`.claude/skills` symlinks. Start with `.github/skills/THIRD_PARTY_SKILLS.md` for Copilot, then load
+the smallest relevant skill. `keel` and `coding-protocol` govern architecture/risk; Matt Pocock's
+engineering skills govern development workflow; `astryx-web-design` governs UI direction and
+acceptance.

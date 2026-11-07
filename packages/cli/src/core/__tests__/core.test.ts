@@ -3,7 +3,16 @@ import { isVersionCompatible, checkVersion } from '../version.js'
 import { scaffoldProject } from '../scaffold.js'
 import { getTemplate, getTemplates } from '../registry.js'
 import type { RegistryTemplate } from '../registry.js'
-import { mkdirSync, readdirSync, rmSync, writeFileSync, readFileSync, existsSync } from 'fs'
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  readlinkSync,
+  rmSync,
+  writeFileSync,
+} from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
@@ -306,6 +315,25 @@ describe('scaffoldProject', () => {
 
     expect(webPkg.devDependencies?.['@cogito.ai/eslint-config']).toBe('workspace:*')
     expect(webPkg.devDependencies?.['@cogito.ai/tsconfig']).toBe('workspace:*')
+  })
+
+  it('keeps the design skill symlink relative when scaffolding web-tanstackstart', () => {
+    const targetDir = join(tmpDir, 'my-web')
+    const template = getTemplate('web-tanstackstart')
+    if (!template) throw new Error('web-tanstackstart template not found in registry')
+
+    const result = scaffoldProject({
+      targetDir,
+      name: 'my-web',
+      template,
+      packageManager: 'pnpm',
+      mode: 'standalone',
+    })
+
+    expect(result.ok).toBe(true)
+    const link = join(targetDir, '.claude', 'skills', 'astryx-web-design')
+    expect(lstatSync(link).isSymbolicLink()).toBe(true)
+    expect(readlinkSync(link)).toBe('../../.agents/skills/astryx-web-design')
   })
 
   it('scaffolds game-web-phaser template and rewrites package.json', () => {

@@ -6,12 +6,17 @@ This is a TanStack Start application that keeps AgentDock's `core` / `features` 
 
 ## Read First
 
-Read `LLM.md` before implementation. It contains the stack rationale, architecture, import rules, data flow, feature recipes, UI guidance, and verification workflow. This file defines execution boundaries; `LLM.md` defines how to build within them.
+Read `PRODUCT.md`, then `DESIGN.md`, then the `astryx-web-design` skill, then `LLM.md` before
+implementation. `PRODUCT.md` records the audience and tasks, `DESIGN.md` records the approved
+project contract, and the skill defines the design-direction and page workflow. `LLM.md` contains
+the stack rationale, architecture, import rules, data flow, feature recipes, UI guidance, and
+verification workflow. This file defines execution boundaries.
 
 ## May Execute Autonomously
 
 - `pnpm install`, `pnpm dev`, `pnpm dev:prepare`, `pnpm build`, `pnpm check`, `pnpm check-types`, `pnpm lint`, `pnpm format:check`, `pnpm test`
 - `pnpm generate-routes`
+- `pnpm design:samples`, `pnpm design:sync-skill`, `pnpm check:pages`, `pnpm check:design`
 - `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:studio`
 - Creating or editing files inside `src/core`, `src/features`, `src/infra`, `src/routes`, and `src/components`
 - Adding feature tests and updating `LLM.md`, `DESIGN.md`, or `README.md`
@@ -79,18 +84,22 @@ The standalone project supports pnpm `>=10.34.5 <13` and recommends 12.4.1. The 
 - Change themes through `AppearanceProvider`; use prebuilt Astryx themes and their compiled CSS rather than creating route-local theme stores.
 - Add every user-facing string to all catalogs in `src/i18n/messages.ts` and resolve it with `useTranslator()`.
 - Keep application pages under the `/$locale` route layout unless a route is intentionally global.
-- **Width is the scarcest resource.** This Web is embedded in the App's right-hand panel (~380px, hard minimum 360px), so branch on container queries rather than viewport width and never introduce horizontal scrolling.
+- Phone and desktop are both first-class: the same Web runs in the mobile App, the desktop App
+  (as the main surface), and a browser. Branch on container queries rather than viewport width and
+  never introduce horizontal scrolling. Read `pnpm exec astryx docs dock-environment`.
 - Build a second-level page on `PageShell` (the one-screen skeleton); put configuration, forms and secondary detail in a `SideDrawer`, rare actions in one end-aligned `MoreMenu`, and keep cards to single, independently enterable units — a page is `Section` + `Divider` + rows, not a wall of boxes.
 - Do not add Tailwind, CSS-in-JS runtimes, or a second component library without approval.
-- Apply the `impeccable` skill before declaring a UI change complete.
+- Apply the `astryx-web-design` skill before declaring UI work complete.
 
 ## Agent Skills
 
-Vendored skills live under `.github/skills/`. Their upstream revisions and licenses are recorded in `.github/skills/THIRD_PARTY_SKILLS.md`.
+Codex discovers repository skills under `.agents/skills`; Claude Code discovers them through
+`.claude/skills` symlinks. Skills under `.github/skills/` are for Copilot and are read by path when
+needed. Third-party revisions and licenses are recorded in `.github/skills/THIRD_PARTY_SKILLS.md`.
 
 - Use `keel` and `coding-protocol` for architecture and execution-risk decisions.
 - Use the Matt Pocock engineering skills for requirements, TDD, diagnosis, design, implementation, and review.
-- Use `impeccable` for UI critique, polish, responsive behavior, and accessibility checks.
+- Use `astryx-web-design` for the design-direction discussion, page building, and visual acceptance.
 - Skills add task-specific guidance; they do not override this file.
 
 <!-- ASTRYX:START -->

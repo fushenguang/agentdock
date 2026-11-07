@@ -177,13 +177,17 @@ Write `PRODUCT.md`, show it, and correct what the owner corrects.
 
 1. For the chosen direction, generate two or three palette candidates with
    `pnpm exec astryx theme palette generate <config>` (`pnpm exec astryx docs cli/commands/theme-palette`).
-2. Build each candidate as a theme (`pnpm exec astryx docs author-a-theme`) and render the landing
-   page with each one, light and dark, phone and desktop, into `<dir>/round2/<candidate>`.
+2. Build each candidate as a theme (`pnpm exec astryx docs author-a-theme`). An ejected theme's
+   local icon file may import packages the app does not have; use the base theme package's exported
+   icon registry instead of adding a dependency. Render the landing page with each candidate, light
+   and dark, phone and desktop, into `<dir>/round2/<candidate>`.
 3. Send the candidates with their contrast ratios for body text. **Stop and wait.**
 
 ## 4 · Record
 
-1. Keep the chosen brand theme as the project's default theme; remove the other candidates.
+1. Keep the chosen brand theme as the project's default theme; add its built module and CSS to
+   `AppearanceProvider`'s theme options, update its explicit theme-list test, and remove the other
+   candidates.
 2. Fill `DESIGN.md`: front matter, then Overview, Colors, Typography, Layout and navigation, Pages
    (planned routes with their archetypes), Do and don't.
 3. Add a dated entry to `## Decisions`: what was chosen, what else was shown, and the owner's words.

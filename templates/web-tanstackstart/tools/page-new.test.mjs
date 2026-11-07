@@ -14,6 +14,24 @@ export interface PageCatalog {
 export const pageCatalogs: readonly PageCatalog[] = [];
 `;
 
+const APPROVED_DESIGN = `---
+status: approved
+approvedBy: Test Owner
+approvedAt: 2026-11-07
+archetype: quiet-tool
+theme:
+  base: neutral
+  brandColor: oklch(0.62 0.12 260)
+  modes: [light, dark]
+---
+
+# Design contract
+
+## Decisions
+
+2026-11-07: Approved for tests.
+`;
+
 const SETTINGS_SOURCE = `import { Heading } from "@astryxdesign/core/Heading";
 
 export default function DockSettings() {
@@ -30,6 +48,7 @@ function makeRoot() {
   const root = mkdtempSync(join(tmpdir(), "page-new-test-"));
   mkdirSync(join(root, "src/i18n/pages"), { recursive: true });
   writeFileSync(join(root, "src/i18n/pages/index.ts"), PAGES_INDEX);
+  writeFileSync(join(root, "DESIGN.md"), APPROVED_DESIGN);
   return root;
 }
 
@@ -79,6 +98,25 @@ afterEach(() => {
 });
 
 describe("page:new", () => {
+  it("refuses while the design direction is draft", () => {
+    const root = makeRoot();
+    try {
+      writeFileSync(
+        join(root, "DESIGN.md"),
+        APPROVED_DESIGN.replace("status: approved", "status: draft"),
+      );
+      expect(() =>
+        runPageNew(["mobile settings page", "--route", "settings"], {
+          cwd: root,
+          astryx: "astryx",
+          execFile: vi.fn(),
+        }),
+      ).toThrow(/Design direction is not approved/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("rejects fallback and prints candidates plus the page-word-order hint", () => {
     const root = makeRoot();
     const execFile = mockExec(
