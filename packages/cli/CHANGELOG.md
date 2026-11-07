@@ -1,5 +1,12 @@
 # @cogito.ai/cli
 
+## 0.31.0
+
+### Minor Changes
+
+- a11cb3d: Add the `web-tanstackstart` page creation entry, provenance enforcement, UI lint rules, and sample
+  pages generated from the mobile-first Astryx Web archetypes.
+
 ## 0.30.4
 
 ### Patch Changes
