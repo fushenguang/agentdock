@@ -1,6 +1,6 @@
 {
   "name": "@cogito.ai/astryx-web",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "Mobile-first page archetypes and design guidance for AgentDock web projects",
   "publishConfig": {
