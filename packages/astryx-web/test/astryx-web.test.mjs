@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
+import { mkdtempSync, rmSync, symlinkSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -69,3 +71,41 @@ test('names CHROME_PATH when it is missing', () => {
   assert.notEqual(result.status, 0)
   assert.match(`${result.stdout}${result.stderr}`, /CHROME_PATH/)
 })
+
+test(
+  'runs through a package-manager shim symlink',
+  { skip: process.platform === 'win32' },
+  () => {
+    const shimDir = mkdtempSync(join(tmpdir(), 'astryx-web-bin-'))
+    const shim = join(shimDir, 'astryx-web')
+    symlinkSync(cli, shim)
+    try {
+      const env = { ...process.env }
+      delete env.CHROME_PATH
+      const result = spawnSync(
+        process.execPath,
+        [
+          shim,
+          'samples',
+          '--base-url',
+          'http://localhost:3000',
+          '--route',
+          '/',
+          '--theme',
+          'neutral',
+          '--mode',
+          'light',
+          '--size',
+          '390x844',
+          '--out',
+          'samples',
+        ],
+        { encoding: 'utf8', env },
+      )
+      assert.notEqual(result.status, 0)
+      assert.match(`${result.stdout}${result.stderr}`, /CHROME_PATH/)
+    } finally {
+      rmSync(shimDir, { recursive: true, force: true })
+    }
+  },
+)

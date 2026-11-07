@@ -4,14 +4,13 @@ import type { ReactNode } from "react";
 /**
  * Page content container (the single width/rhythm owner for a page).
  *
- * - Always `width: 100%`: in a narrow panel (the normal ~380px case) there is no room for centred
- *   gutters;
+ * - Always `width: 100%`: on a phone there is no room for centred gutters;
  * - Section gap follows the **container** width (16px narrow / 24px from 420px);
  * - The width cap only applies once the container is ≥640px, and it is 44rem — not a fixed 1200px
- *   (which is unreachable inside the App panel). From 960px it relaxes to 56rem so a full-width
+ *   (which is wrong for every host). From 960px it relaxes to 56rem so a full-width
  *   browser row of cards still breathes; body text stays constrained by the card grid.
  *
- * Width is the scarcest resource in the embedded App panel, so every breakpoint here is a
+ * Width is measured from the container in every host, so every breakpoint here is a
  * `@container` query resolved against `TemplateShell`'s `container-type: inline-size` root.
  */
 const styles = stylex.create({

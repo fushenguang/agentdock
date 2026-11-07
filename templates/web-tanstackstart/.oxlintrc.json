@@ -59,6 +59,9 @@
     "dist/**",
     ".output/**",
     "src/routeTree.gen.ts",
+    "src/themes/**/*.css",
+    "src/themes/**/*.d.ts",
+    "src/themes/**/*.js",
     "drizzle/**"
   ]
 }

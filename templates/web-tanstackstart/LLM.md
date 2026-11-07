@@ -2,6 +2,9 @@
 
 > Read this file before changing the project. It is the compact source of truth for technology rationale, architecture, constraints, and implementation workflows.
 
+Before UI work, read `PRODUCT.md`, then `DESIGN.md`, then the `astryx-web-design` skill. A feature
+page cannot start while `DESIGN.md` is `draft`.
+
 ## 1. Project Mission
 
 This is a standalone enterprise web application starter designed for AI coding agents and teams working in internal networks.
@@ -292,7 +295,9 @@ Rules:
 - Do not add Tailwind.
 - Do not write hard-coded theme colors unless the value is intentionally outside the design system.
 - Preserve CSS layer order: `reset < astryx-base < astryx-theme < product`.
-- **Width is the scarcest resource.** This Web lives in the App's right-hand panel (~380px, hard minimum 360px): branch on **container queries**, never on viewport width, and never introduce horizontal scrolling.
+- Phone and desktop are both first-class: the same Web runs in the mobile App, the desktop App
+  (as the main surface), and a browser. Branch on **container queries**, never on viewport width,
+  and never introduce horizontal scrolling. Read `pnpm exec astryx docs dock-environment`.
 - **Cards are the exception.** A page is `Section` + `Divider` + `List`/rows. Card chrome stays one level deep and is used only for a discrete, independently enterable unit (a module entry, a record awaiting a decision) — never for a whole form, list or page section, and never nested.
 - **No repeated titles or standing copy.** A first-level route names itself only through a `VisuallyHidden` `h1`; delete the paragraph that merely introduces a section.
 - Include loading, empty, error, disabled, and success states where relevant.
@@ -377,12 +382,14 @@ Rules:
 
 ## 12. Agent Skills
 
-Skills live under `.github/skills/`.
+Codex discovers repository skills under `.agents/skills`; Claude Code discovers them through
+`.claude/skills` symlinks. Skills under `.github/skills/` are for Copilot and are read by path when
+needed.
 
 - `keel`: architecture, module boundaries, migrations, and long-term evolution
 - `coding-protocol`: risk-graded execution and verification discipline
 - Matt Pocock engineering skills: requirements, TDD, diagnosis, implementation, review
-- `impeccable`: UI critique, polish, responsiveness, accessibility, and anti-slop review
+- `astryx-web-design`: design-direction discussion, page building with `pnpm page:new`, and visual acceptance
 
 Start with the smallest relevant skill. `AGENTS.md` and this file override any conflicting skill advice.
 

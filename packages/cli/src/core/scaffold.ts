@@ -525,6 +525,7 @@ export function scaffoldProject(options: ScaffoldOptions): ScaffoldResult | Scaf
     mkdirSync(targetDir, { recursive: true })
     cpSync(sourceDir, targetDir, {
       recursive: true,
+      verbatimSymlinks: true,
       filter: (source) => shouldCopyTemplatePathForMode(source, sourceDir, placement.mode),
     })
 

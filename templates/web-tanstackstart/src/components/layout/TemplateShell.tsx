@@ -1,21 +1,20 @@
 /**
  * The application shell.
  *
- * The Web is embedded in the TheFoolAI App's **right-hand panel** and is the auxiliary workbench of
- * the App's coding agent: the panel is the design target (default ~380px, hard minimum 360px), width
- * is the scarcest resource, and mouse + keyboard are the normal input. So:
+ * The same Web runs in the mobile App, the desktop App (as the main surface), and a standalone
+ * browser. Phone and desktop are both first-class, and touch is a normal input. So:
  *
  * 1. **Width is measured by the container, not the viewport.** The shell root is a
  *    `container-type: inline-size` container and everything inside branches on `@container` queries,
  *    which stay correct whether the Web is a native view, an iframe, or a split pane.
  * 2. **No top bar.** Navigation is the bottom pill (`BottomNav`) and global preference lives on the
- *    settings route, so no page spends a row of panel height repeating the shell.
+ *    settings route, so no page spends a row of viewport height repeating the shell.
  * 3. **Vertical first, density follows the width.** Narrow containers use 12px inline padding with a
  *    16px section gap, ≥420px uses 20px/24px; the bottom reserves only the real height of the
  *    floating navigation.
  *
- * Height stays viewport-relative (`100dvh`, not a container query) because the host gives this Web its
- * own viewport — the panel *is* the viewport of the embedded view, so `100dvh` is the panel height.
+ * Height stays viewport-relative (`100dvh`, not a container query) because each host gives this Web
+ * its own viewport, so `100dvh` is the usable height of that host.
  * Two numbers follow from that and must move together: the `4.5rem` reserved below for the floating
  * navigation, and `PageContainer`'s `isFullHeight` cap `calc(100dvh - 5.75rem)` (this reservation plus
  * the larger block-start step). Start a comment in the other file before changing either.

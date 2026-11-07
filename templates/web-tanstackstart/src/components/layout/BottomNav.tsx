@@ -1,9 +1,9 @@
 /**
  * Bottom floating navigation.
  *
- * The Web is embedded in the App's right-hand panel, so the narrow viewport is the normal case:
- * navigation is a fixed, centred pill at the bottom rather than a top bar (which would spend a row
- * of the panel's scarcest resource, its height, and push content down on every page). It uses
+ * The same Web runs on a phone and on desktop, so navigation is a fixed, centred pill at the bottom
+ * rather than a top bar (which would spend a row of scarce vertical space and push content down on
+ * every page). It uses
  * `env(safe-area-inset-bottom)` and `aria-current` for the active destination. Astryx's `MobileNav`
  * is a slide-out drawer, not a bottom pill, so this is written in StyleX.
  *
