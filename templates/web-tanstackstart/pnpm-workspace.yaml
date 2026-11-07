@@ -6,6 +6,12 @@ packages: []
 
 engineStrict: true
 
+# The template and its first-party integration ship in lockstep. Keep the
+# supply-chain age policy for all third parties while allowing this exact
+# version of our own integration to install on release day.
+minimumReleaseAgeExclude:
+  - "@cogito.ai/astryx-web@0.1.0"
+
 allowBuilds:
   "@astryxdesign/cli": true
   "@astryxdesign/core": true
