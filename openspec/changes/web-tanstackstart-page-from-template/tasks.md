@@ -18,7 +18,9 @@
 - [ ] 2.3 Tests (vitest, real temp directories, `astryx` calls mocked at the process boundary):
       rejects `basis: fallback`; rejects a Core start without `--allow-core`; refuses an existing
       file; writes the marker on line 1; removes `export default`; appends `Route`; moves the
-      messages block into a page catalog.
+      messages block into a page catalog. A fallback rejection prints the top three
+      `@cogito.ai/astryx-web` pages and
+      `Put the page type last: write "mobile settings page", not "settings page on mobile".`
 
 ## 3. Provenance check (D3)
 
@@ -40,7 +42,8 @@
 
 ## 6. Agent docs (D6)
 
-- [ ] 6.1 `AGENTS.md`, `LLM.md` §9–10, `.github/copilot-instructions.md`.
+- [ ] 6.1 `AGENTS.md`, `LLM.md` §9–10, `.github/copilot-instructions.md`, including the rule to put
+      the page type last.
 - [ ] 6.2 `templates/domain-packages/.agent/skills/add-web-route/SKILL.md`.
 
 ## 7. Close

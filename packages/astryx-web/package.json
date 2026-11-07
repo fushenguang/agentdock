@@ -1,0 +1,54 @@
+{
+  "name": "@cogito.ai/astryx-web",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Mobile-first page archetypes and design guidance for AgentDock web projects",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "astryx-web": "./bin/astryx-web.mjs"
+  },
+  "exports": {
+    "./templates/dock-landing": "./templates/dock-landing.tsx",
+    "./templates/dock-workbench": "./templates/dock-workbench.tsx",
+    "./templates/dock-list": "./templates/dock-list.tsx",
+    "./templates/dock-form-flow": "./templates/dock-form-flow.tsx",
+    "./templates/dock-settings": "./templates/dock-settings.tsx",
+    "./templates/dock-editor-frame": "./templates/dock-editor-frame.tsx"
+  },
+  "files": [
+    "astryx.integration.mjs",
+    "templates/",
+    "docs/",
+    "skills/",
+    "bin/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "check": "pnpm test && pnpm run check:integration && pnpm run check:templates && pnpm run check:intents",
+    "check:integration": "astryx integration check --strict && astryx integration verify",
+    "check:templates": "node scripts/check-templates.mjs",
+    "check:intents": "node scripts/golden-intents.mjs",
+    "check-types": "pnpm run check",
+    "test": "node --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@astryxdesign/cli": ">=0.7.0",
+    "@astryxdesign/core": "^0.7.5"
+  },
+  "peerDependenciesMeta": {
+    "@astryxdesign/cli": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@astryxdesign/cli": "0.7.5",
+    "@astryxdesign/core": "0.7.5",
+    "typescript": "6.0.3"
+  }
+}

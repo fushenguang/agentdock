@@ -23,6 +23,8 @@ writes a provenance marker on line 1. By default it MUST accept only templates f
 
 - **WHEN** `astryx build` returns `basis: fallback`, or a Core start without `--allow-core`
 - **THEN** the entry exits non-zero and lists the closest `@cogito.ai/astryx-web` templates
+- **AND** a fallback rejection says:
+  `Put the page type last: write "mobile settings page", not "settings page on mobile".`
 
 #### Scenario: An existing page is never overwritten
 

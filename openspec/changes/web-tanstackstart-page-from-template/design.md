@@ -31,6 +31,8 @@ pnpm page:new "<page intent>" --route <path> [--template <id>] [--allow-core]
    - `basis` is `fallback`;
    - the template is not ready (`isReady: false`);
    - `start.package` is not `@cogito.ai/astryx-web` and `--allow-core` is absent.
+     When the rejection is `basis: fallback`, also print:
+     `Put the page type last: write "mobile settings page", not "settings page on mobile".`
 2. **Target file.** `--route settings` → `src/routes/$locale/settings.tsx`;
    `--route documents/$documentId` → `src/routes/$locale/documents/$documentId.tsx`. Refuse when
    the file exists.
@@ -107,8 +109,8 @@ unused; delete them (listed here for owner approval, AgentDock `.claude/CLAUDE.m
 ## D6 · Agent docs
 
 - `AGENTS.md` UI Rules: add "Create every page with `pnpm page:new`; never lay a page out from
-  scratch; change an existing page inside its sections" and "`build` fails on a route without
-  provenance".
+  scratch; put the page type last (`mobile settings page`, not `settings page on mobile`); change
+  an existing page inside its sections" and "`build` fails on a route without provenance".
 - `LLM.md` §9 Add A Route: rewrite around `page:new` (keep the first-level / second-level
   guidance). §10 UI Development: list the archetypes and `astryx docs dock-design-base`.
 - `.github/copilot-instructions.md`: the same one-line rule.

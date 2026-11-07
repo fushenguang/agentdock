@@ -54,8 +54,11 @@ template's settings page; they encode layouts the owner already accepted.
   intent's first clause and treats the idea as a page only when that noun is a family word of some
   page template; otherwise it starts from an app shell. Family words come from words shared by
   template ids within one category group (spike Q3).
-- Tune `category`, `keywords`, `displayName`, and `description` until every case in Appendix C
-  passes. Do not edit Appendix C to make a case pass; if a case cannot pass, stop and report.
+- Tune `category`, `keywords`, `displayName`, and `description` until every direct case in Appendix
+  C passes and every rejected case has the two required signals. All six archetypes carry
+  `mobile` as a keyword. Page type placement is load-bearing: `mobile settings page` is a page,
+  while `settings page on mobile` is classified as a part because `mobile` names `MobileNav`.
+  Do not edit Appendix C during implementation to make a case pass.
 - `dock-list` replaces `library`, `dock-form-flow` replaces `form-wizard`, `dock-settings` replaces
   `settings`, `dock-editor-frame` replaces `canvas-editor` (`replaces` in the doc file). The Core
   originals stay reachable with `--package @astryxdesign/core`.
@@ -74,7 +77,7 @@ wording; you may split long sections into subsections.
 Add exactly these lines with `astryx integration add agent-doc` (limits: 8 lines per package, 240
 characters per line; commands start with `astryx`):
 
-1. `Create every page from a template: run astryx build "<page> page for <purpose>" and scaffold the start template; never lay a page out from scratch.`
+1. `Create every page from a template. Put the page type last: write "mobile settings page", not "settings page on mobile".`
 2. `Prefer the dock-* archetypes; when you know the one you need, run astryx template <id> directly.`
 3. `Read astryx docs dock-design-base before UI work. Phone (390px) and desktop (1440px) are both first-class; touch targets are at least 44px.`
 4. `Keep every string in the app catalogs, every color a token, every breakpoint a container query; no style attributes and no viewport media queries.`
@@ -120,9 +123,11 @@ and `doctor` in the spike. So the package ships `scripts/check-templates.mjs`, r
 
 ## D8 · Golden intents
 
-`test/golden-intents.json` holds Appendix C. `scripts/golden-intents.mjs` runs
-`astryx build "<intent>" --json` inside the same fixture and asserts `data.start.name` and
-`data.start.package`. Rerun it on every Astryx upgrade; record the Astryx version in the output.
+`test/golden-intents.json` holds the two Appendix C groups. `scripts/golden-intents.mjs` runs
+`astryx build "<intent>" --json` inside the same fixture. Direct cases assert `data.start.name` and
+`data.start.package`. Rejected cases assert that `data.start` is Core `shell-top-nav`, and that the
+expected archetype is present among the first three `data.pages` entries from
+`@cogito.ai/astryx-web`. Rerun it on every Astryx upgrade; record the Astryx version in the output.
 
 ## D9 · Owner visual gate (blocking)
 
@@ -319,22 +324,38 @@ Common to all: D2 conventions; compact (below 420px) is the starting layout, the
 
 ## Appendix C · Golden intents
 
+### C1 · Must directly select an archetype
+
 | Intent                                                 | Expected `start.name` |
 | ------------------------------------------------------ | --------------------- |
 | `landing page with module entries`                     | `dock-landing`        |
-| `landing page on mobile`                               | `dock-landing`        |
 | `workbench page with a top bar and sections`           | `dock-workbench`      |
 | `list page for documents with search and recent items` | `dock-list`           |
-| `library page`                                         | `dock-list`           |
-| `list page on mobile`                                  | `dock-list`           |
 | `settings page with sections`                          | `dock-settings`       |
-| `settings page on mobile`                              | `dock-settings`       |
 | `creation form with several steps`                     | `dock-form-flow`      |
-| `wizard form on mobile`                                | `dock-form-flow`      |
 | `canvas editor workspace`                              | `dock-editor-frame`   |
 | `diagram editor page`                                  | `dock-editor-frame`   |
+| `mobile landing page`                                  | `dock-landing`        |
+| `mobile list page`                                     | `dock-list`           |
+| `mobile settings page`                                 | `dock-settings`       |
+| `mobile wizard form`                                   | `dock-form-flow`      |
+| `list page for mobile`                                 | `dock-list`           |
 
 Every expected start comes from package `@cogito.ai/astryx-web`; assert both `start.name` and
 `start.package`. For a replaced Core template, the spike showed `start.name` is our id while
 `start.command` still names the Core id (`astryx template settings …`); scaffold with
 `start.name` and `--package @cogito.ai/astryx-web` so the result does not depend on `command`.
+
+### C2 · Must be rejected but list the correct archetype
+
+| Intent                    | Archetype that must be listed |
+| ------------------------- | ----------------------------- |
+| `landing page on mobile`  | `dock-landing`                |
+| `list page on mobile`     | `dock-list`                   |
+| `settings page on mobile` | `dock-settings`               |
+| `wizard form on mobile`   | `dock-form-flow`              |
+| `library page`            | `dock-list`                   |
+
+Astryx MUST fall back to Core `shell-top-nav`. The expected archetype MUST appear among the first
+three `data.pages` entries from `@cogito.ai/astryx-web`, so `page:new` can name the correct
+`--template` when it rejects the intent.

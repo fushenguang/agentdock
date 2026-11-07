@@ -196,7 +196,8 @@ Write `PRODUCT.md`, show it, and correct what the owner corrects.
 # Building a page
 
 1. Name the page by type and purpose: "<type> page for <purpose>" (types: landing, workbench,
-   list, form, settings, editor). Run `pnpm page:new "<intent>" --route <path>`. If it rejects the
+   list, form, settings, editor). Put the page type last: write `mobile settings page`, not
+   `settings page on mobile`. Run `pnpm page:new "<intent>" --route <path>`. If it rejects the
    intent, pick a template from the list it prints and pass `--template <id>`.
 2. Replace the `SAMPLE_*` data with feature data through the feature's public API (`LLM.md` §7).
 3. Write the page's copy in `src/i18n/pages/<page>.ts` for every locale.

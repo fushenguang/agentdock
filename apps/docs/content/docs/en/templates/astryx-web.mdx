@@ -1,0 +1,63 @@
+---
+title: Astryx Web Integration
+description: Mobile-first page archetypes, design guidance, and visual checks for AgentDock web projects.
+---
+
+# Astryx Web Integration
+
+`@cogito.ai/astryx-web` is an Astryx integration for projects generated from
+`web-tanstackstart`. It gives agents a small set of owned page templates, shared design rules, and
+a repeatable visual review command.
+
+## What it contains
+
+- Six mobile-first page archetypes
+- Ten design-base topics read with `pnpm exec astryx docs dock-design-base`
+- Five guidance lines added to the `astryx init` agent block
+- A sample renderer, `astryx-web samples`
+- Source checks and golden page-intent checks
+
+## Archetypes
+
+| Id                  | Use                                                      |
+| ------------------- | -------------------------------------------------------- |
+| `dock-landing`      | First-level landing page with module entries             |
+| `dock-workbench`    | Second-level one-screen work area                        |
+| `dock-list`         | Searchable collection with empty and no-result states    |
+| `dock-form-flow`    | Creation form or mobile-first multi-step wizard          |
+| `dock-settings`     | Settings navigation and a scrollable section panel       |
+| `dock-editor-frame` | Full-bleed editor frame with a domain-owned content slot |
+
+The list, form, settings, and editor archetypes replace Core templates with the same intent. The
+Core originals remain reachable with `--package @astryxdesign/core`.
+
+## Use it in a project
+
+Install the integration beside Astryx, then ask `astryx build` for the page:
+
+```bash
+pnpm add @cogito.ai/astryx-web
+pnpm exec astryx build "mobile settings page" --json
+pnpm exec astryx docs dock-design-base
+```
+
+Put the page type last: write `mobile settings page`, not `settings page on mobile`. If an entry
+rejects an intent, choose the listed archetype explicitly with its template id.
+
+Before calling UI work complete, render each changed route at both sizes and color modes:
+
+```bash
+astryx-web samples \
+  --base-url http://localhost:3000 \
+  --route /zh-CN/settings \
+  --theme neutral \
+  --mode light \
+  --mode dark \
+  --size 390x844 \
+  --size 1440x900 \
+  --out design-samples
+```
+
+`CHROME_PATH` must point to the system Chrome executable. The command writes one PNG per
+combination and an `index.json` containing the route and git commit. Review the images against
+`pnpm exec astryx docs dock-visual-acceptance`.

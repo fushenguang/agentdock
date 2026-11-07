@@ -1,4 +1,11 @@
 {
   "title": "Templates",
-  "pages": ["index", "web-nextjs", "web-tanstackstart", "web-tanstackstart-kids", "domain-packages"]
+  "pages": [
+    "index",
+    "web-nextjs",
+    "web-tanstackstart",
+    "web-tanstackstart-kids",
+    "domain-packages",
+    "astryx-web"
+  ]
 }

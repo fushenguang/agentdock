@@ -18,6 +18,13 @@ The package MUST provide the page templates `dock-landing`, `dock-workbench`, `d
 - **THEN** `data.start.name` equals the expected archetype and `data.start.package` equals
   `@cogito.ai/astryx-web`
 
+#### Scenario: Natural postfix mobile wording is rejected with a usable fallback
+
+- **WHEN** `astryx build "settings page on mobile" --json` runs in the fixture
+- **THEN** `data.start.name` is Core `shell-top-nav`
+- **AND** `dock-settings` is among the first three `data.pages` entries from
+  `@cogito.ai/astryx-web`
+
 #### Scenario: Scaffolding needs no extra packages
 
 - **WHEN** `astryx template <id> <path> --json` runs for any archetype in the fixture project
