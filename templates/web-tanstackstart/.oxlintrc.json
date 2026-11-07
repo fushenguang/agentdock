@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "jsPlugins": ["./tools/oxlint-agentdock.mjs"],
+  "jsPlugins": ["./tools/oxlint-agentdock.mjs", "./tools/oxlint-agentdock-ui.mjs"],
   "plugins": [
     "typescript",
     "unicorn",
@@ -25,7 +25,10 @@
     "typescript/no-misused-promises": "error",
     "agentdock-arch/require-feature-contract": "error",
     "agentdock-arch/no-cross-feature": "error",
-    "agentdock-arch/no-core-mutation": "error"
+    "agentdock-arch/no-core-mutation": "error",
+    "agentdock-ui/no-inline-style": "error",
+    "agentdock-ui/no-color-literal": "error",
+    "agentdock-ui/no-viewport-media-query": "error"
   },
   "overrides": [
     {

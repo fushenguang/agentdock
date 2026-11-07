@@ -22,6 +22,18 @@ function reportRestricted(context, node, message) {
   context.report({ node, message });
 }
 
+function isUiFile(filename) {
+  const normalized = normalizeFilename(filename);
+  if (!normalized.includes("/src/routes/") && !normalized.includes("/src/components/")) {
+    return false;
+  }
+  return (
+    !/\.(?:test|spec)\.[jt]sx?$/.test(normalized) &&
+    !normalized.includes("/src/components/appearance/") &&
+    !normalized.includes("/src/themes/")
+  );
+}
+
 const requireFeatureContract = {
   meta: {
     type: "problem",
@@ -109,6 +121,87 @@ const noCoreMutation = {
   },
 };
 
+const noInlineStyle = {
+  meta: {
+    type: "problem",
+    schema: [],
+  },
+  create(context) {
+    if (!isUiFile(context.filename)) return {};
+    return {
+      JSXAttribute(node) {
+        if (node.name?.name === "style") {
+          reportRestricted(
+            context,
+            node,
+            "Use component props or xstyle instead of a JSX style attribute.",
+          );
+        }
+      },
+      Identifier(node) {
+        if (node.name === "CSSProperties") {
+          reportRestricted(
+            context,
+            node,
+            "Use component props or StyleX instead of CSSProperties.",
+          );
+        }
+      },
+    };
+  },
+};
+
+const noColorLiteral = {
+  meta: {
+    type: "problem",
+    schema: [],
+  },
+  create(context) {
+    if (!isUiFile(context.filename)) return {};
+    return {
+      Literal(node) {
+        if (
+          typeof node.value === "string" &&
+          (/^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(node.value) ||
+            /^(?:rgb|hsl|oklch)a?\(/i.test(node.value))
+        ) {
+          reportRestricted(context, node, "Use an Astryx color token instead of a color literal.");
+        }
+      },
+    };
+  },
+};
+
+const noViewportMediaQuery = {
+  meta: {
+    type: "problem",
+    schema: [],
+  },
+  create(context) {
+    if (!isUiFile(context.filename)) return {};
+    return {
+      CallExpression(node) {
+        const name =
+          node.callee?.name ??
+          (node.callee?.type === "MemberExpression" ? node.callee.property?.name : null);
+        if (name === "useMediaQuery" || name === "matchMedia") {
+          reportRestricted(
+            context,
+            node,
+            "Use a container query instead of a viewport media query.",
+          );
+        }
+      },
+    };
+  },
+};
+
+export const uiRules = {
+  "no-inline-style": noInlineStyle,
+  "no-color-literal": noColorLiteral,
+  "no-viewport-media-query": noViewportMediaQuery,
+};
+
 export default {
   meta: {
     name: "agentdock-arch",
@@ -117,5 +210,6 @@ export default {
     "require-feature-contract": requireFeatureContract,
     "no-cross-feature": noCrossFeature,
     "no-core-mutation": noCoreMutation,
+    ...uiRules,
   },
 };

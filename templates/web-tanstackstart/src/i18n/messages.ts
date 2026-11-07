@@ -1,5 +1,6 @@
 import type { Catalog, MessagesByLocale } from "@astryxdesign/core/i18n";
 import astryxZhCNSource from "../../node_modules/@astryxdesign/core/locales/zh-CN.json?raw";
+import { pageCatalogs } from "./pages";
 
 function message(defaultMessage: string, description?: string) {
   return description ? { defaultMessage, description } : { defaultMessage };
@@ -129,6 +130,11 @@ export const zhCNCatalog: Catalog = {
   "agentdock.hello.sample": message("来自 web-tanstackstart 模板的问候。"),
   "agentdock.hello.error.save": message("无法保存问候"),
 };
+
+for (const catalog of pageCatalogs) {
+  Object.assign(enCatalog, catalog.en);
+  Object.assign(zhCNCatalog, catalog["zh-CN"]);
+}
 
 export const APP_MESSAGES: MessagesByLocale = {
   en: enCatalog,
