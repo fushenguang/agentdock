@@ -1,4 +1,4 @@
-// astryx-template: dock-landing | package: @cogito.ai/astryx-web | intent: "landing page with module entries" | astryx: 0.7.5
+// astryx-template: dock-landing | package: @cogito.ai/astryx-web | intent: "landing page with module entries" | astryx: 0.7.8
 import { createFileRoute } from "@tanstack/react-router";
 
 import { Blockquote } from "@astryxdesign/core/Blockquote";

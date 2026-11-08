@@ -8,7 +8,7 @@ import { pathToFileURL } from "node:url";
 const ROUTES_DIR = "src/routes";
 const ROUTE_TREE = "src/routeTree.gen.ts";
 const TEMPLATE_MARKER =
-  /^\/\/ astryx-template: ([^|]+) \| package: ([^|]+) \| intent: .* \| astryx: /;
+  /^\/\/ astryx-template: ([^|]+) \| package: ([^|]+) \| intent: .* \| astryx: (.+)$/;
 const EXEMPTION = /^\/\/ astryx-exempt: (.{10,})$/;
 
 function filesUnder(directory) {
@@ -31,7 +31,7 @@ function routeHasComponent(source) {
   return routeConfig ? /\bcomponent\s*:/.test(routeConfig[1]) : false;
 }
 
-export function checkPages(root, templateNames) {
+export function checkPages(root, templateNames, astryxVersion) {
   const treePath = join(root, ROUTE_TREE);
   if (!existsSync(treePath)) {
     return [`Missing ${ROUTE_TREE}. Run pnpm generate-routes first.`];
@@ -55,12 +55,17 @@ export function checkPages(root, templateNames) {
 
     const marker = line1.match(TEMPLATE_MARKER);
     if (marker) {
-      const [, template, packageName] = marker;
+      const [, template, packageName, markerVersion] = marker;
       if (!templateNames.has(template.trim())) {
         findings.push(`${relativeFile}: line 1 names unknown template ${template.trim()}`);
       }
       if (!packageName.trim()) {
         findings.push(`${relativeFile}: line 1 marker has no package`);
+      }
+      if (markerVersion.trim() !== astryxVersion) {
+        findings.push(
+          `${relativeFile}: page marker records Astryx ${markerVersion.trim()}, installed CLI is ${astryxVersion}`,
+        );
       }
       continue;
     }
@@ -87,7 +92,12 @@ function loadTemplateNames(root) {
 
 function main() {
   const root = resolve(process.cwd());
-  const findings = checkPages(root, loadTemplateNames(root));
+  const astryxVersion = execFileSync("astryx", ["--version"], {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+  const findings = checkPages(root, loadTemplateNames(root), astryxVersion);
   if (findings.length > 0) {
     for (const finding of findings) console.error(finding);
     process.exitCode = 1;
