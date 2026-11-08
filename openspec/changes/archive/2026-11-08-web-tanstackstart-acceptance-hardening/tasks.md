@@ -18,5 +18,5 @@
 - [x] 3.1 Run template checks, OpenSpec strict validation, repository type checks, lint, format, and
       affected builds.
 - [x] 3.2 Add a patch changeset and update template documentation/changelog where required.
-- [ ] 3.3 Merge through a pull request with a merge commit and publish `@cogito.ai/cli` from main.
+- [x] 3.3 Merge through a pull request with a merge commit and publish `@cogito.ai/cli` from main.
       Verify registry `latest`, tarball hash, and source commit; record release evidence.
