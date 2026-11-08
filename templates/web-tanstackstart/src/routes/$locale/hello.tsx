@@ -1,4 +1,4 @@
-// astryx-template: dock-workbench | package: @cogito.ai/astryx-web | intent: "workbench page with a top bar and sections" | astryx: 0.7.5
+// astryx-template: dock-workbench | package: @cogito.ai/astryx-web | intent: "workbench page with a top bar and sections" | astryx: 0.7.8
 import { Button } from "@astryxdesign/core/Button";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Divider } from "@astryxdesign/core/Divider";

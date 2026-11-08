@@ -42,7 +42,7 @@ describe("check-pages", () => {
   it("passes marked and exempt component routes", () => {
     const root = fixture();
     try {
-      expect(checkPages(root, new Set(["dock-list"]))).toEqual([]);
+      expect(checkPages(root, new Set(["dock-list"]), "0.7.5")).toEqual([]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -55,7 +55,7 @@ describe("check-pages", () => {
         join(root, "src/routes/$locale/index.tsx"),
         'export const Route = createFileRoute("/")({ component: Index });\n',
       );
-      expect(checkPages(root, new Set(["dock-list"])).join("\n")).toMatch(
+      expect(checkPages(root, new Set(["dock-list"]), "0.7.5").join("\n")).toMatch(
         /index\.tsx: add an astryx-template marker/,
       );
     } finally {
@@ -70,8 +70,19 @@ describe("check-pages", () => {
         join(root, "src/routes/$locale/raw.tsx"),
         "export default function Raw() { return null; }\n",
       );
-      expect(checkPages(root, new Set(["dock-list"])).join("\n")).toMatch(
+      expect(checkPages(root, new Set(["dock-list"]), "0.7.5").join("\n")).toMatch(
         /raw\.tsx: no Route export/,
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects page provenance for a different Astryx version", () => {
+    const root = fixture();
+    try {
+      expect(checkPages(root, new Set(["dock-list"]), "0.7.8").join("\n")).toMatch(
+        /good\.tsx: page marker records Astryx 0\.7\.5, installed CLI is 0\.7\.8/,
       );
     } finally {
       rmSync(root, { recursive: true, force: true });

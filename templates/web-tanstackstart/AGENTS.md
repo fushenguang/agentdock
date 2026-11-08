@@ -104,7 +104,7 @@ needed. Third-party revisions and licenses are recorded in `.github/skills/THIRD
 
 <!-- ASTRYX:START -->
 
-Astryx v0.7.5 · 173 components
+Astryx v0.7.8 · 173 components
 CLI: run every command as `pnpm exec astryx <cmd>` (shown below as `astryx ...`).
 
 SETUP (once, in app entry e.g. main.tsx) — without these, components render unstyled:

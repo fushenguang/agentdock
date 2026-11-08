@@ -30,11 +30,11 @@
     "db:migrate:supabase": "drizzle-kit migrate --config=drizzle.supabase.config.ts"
   },
   "dependencies": {
-    "@astryxdesign/core": "^0.7.5",
-    "@astryxdesign/theme-butter": "^0.7.5",
-    "@astryxdesign/theme-matcha": "^0.7.5",
-    "@astryxdesign/theme-neutral": "^0.7.5",
-    "@astryxdesign/theme-stone": "^0.7.5",
+    "@astryxdesign/core": "0.7.8",
+    "@astryxdesign/theme-butter": "0.7.8",
+    "@astryxdesign/theme-matcha": "0.7.8",
+    "@astryxdesign/theme-neutral": "0.7.8",
+    "@astryxdesign/theme-stone": "0.7.8",
     "@stylexjs/stylex": "^0.19.1",
     "@tanstack/react-router": "^1.170.46",
     "@tanstack/react-start": "^1.169.4",
@@ -46,10 +46,10 @@
     "srvx": "^1.0.8"
   },
   "devDependencies": {
-    "@astryxdesign/build": "^0.7.5",
-    "@astryxdesign/cli": "^0.7.5",
+    "@astryxdesign/build": "0.7.8",
+    "@astryxdesign/cli": "0.7.8",
     "@babel/core": "^8.1.0",
-    "@cogito.ai/astryx-web": "^0.1.0",
+    "@cogito.ai/astryx-web": "^0.2.0",
     "@stylexjs/babel-plugin": "^0.19.1",
     "@stylexjs/unplugin": "^0.19.1",
     "@tanstack/router-cli": "^1.167.46",
