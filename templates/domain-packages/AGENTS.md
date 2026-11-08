@@ -13,6 +13,9 @@ generator.
    prompts; do not create a temporary spec only to satisfy the generator.
 4. Read the generated `apps/<package-id>/AGENTS.md` before changing package content.
 5. Finish with `pnpm check` and the generated package-specific commands.
+6. Before delivery, prove the package at four separate layers: source checks, built artifact
+   startup, App-hosted interaction, and visible UI acceptance. A dev server or mounted DOM is
+   not delivery evidence.
 
 ## Hard boundaries
 
@@ -20,6 +23,9 @@ generator.
 - A package MUST NOT call an LLM or implement a second agent runtime.
 - Package Web interaction MUST use intent-level routes, actions, elements, and capabilities.
 - Do not automate a Web through DOM selectors or coordinates.
+- Do not write feature pages before `PRODUCT.md` exists and `DESIGN.md` is approved.
+- A copied upstream source tree still requires a parity matrix and explicit adaptations for CSP,
+  downloads, permissions, SSR, assets, coordinates/hit testing, styles and data roots.
 - `apps/<package-id>/web/` and generated seed databases are build staging, never source.
 - Product roadmaps belong under `apps/<package-id>/roadmap.yaml`, not the workspace root or `apps/docs/`.
 - Do not copy another package implementation. Extract a minimal pattern into the practice pack.

@@ -302,6 +302,9 @@ Rules:
 - **No repeated titles or standing copy.** A first-level route names itself only through a `VisuallyHidden` `h1`; delete the paragraph that merely introduces a section.
 - Include loading, empty, error, disabled, and success states where relevant.
 - Resolve user-facing copy with `useTranslator()` and message keys instead of embedding literals in components.
+- A page is ready only after its built output and real interaction are checked. DOM presence,
+  development rendering and unit tests do not prove that controls are visible, hit-testable or
+  producing the expected business state.
 
 The layout primitives live in `src/components/layout/`:
 
@@ -455,5 +458,9 @@ Fix the architecture. Move shared behavior to `core` or consume a repository thr
 - New user-facing strings exist in every supported locale catalog.
 - Theme and locale changes preserve the documented route, storage, and SSR contracts.
 - `pnpm check` passes.
+- The production build succeeds and the core interaction works against the built output; for a
+  domain package, the extracted package runtime and App-hosted path are also verified.
+- Changed UI is visible and operable at phone and desktop sizes, with no horizontal overflow or
+  stale DOM-id dependence.
 - No secrets or local database artifacts were added to source control.
 - The change is documented in OpenSpec when it changes product behavior or architecture.

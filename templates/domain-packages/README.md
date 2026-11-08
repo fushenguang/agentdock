@@ -84,6 +84,25 @@ packaged text still contains an absolute build path. A release pipeline must bui
 and include them in an immutable artifact with checksum and metadata. The build fails unless the staged runtime
 starts and `/_thefoolai/v1/health` returns `200` with `status: ready`.
 
+## Readiness and delivery truths
+
+Before creating or migrating a package, confirm the released AgentDock CLI and the template pin
+include the current design-direction and page-provenance workflow. Then keep these independent
+proof layers:
+
+1. **Source and contract** — template checks, package tests and the consumer contract pass.
+2. **Built artifact** — the production build starts from its extracted directory; never infer this
+   from `pnpm dev`.
+3. **App host** — the isolated App can perform the core task under its CSP, download, permission,
+   persistence and Agent boundaries.
+4. **Visible UX** — controls and canvas output are visible and operable at phone and desktop sizes,
+   not merely present in the DOM.
+
+For recreations, a fixed upstream commit plus copied source is still only the starting point. Keep
+a source-parity matrix and record every host, visual and runtime adaptation. For migrations,
+inventory existing pages and decide whether each is preserved or rebuilt from an Astryx archetype;
+changing the theme alone is not a migration.
+
 ## AgentDock version
 
 This template records the tested AgentDock CLI version in `standards-lock.json`. Package creation uses

@@ -9,4 +9,8 @@
 4. Fix everything you found in one batch and render again. At most two rounds; then report the
    image folder to the owner.
 
+5. Build the production output and run the project's acceptance command. For a domain package,
+   also build the package artifact, start the extracted runtime and exercise the App-hosted core
+   path. Dev rendering, a mounted DOM and a passing unit test are separate weaker claims.
+
 Screenshots are only for judging the UI. Never use them to watch CI, a pipeline, or progress.

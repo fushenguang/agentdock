@@ -70,6 +70,17 @@ pnpm check
 
 `pnpm check` is the acceptance command and runs the full local gate.
 
+## Delivery truths
+
+- `pnpm dev` proves iteration speed only. Always build the production Web and exercise the built
+  output; dependency externalization, SSR, asset URLs, CSP and hydration can differ after compile.
+- Copied or mechanically adapted source still needs an explicit host/runtime diff. Similar files do
+  not prove equivalent coordinates, hit testing, persistence, navigation or permissions.
+- A mounted route or DOM node is not visible or usable evidence. Verify the real interaction and
+  the resulting business state; for canvas-like output also verify geometry and painted pixels.
+- Do not claim UI completion until `DESIGN.md` is approved and the changed pages match it at phone
+  and desktop sizes in light and dark modes.
+
 The standalone project supports pnpm `>=10.34.5 <13` and recommends 12.4.1. The template intentionally has no exact `packageManager` pin or automatic version switching; engine validation stops unsupported versions before install. Workspace members inherit the supported pnpm range from the workspace root.
 
 ## UI Rules

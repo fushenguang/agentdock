@@ -10,7 +10,7 @@ engineStrict: true
 # supply-chain age policy for all third parties while allowing this exact
 # version of our own integration to install on release day.
 minimumReleaseAgeExclude:
-  - "@cogito.ai/astryx-web@0.2.0"
+  - "@cogito.ai/astryx-web@0.2.0 || 0.2.1"
 
 allowBuilds:
   "@astryxdesign/cli": true
