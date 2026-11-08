@@ -21,7 +21,7 @@ const PACKAGE_STANDARDS_LOCK = {
       id: 'domain-package-spec',
       version: '2.0.0',
       commit: null,
-      digest: 'sha256:2f592b18b8e8bfc1d4f4fd608ea88e41f608ca7ed2e8ea7ebeec98792ee860c3',
+      digest: 'sha256:d851c39223d3a65d2b82ede0dd033fb6d1505531d5918b1637303414c377165c',
     },
     {
       id: 'ai-first-domain-package',
@@ -51,7 +51,7 @@ const PACKAGE_STANDARDS_LOCK = {
       id: 'package-callable-capabilities',
       version: '1.0.0-rc.7',
       commit: null,
-      digest: 'sha256:30897cf1c68ac733e4b991ae7225d1b51c3512ba481e162ef90125425e2a2571',
+      digest: 'sha256:507342e3c410d0da99675481e7ee8e9daa1d20e837aa23e2852eb90e1017ed49',
     },
     {
       id: 'package-layout',
@@ -61,9 +61,9 @@ const PACKAGE_STANDARDS_LOCK = {
     },
     {
       id: 'web-scaffold',
-      version: '0.5.0',
+      version: '0.5.1',
       commit: null,
-      digest: 'sha256:c12bcfcd78694fea7e1fb7ba58b3cafe59c9353c63806b0050a42c02c11787ab',
+      digest: 'sha256:741df2521f79914b686b2d095a3f3355c4161297e438004e0d4534f511dcd009',
     },
   ],
 }
