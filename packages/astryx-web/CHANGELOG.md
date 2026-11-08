@@ -1,5 +1,12 @@
 # @cogito.ai/astryx-web
 
+## 0.2.1
+
+### Patch Changes
+
+- a19d7cc: Keep the vendored design skill byte-identical to the installed integration and extend visual
+  acceptance to production-build and App-hosted interaction evidence, not only dev rendering.
+
 ## 0.2.0
 
 ### Minor Changes
