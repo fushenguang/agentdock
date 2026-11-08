@@ -1,5 +1,12 @@
 # @cogito.ai/cli
 
+## 0.32.4
+
+### Patch Changes
+
+- 8b14ce2: Refresh the generated domain-package standards baseline so the first scaffold already matches the
+  current domain-package-spec, package-callable capability and Web scaffold digests.
+
 ## 0.32.3
 
 ### Patch Changes
