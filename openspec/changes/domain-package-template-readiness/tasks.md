@@ -9,5 +9,7 @@
       the root template; assert the generated files keep the fixes.
 - [x] 1.7 Make the generated Web's runtime and skill links pass its first check without a repair
       pass.
-- [ ] 1.8 Merge through PRs, publish the CLI patches, and verify npm `latest`, installed tarball,
+- [x] 1.8 Install Bun from npm in the release workflow after repeated GitHub release download
+      504s.
+- [ ] 1.9 Merge through PRs, publish the CLI patches, and verify npm `latest`, installed tarball,
       and generated template metadata.

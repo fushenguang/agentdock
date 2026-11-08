@@ -23,18 +23,13 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write       # create release PRs and tags
-      pull-requests: write  # open "Version Packages" PR
+      contents: write # create release PRs and tags
+      pull-requests: write # open "Version Packages" PR
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0    # changesets needs full history for changelog
-
-      # CLI package uses `bun build` — must be installed before pnpm build
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+          fetch-depth: 0 # changesets needs full history for changelog
 
       - uses: pnpm/action-setup@v4
 
@@ -44,6 +39,11 @@ jobs:
           cache: pnpm
           # Authenticate against npm registry for publishing
           registry-url: https://registry.npmjs.org
+
+      # CLI package uses `bun build`. Install the same version from npm instead
+      # of downloading a GitHub release, which has produced repeated 504s.
+      - name: Install Bun
+        run: npm install --global bun@1.4.4
 
       - name: Configure npm auth
         run: echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc
@@ -64,8 +64,8 @@ jobs:
         with:
           publish: pnpm changeset:publish
           version: pnpm changeset:version
-          commit: "chore: version packages"
-          title: "chore: version packages"
+          commit: 'chore: version packages'
+          title: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # NPM_TOKEN must be added as a repository secret:
