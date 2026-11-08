@@ -19,6 +19,8 @@ The generated workspace documentation must state:
 - Source copied into the generated Web must already satisfy that Web's
   formatter and strict TypeScript settings; a fresh scaffold is the proof, not
   a hand-fixed generated tree.
+- Both the workspace and nested Web must expose the same inferred Claude Code
+  skill links at the moment generation finishes.
 
 ## D3 · Release
 
