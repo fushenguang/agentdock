@@ -53,7 +53,7 @@ function mockNpx(root) {
     file,
     [
       '#!/bin/sh',
-      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.32.3"; then',
+      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.32.4"; then',
       '  echo "expected pinned AgentDock CLI" >&2',
       '  exit 2',
       'fi',
@@ -205,7 +205,7 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
     )
     assert.equal(
       standardsLock.standards.find((entry) => entry.id === 'domain-package-spec').digest,
-      'sha256:2f592b18b8e8bfc1d4f4fd608ea88e41f608ca7ed2e8ea7ebeec98792ee860c3',
+      'sha256:d851c39223d3a65d2b82ede0dd033fb6d1505531d5918b1637303414c377165c',
     )
 
     const check = spawnSync(process.execPath, [checker, '--repo-root', root], {

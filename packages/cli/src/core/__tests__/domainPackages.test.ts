@@ -37,7 +37,7 @@ function installMockNpx(): void {
     file,
     [
       '#!/bin/sh',
-      'if ! printf "%s\\n" "$*" | grep -q -- "@cogito.ai/cli@0.32.3"; then',
+      'if ! printf "%s\\n" "$*" | grep -q -- "@cogito.ai/cli@0.32.4"; then',
       '  echo "expected pinned AgentDock CLI" >&2',
       '  exit 2',
       'fi',
