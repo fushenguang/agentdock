@@ -1,5 +1,13 @@
 # @cogito.ai/cli
 
+## 0.32.2
+
+### Patch Changes
+
+- 6ed202b: Pin generated domain-package workspaces to CLI 0.32.2 so the published design-direction workflow and
+  strict Astryx page provenance gate are present from the first scaffold. Clarify the generated
+  workspace's source-reuse, built-artifact and visible-UI acceptance rules.
+
 ## 0.32.1
 
 ### Patch Changes
