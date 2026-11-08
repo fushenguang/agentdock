@@ -51,7 +51,7 @@ now:
   # 三个 change：astryx-web-integration → web-tanstackstart-page-from-template → web-tanstackstart-design-direction。
   - id: web-design-system
     title: "Design system for web-tanstackstart projects built by AI agents: Astryx integration with mobile-first page archetypes and design base, page:new entry with provenance checks, design-direction gate"
-    status: in-progress
+    status: done
     owner: "@sunny"
 
 next:
