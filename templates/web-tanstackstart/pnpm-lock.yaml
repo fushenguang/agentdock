@@ -53,7 +53,7 @@ importers:
     devDependencies:
       '@astryxdesign/build':
         specifier: 0.7.8
-        version: 0.7.8(@babel/core@8.1.0)(@stylexjs/babel-plugin@0.19.1)(@stylexjs/unplugin@0.19.1(unplugin@3.7.0(esbuild@0.28.2)(rolldown@1.2.16)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))))(postcss@8.5.32)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+        version: 0.7.8(@babel/core@8.1.0)(@stylexjs/babel-plugin@0.19.1)(@stylexjs/unplugin@0.19.1(unplugin@2.3.11))(postcss@8.5.32)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
       '@astryxdesign/cli':
         specifier: 0.7.8
         version: 0.7.8(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@astryxdesign/theme-neutral@0.7.8(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1))
@@ -61,14 +61,14 @@ importers:
         specifier: ^8.1.0
         version: 8.1.0
       '@cogito.ai/astryx-web':
-        specifier: ^0.2.0
-        version: 0.2.0(@astryxdesign/cli@0.7.8(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@astryxdesign/theme-neutral@0.7.8(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)))(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
+        specifier: ^0.2.1
+        version: 0.2.1(@astryxdesign/cli@0.7.8(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@astryxdesign/theme-neutral@0.7.8(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)))(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))
       '@stylexjs/babel-plugin':
         specifier: ^0.19.1
         version: 0.19.1
       '@stylexjs/unplugin':
         specifier: ^0.19.1
-        version: 0.19.1(unplugin@3.7.0(esbuild@0.28.2)(rolldown@1.2.16)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))
+        version: 0.19.1(unplugin@2.3.11)
       '@tanstack/router-cli':
         specifier: ^1.167.46
         version: 1.167.46
@@ -417,8 +417,8 @@ packages:
     resolution: {integrity: sha512-8V8aSTDx012YPmDQF30vrokyxVFdRAU2YBS2VzrnfLAGkP8floVnjckwgFcD0Jrvf6GWMSRdCrYVsk3tyMwZRg==}
     engines: {node: ^22.18.0 || >=24.11.0}
 
-  '@cogito.ai/astryx-web@0.2.0':
-    resolution: {integrity: sha512-1qeho6jNUH6lYALcNalo5E36NhMu4sYPtaWDM4QH6AtQ6EK3tcHpatyznwpqAhbvNF2U/MUCRb/7GzVoRmBxtQ==}
+  '@cogito.ai/astryx-web@0.2.1':
+    resolution: {integrity: sha512-PS/gn9mY5AJxF+Mg4IChnLyMYgig3F0ssAQh2Zr8LE/yULztlTb4s5nucISL6l8L/Dg7my0V3yFNGhBJYNoabQ==}
     engines: {node: '>=22.13.0'}
     hasBin: true
     peerDependencies:
@@ -1649,6 +1649,11 @@ packages:
   '@vitest/spy@5.0.5':
     resolution: {integrity: sha512-lwJRExuH417257Q5wv9QYugN9IMJkoxcrKrYxGPQkBzl7wlNpTUxD/5yNX4ESKVUIShKPgkGchYPFMWOOk0wzw==}
 
+  acorn@8.19.0:
+    resolution: {integrity: sha512-oJlA3XiRm7Cyk6qFD2Jn8ak9B7jSy0qy00ADO3+8dpT0LSjFihQYv4C02LFCSYJV3Q37xYwwRy5m+IpIiUzqWw==}
+    engines: {node: '>=0.4.0'}
+    hasBin: true
+
   ansis@4.5.0:
     resolution: {integrity: sha512-KwIVkfFfJSSzBmZhDGuTmkhWqTdyB5oNVzzznBJbBZ5bZtHiqSrcugRF0RKJKT4Ss3d7ZrcjnlFVDlQNmtWfWw==}
     engines: {node: '>=14'}
@@ -2416,6 +2421,10 @@ packages:
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
+  unplugin@2.3.11:
+    resolution: {integrity: sha512-5uKD0nqiYVzlmCRs01Fhs2BdkEgBS3SAVP6ndrBsuK42iC2+JHyxM05Rm9G8+5mkmRtzMZGY8Ct5+mliZxU/Ww==}
+    engines: {node: '>=18.12.0'}
+
   unplugin@3.7.0:
     resolution: {integrity: sha512-GrM2uq3DQo3hvLU2FjeYhooJ8BY9N6j1Fbzgx7Pta3VVJevsD3VP4dPjZkZOS0mLvN8w9zzr9OlP+31bSMyuLw==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -2586,7 +2595,7 @@ packages:
 
 snapshots:
 
-  '@astryxdesign/build@0.7.8(@babel/core@8.1.0)(@stylexjs/babel-plugin@0.19.1)(@stylexjs/unplugin@0.19.1(unplugin@3.7.0(esbuild@0.28.2)(rolldown@1.2.16)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))))(postcss@8.5.32)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))':
+  '@astryxdesign/build@0.7.8(@babel/core@8.1.0)(@stylexjs/babel-plugin@0.19.1)(@stylexjs/unplugin@0.19.1(unplugin@2.3.11))(postcss@8.5.32)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))':
     dependencies:
       '@babel/core': 8.1.0
       '@stylexjs/babel-plugin': 0.19.1
@@ -2597,7 +2606,7 @@ snapshots:
       is-glob: 4.0.3
       lightningcss: 1.33.0
     optionalDependencies:
-      '@stylexjs/unplugin': 0.19.1(unplugin@3.7.0(esbuild@0.28.2)(rolldown@1.2.16)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))
+      '@stylexjs/unplugin': 0.19.1(unplugin@2.3.11)
       vite: 8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)
     transitivePeerDependencies:
       - postcss
@@ -2997,7 +3006,7 @@ snapshots:
       '@babel/helper-string-parser': 8.0.8
       '@babel/helper-validator-identifier': 8.0.6
 
-  '@cogito.ai/astryx-web@0.2.0(@astryxdesign/cli@0.7.8(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@astryxdesign/theme-neutral@0.7.8(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)))(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))':
+  '@cogito.ai/astryx-web@0.2.1(@astryxdesign/cli@0.7.8(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@astryxdesign/theme-neutral@0.7.8(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)))(@astryxdesign/core@0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))':
     dependencies:
       '@astryxdesign/core': 0.7.8(@stylexjs/stylex@0.19.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     optionalDependencies:
@@ -3502,7 +3511,7 @@ snapshots:
       invariant: 2.2.4
       styleq: 0.2.1
 
-  '@stylexjs/unplugin@0.19.1(unplugin@3.7.0(esbuild@0.28.2)(rolldown@1.2.16)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))':
+  '@stylexjs/unplugin@0.19.1(unplugin@2.3.11)':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/plugin-syntax-flow': 7.29.7(@babel/core@7.29.7)
@@ -3511,7 +3520,7 @@ snapshots:
       '@stylexjs/babel-plugin': 0.19.1
       browserslist: 4.29.5
       lightningcss: 1.33.0
-      unplugin: 3.7.0(esbuild@0.28.2)(rolldown@1.2.16)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+      unplugin: 2.3.11
     transitivePeerDependencies:
       - supports-color
 
@@ -3836,6 +3845,8 @@ snapshots:
       vite: 8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)
 
   '@vitest/spy@5.0.5': {}
+
+  acorn@8.19.0: {}
 
   ansis@4.5.0: {}
 
@@ -4507,6 +4518,13 @@ snapshots:
   ufo@1.6.4: {}
 
   undici-types@8.9.0: {}
+
+  unplugin@2.3.11:
+    dependencies:
+      '@jridgewell/remapping': 2.3.5
+      acorn: 8.19.0
+      picomatch: 4.0.7
+      webpack-virtual-modules: 0.6.2
 
   unplugin@3.7.0(esbuild@0.28.2)(rolldown@1.2.16)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)):
     dependencies:

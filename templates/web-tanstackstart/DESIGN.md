@@ -40,6 +40,18 @@ Desktop: navigation, content width.
 
 Rules specific to this product.
 
+## Delivery contract
+
+The design is not accepted because the dev server renders or because elements exist in the DOM.
+Acceptance requires the built application, the real App-hosted path, visible controls, successful
+core interaction and phone/desktop review against this file. Canvas, chart and diagram output also
+requires geometry and painted-pixel checks.
+
+Use template provenance for every page. Preserve the archetype's frame, gap and padding; product
+work goes inside its sections. When migrating an existing page, decide explicitly whether to keep
+it, rebuild it from the matching archetype, or remove it rather than layering new styles on the old
+structure.
+
 ## Decisions
 
 Dated entries: what was chosen, what else was shown, and the owner's words.

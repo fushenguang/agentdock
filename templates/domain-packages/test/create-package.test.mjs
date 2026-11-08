@@ -53,7 +53,7 @@ function mockNpx(root) {
     file,
     [
       '#!/bin/sh',
-      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.32.0"; then',
+      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.32.2"; then',
       '  echo "expected pinned AgentDock CLI" >&2',
       '  exit 2',
       'fi',

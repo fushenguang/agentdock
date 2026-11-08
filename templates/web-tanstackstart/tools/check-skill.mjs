@@ -30,8 +30,10 @@ export function findProjectRoot(start = process.cwd()) {
 }
 
 export function findSkillSource(root) {
+  const workspaceCandidate = resolve(root, "..", "..", "packages/astryx-web/skills", SKILL);
   const candidates = [
     process.env.ASTRYX_WEB_SKILL_SOURCE,
+    workspaceCandidate,
     join(root, "node_modules", PACKAGE_SKILL),
     join(root, "apps/web/node_modules", PACKAGE_SKILL),
   ].filter(Boolean);
@@ -46,8 +48,6 @@ export function findSkillSource(root) {
     }
   }
 
-  const workspaceCandidate = resolve(root, "..", "..", "packages/astryx-web/skills", SKILL);
-  candidates.push(workspaceCandidate);
   return candidates.find((candidate) => existsSync(join(candidate, "SKILL.md"))) ?? null;
 }
 

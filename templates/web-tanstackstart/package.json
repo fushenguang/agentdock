@@ -49,7 +49,7 @@
     "@astryxdesign/build": "0.7.8",
     "@astryxdesign/cli": "0.7.8",
     "@babel/core": "^8.1.0",
-    "@cogito.ai/astryx-web": "^0.2.0",
+    "@cogito.ai/astryx-web": "^0.2.1",
     "@stylexjs/babel-plugin": "^0.19.1",
     "@stylexjs/unplugin": "^0.19.1",
     "@tanstack/router-cli": "^1.167.46",
