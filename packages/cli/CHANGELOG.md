@@ -1,5 +1,12 @@
 # @cogito.ai/cli
 
+## 0.32.1
+
+### Patch Changes
+
+- ca7f2be: Harden `web-tanstackstart` page provenance: use the Astryx 0.7.8 template baseline and fail
+  `check:pages` when a page marker's recorded Astryx version differs from the installed CLI.
+
 ## 0.32.0
 
 ### Minor Changes
