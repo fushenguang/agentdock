@@ -1,5 +1,12 @@
 # @cogito.ai/cli
 
+## 0.32.7
+
+### Patch Changes
+
+- 020c015: Keep the domain-packages minimum CLI version aligned with its scaffold pin so readiness checks
+  cannot compare against a stale template declaration.
+
 ## 0.32.6
 
 ### Patch Changes
