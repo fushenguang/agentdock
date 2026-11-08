@@ -9,12 +9,14 @@ roadmap-id: web-design-system
 The lean-flowkit migration upgraded Astryx from 0.7.5 to 0.7.8 while keeping page provenance
 markers and the generated template lock on the previous version. The mismatch was found by manual
 cross-checking instead of the template gate. The current template also declares the design-direction
-integration from `@cogito.ai/astryx-web@0.2.0` while its standalone lock still installs 0.1.0.
+integration from `@cogito.ai/astryx-web@0.2.0` while its standalone lock still installs 0.1.0, and
+the domain-package generator still pins the 0.29.0 CLI.
 
 ## What Changes
 
 - Move the template to the Astryx versions proven by lean-flowkit and the published design-direction
   integration.
+- Move the domain-package generator pin to the published `@cogito.ai/cli@0.32.0`.
 - Require every page provenance marker's `astryx:` value to equal the installed Astryx CLI version.
 - Add a negative test for stale provenance and refresh the generated sample markers.
 - Publish one `@cogito.ai/cli` patch release from the merged main commit.

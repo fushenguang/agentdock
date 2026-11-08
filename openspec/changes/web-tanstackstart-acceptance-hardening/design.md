@@ -6,6 +6,9 @@ Use Astryx 0.7.8, the version exercised by lean-flowkit through its final accept
 `@cogito.ai/astryx-web` on the published 0.2.0 design-direction integration. Lockfile changes are
 generated, not hand-edited.
 
+Pin the generated domain-package workspace to the published CLI 0.32.0 rather than its stale 0.29.0
+lock. Otherwise a newly generated package starts from an older scaffold than the skill baseline.
+
 ## D2 · Provenance drift gate
 
 `tools/check-pages.mjs` already verifies that component pages come from a known Astryx template. It

@@ -5,6 +5,8 @@
 - [x] 1.1 Update template Astryx pins to 0.7.8 and `@cogito.ai/astryx-web` to 0.2.0; regenerate the
       standalone lockfile with the template's supported pnpm version.
 - [x] 1.2 Refresh the generated Astryx guidance and sample page provenance markers.
+- [x] 1.3 Move the domain-packages template and CLI registry pin from 0.29.0 to 0.32.0, updating
+      the scaffold assertions with it.
 
 ## 2. Provenance gate
 
