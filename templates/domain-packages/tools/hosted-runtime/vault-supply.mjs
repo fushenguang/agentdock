@@ -25,12 +25,10 @@
 export const VAULT_PROTOCOL_ENV_NAMES = new Set(["VAULT_TOKEN", "VAULT_ENDPOINT"]);
 
 const FAIL_FAST_MESSAGES = {
-  "not-signed-in": (name) =>
-    `「${name}」需要登录后使用——请先登录 TheFoolAI 账号，再使用该能力。`,
+  "not-signed-in": (name) => `「${name}」需要登录后使用——请先登录 TheFoolAI 账号，再使用该能力。`,
   "vault-unreachable": (name) =>
     `「${name}」的平台密钥服务暂时不可达（网络或平台故障）——请检查网络后重试。`,
-  "key-not-enabled": (name) =>
-    `「${name}」尚未在平台配置——请联系平台管理员启用该 key。`,
+  "key-not-enabled": (name) => `「${name}」尚未在平台配置——请联系平台管理员启用该 key。`,
 };
 
 function failFast(code, keyName, detail) {
@@ -57,8 +55,7 @@ export function createVaultSupply({
 } = {}) {
   // 未注入时惰性解析全局 fetch（每次调用时查 globalThis）——测试 stub 与
   // 运行时替换才能生效；默认参数会在创建时固定引用，stub 不再可见。
-  const resolveFetch =
-    typeof fetchImpl === "function" ? () => fetchImpl : () => fetch;
+  const resolveFetch = typeof fetchImpl === "function" ? () => fetchImpl : () => fetch;
   /** 会话级缓存：key_name → key_value。仅内存，永不落盘。 */
   const cache = new Map();
 

@@ -12,6 +12,7 @@ import {
 import { createInterface } from 'node:readline/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { syncAgentSkillLinks } from './sync-agent-skills.mjs'
 
 const toolRoot = dirname(fileURLToPath(import.meta.url))
 const defaultWorkspaceRoot = resolve(toolRoot, '..')
@@ -743,7 +744,11 @@ function starterCapabilityService(spec) {
     '    };',
     '  }',
     '  const error = new Error(`capability is not implemented: ${capabilityId}`);',
-    '  Object.assign(error, { code: "capability_not_implemented", category: "capability", retryable: false });',
+    '  Object.assign(error, {',
+    '    code: "capability_not_implemented",',
+    '    category: "capability",',
+    '    retryable: false,',
+    '  });',
     '  throw error;',
     '}',
     '',
@@ -783,6 +788,7 @@ function injectPackagedWebRuntime(appRoot, spec) {
   cpSync(join(runtimeRoot, 'vault-supply.mjs'), join(serverSource, 'vault-supply.mjs'))
   cpSync(join(runtimeRoot, 'web-channel-client.ts'), join(agentSource, 'web-channel-client.ts'))
   writeText(join(serverSource, 'capability-service.mjs'), starterCapabilityService(spec))
+  syncAgentSkillLinks(appRoot)
 }
 
 function clearInitialWebReservation(appRoot) {

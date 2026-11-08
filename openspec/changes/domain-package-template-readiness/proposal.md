@@ -24,6 +24,8 @@ visible output.
   generated workspace and Web guidance.
 - Make the generated hosted runtime pass the target Web's formatter and
   strict TypeScript check without editing generated files.
+- Create the nested Web's Claude Code skill link during scaffold, not only
+  after a later install or manual sync.
 - Add a patch changeset and publish the next CLI patch from merged main.
 
 ## Non-Goals

@@ -8,6 +8,7 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  readlinkSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
@@ -53,7 +54,7 @@ function mockNpx(root) {
     file,
     [
       '#!/bin/sh',
-      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.32.5"; then',
+      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.32.6"; then',
       '  echo "expected pinned AgentDock CLI" >&2',
       '  exit 2',
       'fi',
@@ -64,7 +65,8 @@ function mockNpx(root) {
       '  fi',
       'done',
       'app="apps/web"',
-      'mkdir -p "$app/src" "$app/scripts" "$app/dist/client" "$app/dist/server"',
+      'mkdir -p "$app/src" "$app/scripts" "$app/dist/client" "$app/dist/server" "$app/.agents/skills/astryx-web-design"',
+      'printf "---\\nname: astryx-web-design\\n---\\n" > "$app/.agents/skills/astryx-web-design/SKILL.md"',
       'printf \'{"name":"web","private":true,"scripts":{"dev":"echo dev","check":"node --test","build":"node scripts/fake-build.mjs"}}\\n\' > "$app/package.json"',
       'printf "export default defineConfig({\\n  resolve: {\\n    alias: {},\\n  },\\n});\\n" > "$app/vite.config.ts"',
       'printf "import { serve } from \\"srvx\\"; import server from \\"./dist/server/server.js\\"; serve({ fetch: (request) => server.fetch(request) })\\n" > "$app/server.mjs"',
@@ -137,8 +139,20 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
       /for \(const requestId of pendingWebInvocations\.keys\(\)\)/,
     )
     assert.equal(
+      readlinkSync(join(root, 'apps', 'web', '.claude', 'skills', 'astryx-web-design')),
+      '../../.agents/skills/astryx-web-design',
+    )
+    assert.equal(
       existsSync(join(root, 'apps', 'web', 'src', 'server', 'capability-service.mjs')),
       true,
+    )
+    assert.match(
+      readFileSync(join(root, 'apps', 'web', 'src', 'server', 'capability-service.mjs'), 'utf8'),
+      /Object\.assign\(error, \{\n\s+code:/,
+    )
+    assert.match(
+      readFileSync(join(root, 'apps', 'web', 'src', 'server', 'vault-supply.mjs'), 'utf8'),
+      /"not-signed-in": \(name\) => `.*`,/,
     )
     assert.match(
       readFileSync(join(root, 'apps', 'web', 'vite.config.ts'), 'utf8'),

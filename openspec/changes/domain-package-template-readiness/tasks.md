@@ -7,5 +7,7 @@
 - [x] 1.5 Run template tests, type checks, lint, changed docs checks and OpenSpec strict validation.
 - [x] 1.6 Fix the final rehearsal's generated-runtime formatting and strict TypeScript defects in
       the root template; assert the generated files keep the fixes.
-- [ ] 1.7 Merge through PRs, publish the CLI patches, and verify npm `latest`, installed tarball,
+- [x] 1.7 Make the generated Web's runtime and skill links pass its first check without a repair
+      pass.
+- [ ] 1.8 Merge through PRs, publish the CLI patches, and verify npm `latest`, installed tarball,
       and generated template metadata.
