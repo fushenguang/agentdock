@@ -16,6 +16,9 @@ The generated workspace documentation must state:
   must start from its extracted artifact;
 - UI work starts only after `DESIGN.md` is approved and is accepted through
   visible interactions at phone and desktop sizes, not DOM existence alone.
+- Source copied into the generated Web must already satisfy that Web's
+  formatter and strict TypeScript settings; a fresh scaffold is the proof, not
+  a hand-fixed generated tree.
 
 ## D3 · Release
 

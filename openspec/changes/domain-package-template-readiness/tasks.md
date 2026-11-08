@@ -5,4 +5,7 @@
 - [x] 1.3 Encode source-reuse, dev/build-parity and UI acceptance rules in AGENTS/README/DESIGN guidance.
 - [x] 1.4 Add a CLI patch changeset and release note.
 - [x] 1.5 Run template tests, type checks, lint, changed docs checks and OpenSpec strict validation.
-- [ ] 1.6 Merge through a PR, publish the CLI patch, and verify npm registry and generated template metadata.
+- [x] 1.6 Fix the final rehearsal's generated-runtime formatting and strict TypeScript defects in
+      the root template; assert the generated files keep the fixes.
+- [ ] 1.7 Merge through PRs, publish the CLI patches, and verify npm `latest`, installed tarball,
+      and generated template metadata.

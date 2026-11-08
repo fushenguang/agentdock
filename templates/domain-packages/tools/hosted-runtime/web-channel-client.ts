@@ -23,7 +23,7 @@ export const WEB_CHANNEL_VERSION = "1.1.0";
 /** The statePublish uplink was added in Web Channel 1.1.0. */
 export function supportsStatePublish(channelVersion: unknown): boolean {
   if (typeof channelVersion !== "string") return false;
-  const [majorPart, minorPart = "0"] = channelVersion.split(".");
+  const [majorPart = "", minorPart = "0"] = channelVersion.split(".");
   if (!/^\d+$/.test(majorPart) || !/^\d+$/.test(minorPart)) return false;
   const major = Number(majorPart);
   const minor = Number(minorPart);
@@ -86,7 +86,9 @@ function normalizeError(error: unknown): {
 } {
   const message = error instanceof Error ? error.message : String(error);
   const code =
-    error !== null && typeof error === "object" && typeof (error as { code?: unknown }).code === "string"
+    error !== null &&
+    typeof error === "object" &&
+    typeof (error as { code?: unknown }).code === "string"
       ? (error as { code: string }).code
       : "web_action_failed";
   return { code, category: "capability", message, retryable: false };

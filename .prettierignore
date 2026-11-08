@@ -1,3 +1,4 @@
 templates/web-tanstackstart/**
 templates/web-tanstackstart-kids/**
 templates/_integrations/mastra/files/**
+templates/domain-packages/tools/hosted-runtime/*.ts

@@ -128,6 +128,14 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
     assert.equal(existsSync(join(root, 'apps', 'new-domain', 'contract.json')), true)
     assert.equal(existsSync(join(root, 'apps', 'new-domain', 'agent', 'web-surface.json')), true)
     assert.equal(existsSync(join(root, 'apps', 'web', 'package.json')), true)
+    assert.match(
+      readFileSync(join(root, 'apps', 'web', 'src', 'agent', 'web-channel-client.ts'), 'utf8'),
+      /const \[majorPart = "", minorPart = "0"\]/,
+    )
+    assert.match(
+      readFileSync(join(root, 'apps', 'web', 'src', 'server', 'hosted-runtime.mjs'), 'utf8'),
+      /for \(const requestId of pendingWebInvocations\.keys\(\)\)/,
+    )
     assert.equal(
       existsSync(join(root, 'apps', 'web', 'src', 'server', 'capability-service.mjs')),
       true,
