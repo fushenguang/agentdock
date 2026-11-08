@@ -21,6 +21,8 @@ The generated workspace documentation must state:
   a hand-fixed generated tree.
 - Both the workspace and nested Web must expose the same inferred Claude Code
   skill links at the moment generation finishes.
+- The template's declared minimum CLI and internal scaffold pin are one version
+  fact and must move together.
 
 ## D3 · Release
 

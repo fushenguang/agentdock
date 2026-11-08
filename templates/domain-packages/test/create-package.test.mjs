@@ -54,7 +54,7 @@ function mockNpx(root) {
     file,
     [
       '#!/bin/sh',
-      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.32.6"; then',
+      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.32.7"; then',
       '  echo "expected pinned AgentDock CLI" >&2',
       '  exit 2',
       'fi',
@@ -120,6 +120,12 @@ test('empty workspace pre-approves web-tanstackstart build scripts', () => {
   assert.match(workspaceYaml, /better-sqlite3:\s*false/)
   assert.match(workspaceYaml, /esbuild:\s*true/)
   assert.match(workspaceYaml, /lightningcss:\s*true/)
+})
+
+test('empty workspace keeps the minimum and pinned AgentDock CLI in sync', () => {
+  const packageJson = JSON.parse(readFileSync(join(templateRoot, 'package.json'), 'utf8'))
+  const standardsLock = JSON.parse(readFileSync(join(templateRoot, 'standards-lock.json'), 'utf8'))
+  assert.equal(packageJson.agentdock.minCliVersion, standardsLock.agentdockCliVersion)
 })
 
 test('generator creates a formal Web package with pinned AgentDock CLI', () => {
