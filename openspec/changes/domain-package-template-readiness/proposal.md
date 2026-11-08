@@ -22,6 +22,8 @@ visible output.
 - Require the current design-direction and template-provenance workflow.
 - Add concise source-reuse, dev/build-parity and UI acceptance rules to the
   generated workspace and Web guidance.
+- Make the generated hosted runtime pass the target Web's formatter and
+  strict TypeScript check without editing generated files.
 - Add a patch changeset and publish the next CLI patch from merged main.
 
 ## Non-Goals

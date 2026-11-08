@@ -283,18 +283,14 @@ function isSafeRequestId(value) {
 }
 
 function isExpectedClientStreamClose(error, response) {
-  const code =
-    error && typeof error === "object" && "code" in error ? error.code : undefined;
+  const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
   const message = error instanceof Error ? error.message : String(error);
   return (
     code === "EPIPE" ||
     code === "ECONNRESET" ||
     code === "ERR_STREAM_PREMATURE_CLOSE" ||
-    /Stream lifetime exceeded|Premature close|closed or destroyed stream/i.test(
-      message,
-    ) ||
-    (response.destroyed &&
-      /socket hang up|aborted/i.test(message))
+    /Stream lifetime exceeded|Premature close|closed or destroyed stream/i.test(message) ||
+    (response.destroyed && /socket hang up|aborted/i.test(message))
   );
 }
 
@@ -355,19 +351,12 @@ export function createFetchRequestHandler(fetchHandler) {
   };
 }
 
-export function resolveEffectivePageBoundCapabilityIds(
-  capabilities,
-  sidecarPageBound,
-) {
+export function resolveEffectivePageBoundCapabilityIds(capabilities, sidecarPageBound) {
   const result = new Set();
-  const capabilityById = new Map(
-    capabilities.map((capability) => [capability.id, capability]),
-  );
+  const capabilityById = new Map(capabilities.map((capability) => [capability.id, capability]));
   for (const capabilityId of sidecarPageBound) {
     if (!capabilityById.has(capabilityId)) {
-      throw new Error(
-        `page-bound declaration references unknown capability: ${capabilityId}`,
-      );
+      throw new Error(`page-bound declaration references unknown capability: ${capabilityId}`);
     }
   }
   for (const capability of capabilities) {
@@ -383,27 +372,17 @@ export function resolveEffectivePageBoundCapabilityIds(
     }
     if (declaredExecution === "web") {
       if (!capability.access?.web || !capability.access?.agent) {
-        throw new Error(
-          `page-bound capability must allow web and agent access: ${capability.id}`,
-        );
+        throw new Error(`page-bound capability must allow web and agent access: ${capability.id}`);
       }
       if (PROTOCOL_CAPABILITY_IDS.has(capability.id)) {
-        throw new Error(
-          `protocol capability cannot be page-bound: ${capability.id}`,
-        );
+        throw new Error(`protocol capability cannot be page-bound: ${capability.id}`);
       }
     }
-    if (
-      declaredExecution === "runtime" &&
-      sidecarPageBound.has(capability.id)
-    ) {
-      throw new Error(
-        `execution conflict for ${capability.id}: descriptor runtime, sidecar web`,
-      );
+    if (declaredExecution === "runtime" && sidecarPageBound.has(capability.id)) {
+      throw new Error(`execution conflict for ${capability.id}: descriptor runtime, sidecar web`);
     }
     const effectiveExecution =
-      declaredExecution ??
-      (sidecarPageBound.has(capability.id) ? "web" : "runtime");
+      declaredExecution ?? (sidecarPageBound.has(capability.id) ? "web" : "runtime");
     if (effectiveExecution === "web") result.add(capability.id);
   }
   return result;
@@ -1016,7 +995,8 @@ export function createHostedRuntime({
       pageConnected: activeWebPage !== null,
       webChannel: webChannelState(),
     };
-    if (!route) return { ready: lifecycleState === "ready", routeId: null, state: compactState(state) };
+    if (!route)
+      return { ready: lifecycleState === "ready", routeId: null, state: compactState(state) };
 
     const packageStates = Array.isArray(route.state)
       ? route.state.filter((entry) => entry?.agentVisible === true && typeof entry.key === "string")
@@ -1084,7 +1064,7 @@ export function createHostedRuntime({
   }
 
   function failPendingWebInvocations(code, message, page = null) {
-    for (const requestId of [...pendingWebInvocations.keys()]) {
+    for (const requestId of pendingWebInvocations.keys()) {
       if (page !== null && pendingWebInvocations.get(requestId)?.page !== page) continue;
       settleWebInvocation(requestId, (pending) => {
         pending.reject(
@@ -1264,7 +1244,9 @@ export function createHostedRuntime({
       );
       for (const key of Object.keys(body.state)) {
         if (!publishable.has(key)) {
-          invalid(`statePublish key "${key}" is not an agent-visible source:page key of this route`);
+          invalid(
+            `statePublish key "${key}" is not an agent-visible source:page key of this route`,
+          );
           return;
         }
       }
@@ -1406,11 +1388,14 @@ export function createHostedRuntime({
       ) {
         settleWebInvocation(requestId, (pending) => {
           pending.reject(
-            Object.assign(new Error("the package Web page disconnected before the action started"), {
-              code: "page_unmounted",
-              category: "capability",
-              retryable: true,
-            }),
+            Object.assign(
+              new Error("the package Web page disconnected before the action started"),
+              {
+                code: "page_unmounted",
+                category: "capability",
+                retryable: true,
+              },
+            ),
           );
         });
       }
@@ -1460,11 +1445,7 @@ export function createHostedRuntime({
     if (pageBoundCapabilities.has(capabilityId)) {
       return invokePageBoundCapability(capabilityId, input);
     }
-    return service.execute(
-      capabilityId,
-      input,
-      context,
-    );
+    return service.execute(capabilityId, input, context);
   }
 
   async function deleteDataRoot(requestId) {
