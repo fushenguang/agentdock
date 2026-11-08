@@ -13,5 +13,5 @@
       504s.
 - [x] 1.9 Align the template `agentdock.minCliVersion` with its scaffold pin and keep them
       asserted as one version fact.
-- [ ] 1.10 Merge through PRs, publish the CLI patches, and verify npm `latest`, installed tarball,
+- [x] 1.10 Merge through PRs, publish the CLI patches, and verify npm `latest`, installed tarball,
       and generated template metadata.
