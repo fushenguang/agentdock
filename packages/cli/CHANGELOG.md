@@ -1,5 +1,12 @@
 # @cogito.ai/cli
 
+## 0.32.5
+
+### Patch Changes
+
+- 4c8341d: Keep the generated Web Channel client valid under strict TypeScript when a malformed channel
+  version has no major segment.
+
 ## 0.32.4
 
 ### Patch Changes
