@@ -27,6 +27,13 @@ theme:
 
 # Design contract
 
+## Page briefs
+
+| Route | Core function | Primary action | Above the fold | Hidden by default | Archetype |
+| --- | --- | --- | --- | --- | --- |
+| /$locale/settings | Change settings | Apply one preference | Current preference | History | dock-settings |
+| /$locale/login | Sign in | Continue | Credentials | Recovery help | dock-form-flow |
+
 ## Decisions
 
 2026-11-07: Approved for tests.
@@ -112,6 +119,45 @@ describe("page:new", () => {
           execFile: vi.fn(),
         }),
       ).toThrow(/Design direction is not approved/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("requires a complete page brief before Astryx starts", () => {
+    const root = makeRoot();
+    const execFile = vi.fn();
+    try {
+      expect(() =>
+        runPageNew(["library page", "--route", "library"], {
+          cwd: root,
+          astryx: "astryx",
+          execFile,
+        }),
+      ).toThrow(/Page brief missing for \/\$locale\/library/);
+      expect(execFile).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an incomplete page brief", () => {
+    const root = makeRoot();
+    try {
+      writeFileSync(
+        join(root, "DESIGN.md"),
+        APPROVED_DESIGN.replace(
+          "| /$locale/settings | Change settings | Apply one preference | Current preference | History | dock-settings |",
+          "| /$locale/settings | Change settings |  | Current preference | History | dock-settings |",
+        ),
+      );
+      expect(() =>
+        runPageNew(["settings page with sections", "--route", "settings"], {
+          cwd: root,
+          astryx: "astryx",
+          execFile: vi.fn(),
+        }),
+      ).toThrow(/Page brief incomplete for \/\$locale\/settings: Primary action/);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, posix, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { readDesignContract } from "./design-contract.mjs";
+import { readDesignContract, requirePageBrief } from "./design-contract.mjs";
 
 const PACKAGE = "@cogito.ai/astryx-web";
 const PAGES_DIR = "src/i18n/pages";
@@ -287,6 +287,7 @@ export function runPageNew(argv, dependencies = {}) {
       "Design direction is not approved. Run the astryx-web-design skill (references/design-direction.md) and wait for the owner.",
     );
   }
+  requirePageBrief(cwd, options.route);
   const exec = dependencies.execFile ?? run;
   const external = (command, args) => exec(command, args, cwd);
   const astryx = dependencies.astryx ?? localBin(cwd, "astryx");

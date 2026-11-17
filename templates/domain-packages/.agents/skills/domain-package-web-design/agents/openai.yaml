@@ -1,0 +1,4 @@
+interface:
+  display_name: "Domain Package Web Design"
+  short_description: "Preflight and Astryx mapping for domain-package UI"
+  default_prompt: "Use $domain-package-web-design to clarify the package design direction and page brief before implementing this domain-package Web surface."

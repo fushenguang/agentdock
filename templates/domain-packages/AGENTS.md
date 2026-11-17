@@ -12,8 +12,13 @@ generator.
 3. For an interactive human session, run `pnpm create:package` and answer the package id and intent
    prompts; do not create a temporary spec only to satisfy the generator.
 4. Read the generated `apps/<package-id>/AGENTS.md` before changing package content.
-5. Finish with `pnpm check` and the generated package-specific commands.
-6. Before delivery, prove the package at four separate layers: source checks, built artifact
+5. Before any package Web design or page work, use the `domain-package-web-design` skill and then
+   `astryx-web-design`. Establish the package audience, hierarchy, visual direction, and page grammar
+   before implementation.
+6. Before creating or structurally changing a page, ask for its core function and primary action and
+   record the page brief in `apps/web/DESIGN.md`.
+7. Finish with `pnpm check` and the generated package-specific commands.
+8. Before delivery, prove the package at four separate layers: source checks, built artifact
    startup, App-hosted interaction, and visible UI acceptance. A dev server or mounted DOM is
    not delivery evidence.
 
@@ -24,6 +29,8 @@ generator.
 - Package Web interaction MUST use intent-level routes, actions, elements, and capabilities.
 - Do not automate a Web through DOM selectors or coordinates.
 - Do not write feature pages before `PRODUCT.md` exists and `DESIGN.md` is approved.
+- Do not put every package capability on a page. Identify the page's core function first; hide or
+  move secondary and auxiliary functionality according to the approved information hierarchy.
 - A copied upstream source tree still requires a parity matrix and explicit adaptations for CSP,
   downloads, permissions, SSR, assets, coordinates/hit testing, styles and data roots.
 - `apps/<package-id>/web/` and generated seed databases are build staging, never source.

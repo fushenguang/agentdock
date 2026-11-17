@@ -109,12 +109,17 @@ Read `LLM.md` first. It contains the exact architecture rules, file recipes, imp
 3. Keep the public API in `src/features/<name>/index.ts`.
 4. Add a test next to the feature.
 5. Add or update an infra repository only when persistence behavior changes.
-6. Add the route under `src/routes/$locale/`.
-7. Add user-facing strings to every catalog in `src/i18n/messages.ts`.
-8. Follow `DESIGN.md` for UI and theme work, and apply the relevant Agent Skill.
-9. Compose the shared layout primitives: a landing (`PageContainer` + module entries) for a first-level route, or `PageShell` for a second-level page, with a `SideDrawer` for configuration and forms.
+6. In a domain package, use `domain-package-web-design` to identify the page's core function, primary action, above-the-fold content, and hidden-by-default content; add the row to `DESIGN.md` `## Page briefs`.
+7. Add the route under `src/routes/$locale/`. `pnpm page:new` refuses a new route without a complete page brief.
+8. Add user-facing strings to every catalog in `src/i18n/messages.ts`.
+9. Follow `DESIGN.md` for UI and theme work, and apply the relevant Agent Skill.
+10. Compose the shared layout primitives: a landing (`PageContainer` + module entries) for a first-level route, or `PageShell` for a second-level page, with a `SideDrawer` for configuration and forms.
 
 Do not import `infra/db` from a feature. Use the provider and repository contract.
+
+The brief is a design decision, not a post-generation checklist. Start with one user job and hide or
+move secondary capabilities. Cards are allowed only for an independently enterable or actionable
+unit; do not use them as the page frame, a form wrapper, or a substitute for information hierarchy.
 
 ## Deployment Boundary
 

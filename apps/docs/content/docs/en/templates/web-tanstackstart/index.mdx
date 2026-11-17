@@ -56,6 +56,11 @@ Shared layout primitives live in `src/components/layout`: `TemplateShell`, `Bott
 
 The generated project includes `LLM.md`, a single agent-oriented development guide covering technology rationale, dependency boundaries, feature recipes, database changes, UI development, verification, and troubleshooting. `AGENTS.md` remains the execution-boundary contract and points to `LLM.md` first.
 
+In a generated domain package, `apps/web/.agents/skills/domain-package-web-design` adds the
+pre-implementation design workflow: package audience and hierarchy, a core-function brief for every
+page, and explicit Astryx mapping. It sits before `astryx-web-design`; Stitch, Taste Skill, UI UX Pro
+Max, and Impeccable can inform the design, but Astryx remains the implementation authority.
+
 ## Data Providers
 
 SQLite is the default and requires no external service:

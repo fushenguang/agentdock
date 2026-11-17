@@ -35,3 +35,65 @@ export function readDesignContract(root) {
     theme,
   };
 }
+
+const PAGE_BRIEF_FIELDS = [
+  "Route",
+  "Core function",
+  "Primary action",
+  "Above the fold",
+  "Hidden by default",
+  "Archetype",
+];
+
+function normalizeRoute(value) {
+  const route = value.trim().replace(/^`|`$/g, "").replace(/\/+$/g, "");
+  return route === "/$locale" ? "/$locale/" : route;
+}
+
+function tableCells(line) {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim().replace(/^`|`$/g, ""));
+}
+
+export function readPageBrief(root, route) {
+  const source = readFileSync(join(root, "DESIGN.md"), "utf8");
+  const lines = source.split(/\r?\n/);
+  const start = lines.findIndex((line) => /^## Page briefs\s*$/.test(line));
+  if (start === -1) return null;
+  const end = lines.findIndex((line, index) => index > start && /^##\s+/.test(line));
+  const section = lines.slice(start + 1, end === -1 ? undefined : end);
+  const headerIndex = section.findIndex((line) => line.trim().startsWith("|"));
+  if (headerIndex === -1) return null;
+  const headers = tableCells(section[headerIndex]);
+  const expectedRoute = normalizeRoute(
+    route === "index" ? "/$locale/" : `/$locale/${route.replace(/^\/+|\/+$/g, "")}`,
+  );
+
+  for (const line of section.slice(headerIndex + 2)) {
+    if (!line.trim().startsWith("|")) continue;
+    const values = tableCells(line);
+    const row = Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+    if (normalizeRoute(row.Route) !== expectedRoute) continue;
+    return row;
+  }
+  return null;
+}
+
+export function requirePageBrief(root, route) {
+  const brief = readPageBrief(root, route);
+  const expectedRoute = route === "index" ? "/$locale/" : `/$locale/${route}`;
+  if (!brief) {
+    throw new Error(
+      `Page brief missing for ${expectedRoute}. Ask for the page's core function, primary action, above-the-fold and hidden-by-default content, then add a row to DESIGN.md ## Page briefs.`,
+    );
+  }
+  const missing = PAGE_BRIEF_FIELDS.filter((field) => !brief[field]);
+  if (missing.length > 0) {
+    throw new Error(`Page brief incomplete for ${expectedRoute}: ${missing.join(", ")}.`);
+  }
+  return brief;
+}

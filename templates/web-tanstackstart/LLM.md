@@ -2,8 +2,9 @@
 
 > Read this file before changing the project. It is the compact source of truth for technology rationale, architecture, constraints, and implementation workflows.
 
-Before UI work, read `PRODUCT.md`, then `DESIGN.md`, then the `astryx-web-design` skill. A feature
-page cannot start while `DESIGN.md` is `draft`.
+Before UI work, read `PRODUCT.md`, then `DESIGN.md`, then the `astryx-web-design` skill. In a domain
+package, also use `domain-package-web-design` before package or page design. A feature page cannot
+start while `DESIGN.md` is `draft` or its page brief is incomplete.
 
 ## 1. Project Mission
 
@@ -274,6 +275,24 @@ The `/$locale` layout validates the locale, provides `InternationalizationProvid
 
 Astryx is the component and design-token source. StyleX owns first-party layout and product styling.
 
+### Page design preflight
+
+Use `domain-package-web-design` when the skill is installed. Before writing a page, identify:
+
+- the page's one core function and primary action;
+- what must be visible above the fold;
+- what is secondary and must be revealed on demand;
+- what is auxiliary and belongs on another route or settings surface;
+- the matching Astryx archetype and data shape.
+
+Add the approved row to `DESIGN.md` under `## Page briefs`. `pnpm page:new` requires this row for a
+new route. Do not put every package capability on the page; primary, secondary and auxiliary
+information are separate design decisions.
+
+Use `DESIGN.md` `## Content shape and component policy` before chosen components. Homogeneous records
+use rows or tables. Card chrome is only for a discrete, independently enterable or actionable unit,
+one level deep, and never wraps a form, collection, section or page.
+
 Before using an unfamiliar component, query the Astryx CLI:
 
 ```bash
@@ -392,6 +411,8 @@ needed.
 - `keel`: architecture, module boundaries, migrations, and long-term evolution
 - `coding-protocol`: risk-graded execution and verification discipline
 - Matt Pocock engineering skills: requirements, TDD, diagnosis, implementation, review
+- `domain-package-web-design` (when installed): package audience, information hierarchy, page brief,
+  external reference routing and Astryx mapping before UI work
 - `astryx-web-design`: design-direction discussion, page building with `pnpm page:new`, and visual acceptance
 
 Start with the smallest relevant skill. `AGENTS.md` and this file override any conflicting skill advice.
