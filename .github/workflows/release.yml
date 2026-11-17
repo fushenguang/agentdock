@@ -56,10 +56,47 @@ jobs:
       - name: Build all packages
         run: pnpm build
 
+      # A prior run can create the version tag before npm exposes the package.
+      # Recover that state explicitly so Changesets does not fail on a duplicate tag.
+      - name: Recover tagged npm CLI release
+        id: npm_recovery
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./packages/cli/package.json').version")"
+          package="@cogito.ai/cli@${version}"
+          echo "skip_changesets=false" >> "$GITHUB_OUTPUT"
+
+          if npm view "$package" version >/dev/null 2>&1; then
+            echo "$package is publicly available on npm"
+            exit 0
+          fi
+          if ! git rev-parse --verify --quiet "refs/tags/$package" >/dev/null; then
+            exit 0
+          fi
+
+          echo "$package has a git tag but is missing from npm; publishing explicitly"
+          npm publish ./packages/cli --access public --tag latest
+
+          for attempt in {1..12}; do
+            if npm view "$package" version >/dev/null 2>&1; then
+              echo "skip_changesets=true" >> "$GITHUB_OUTPUT"
+              echo "$package is publicly available on npm"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "::error::$package is still missing from npm after explicit publish"
+          exit 1
+
       # changesets/action does two things depending on state:
       #  1. If .changeset/*.md files exist → opens/updates a "Version Packages" PR
       #  2. If "Version Packages" PR is merged → publishes to npm
       - name: Publish or open version PR
+        if: steps.npm_recovery.outputs.skip_changesets != 'true'
         uses: changesets/action@v1
         with:
           publish: pnpm changeset:publish
@@ -73,3 +110,32 @@ jobs:
           # Name: NPM_TOKEN
           # Value: npm token with "Automation" type (publish scope)
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify npm CLI release
+        if: steps.npm_recovery.outputs.skip_changesets != 'true'
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./packages/cli/package.json').version")"
+          package="@cogito.ai/cli@${version}"
+
+          if npm view "$package" version >/dev/null 2>&1; then
+            echo "$package is publicly available on npm"
+            exit 0
+          fi
+
+          echo "$package is missing from npm after Changesets; publishing explicitly"
+          npm publish ./packages/cli --access public --tag latest
+
+          for attempt in {1..12}; do
+            if npm view "$package" version >/dev/null 2>&1; then
+              echo "$package is publicly available on npm"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "::error::$package is still missing from npm after explicit publish"
+          exit 1
