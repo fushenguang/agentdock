@@ -1,5 +1,11 @@
 # @cogito.ai/cli
 
+## 0.33.0
+
+### Minor Changes
+
+- 7d18577: Add the domain-package Web design preflight skill, DESIGN.md page briefs, and page:new brief gate.
+
 ## 0.32.7
 
 ### Patch Changes
