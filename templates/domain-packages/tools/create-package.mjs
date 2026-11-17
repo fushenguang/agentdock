@@ -787,6 +787,13 @@ function injectPackagedWebRuntime(appRoot, spec) {
   cpSync(join(runtimeRoot, 'create-hosted-runtime.mjs'), join(serverSource, 'hosted-runtime.mjs'))
   cpSync(join(runtimeRoot, 'vault-supply.mjs'), join(serverSource, 'vault-supply.mjs'))
   cpSync(join(runtimeRoot, 'web-channel-client.ts'), join(agentSource, 'web-channel-client.ts'))
+  const designSkillSource = join(toolRoot, '..', '.agents', 'skills', 'domain-package-web-design')
+  if (!existsSync(join(designSkillSource, 'SKILL.md'))) {
+    throw new Error(`missing domain-package design skill at ${designSkillSource}`)
+  }
+  cpSync(designSkillSource, join(appRoot, '.agents', 'skills', 'domain-package-web-design'), {
+    recursive: true,
+  })
   writeText(join(serverSource, 'capability-service.mjs'), starterCapabilityService(spec))
   syncAgentSkillLinks(appRoot)
 }

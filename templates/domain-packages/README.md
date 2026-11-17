@@ -50,6 +50,17 @@ context, machine-readable package and Web surfaces, capability catalog, roadmap,
 spec `>=2.0.0 <3.0.0` and protocol `=2.0.0`, including the v2 surface, caller-based Web
 authorization, structured capability errors, and the multi-skill index.
 
+## Web design preflight
+
+The generated Web includes the `domain-package-web-design` Codex/Claude skill. Before UI work, use it
+with `astryx-web-design` to establish audience, information hierarchy, visual direction, page grammar,
+typography, color, spacing, interaction, and hidden-by-default behavior. Record package-level rules in
+`apps/web/DESIGN.md`.
+
+Every new page also needs a row under `## Page briefs` before `pnpm --filter web page:new` runs. The
+row names the page's core function, primary action, above-the-fold content, hidden-by-default content,
+and Astryx archetype. This is a preflight decision, not a post-generation screenshot gate.
+
 ## Commands
 
 ```bash

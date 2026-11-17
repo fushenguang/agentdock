@@ -149,6 +149,16 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
       '../../.agents/skills/astryx-web-design',
     )
     assert.equal(
+      existsSync(
+        join(root, 'apps', 'web', '.agents', 'skills', 'domain-package-web-design', 'SKILL.md'),
+      ),
+      true,
+    )
+    assert.equal(
+      readlinkSync(join(root, 'apps', 'web', '.claude', 'skills', 'domain-package-web-design')),
+      '../../.agents/skills/domain-package-web-design',
+    )
+    assert.equal(
       existsSync(join(root, 'apps', 'web', 'src', 'server', 'capability-service.mjs')),
       true,
     )

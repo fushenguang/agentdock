@@ -56,6 +56,11 @@ src/infra/        Drizzle schema、client、仓储实现与 provider 装配
 
 生成项目内置根目录 `LLM.md`，集中说明技术选型理由、依赖边界、feature 开发流程、数据库变更、UI 开发、验证方式和故障排查。`AGENTS.md` 继续作为执行边界契约，并优先指向 `LLM.md`。
 
+生成 domain package 时，`apps/web/.agents/skills/domain-package-web-design` 增加实现前的设计流程：
+明确 package 的目标受众与信息层级，为每个页面确定核心功能和 Page Brief，并完成 Astryx 映射。
+它位于 `astryx-web-design` 之前；Stitch、Taste Skill、UI UX Pro Max 与 Impeccable 只承担各自的
+探索或评审角色，Astryx 仍是最终实现权威。
+
 ## 数据源
 
 默认 SQLite 不需要外部服务：

@@ -6,11 +6,12 @@ This is a TanStack Start application that keeps AgentDock's `core` / `features` 
 
 ## Read First
 
-Read `PRODUCT.md`, then `DESIGN.md`, then the `astryx-web-design` skill, then `LLM.md` before
-implementation. `PRODUCT.md` records the audience and tasks, `DESIGN.md` records the approved
-project contract, and the skill defines the design-direction and page workflow. `LLM.md` contains
-the stack rationale, architecture, import rules, data flow, feature recipes, UI guidance, and
-verification workflow. This file defines execution boundaries.
+Read `PRODUCT.md`, then the `domain-package-web-design` skill when present, then `DESIGN.md`, the
+`astryx-web-design` skill, and `LLM.md` before implementation. `PRODUCT.md` records the audience and
+tasks, `DESIGN.md` records the approved project and page contracts, and the skills define the
+preflight, component mapping, design-direction and page workflow. `LLM.md` contains the stack
+rationale, architecture, import rules, data flow, feature recipes, UI guidance, and verification
+workflow. This file defines execution boundaries.
 
 ## May Execute Autonomously
 
@@ -85,6 +86,9 @@ The standalone project supports pnpm `>=10.34.5 <13` and recommends 12.4.1. The 
 
 ## UI Rules
 
+- Before creating or structurally changing a page, use `domain-package-web-design` when present:
+  identify the page's one core function, primary action, above-the-fold content and hidden-by-default
+  content, then record the row under `DESIGN.md` `## Page briefs`.
 - Create every page with `pnpm page:new "<intent>" --route <path>`; never lay a page out from
   scratch. Put the page type last (`mobile settings page`, not `settings page on mobile`). Change
   an existing page only inside its existing sections.
@@ -99,6 +103,8 @@ The standalone project supports pnpm `>=10.34.5 <13` and recommends 12.4.1. The 
   (as the main surface), and a browser. Branch on container queries rather than viewport width and
   never introduce horizontal scrolling. Read `pnpm exec astryx docs dock-environment`.
 - Build a second-level page on `PageShell` (the one-screen skeleton); put configuration, forms and secondary detail in a `SideDrawer`, rare actions in one end-aligned `MoreMenu`, and keep cards to single, independently enterable units — a page is `Section` + `Divider` + rows, not a wall of boxes.
+- Do not expose every capability on a page. Primary, secondary, auxiliary and hidden information are
+  design decisions recorded before implementation.
 - Do not add Tailwind, CSS-in-JS runtimes, or a second component library without approval.
 - Apply the `astryx-web-design` skill before declaring UI work complete.
 
@@ -111,6 +117,8 @@ needed. Third-party revisions and licenses are recorded in `.github/skills/THIRD
 - Use `keel` and `coding-protocol` for architecture and execution-risk decisions.
 - Use the Matt Pocock engineering skills for requirements, TDD, diagnosis, design, implementation, and review.
 - Use `astryx-web-design` for the design-direction discussion, page building, and visual acceptance.
+- In a generated domain package, use `domain-package-web-design` before `astryx-web-design` for
+  audience, information hierarchy, page brief and external reference routing.
 - Skills add task-specific guidance; they do not override this file.
 
 <!-- ASTRYX:START -->

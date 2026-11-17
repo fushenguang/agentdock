@@ -42,6 +42,12 @@ The shell includes appearance and language switchers.
 
 UI composition prefers native Astryx primitives such as `Stack`, `Grid`, `Section`, `List`, `EmptyState`, `Center`, and `Timestamp`; custom wrappers delegate to Astryx instead of reimplementing its behavior. Theme and mode preferences persist in the first-party `agentdock.appearance` cookie so SSR can render the saved appearance without a hydration flash. Application copy lives in `src/i18n/messages.ts`; locale and theme extension rules are documented in `LLM.md` and `DESIGN.md`.
 
+In a generated domain package, the `domain-package-web-design` skill runs before
+`astryx-web-design`. It records the package audience and information hierarchy in `DESIGN.md`, then
+requires a page brief with the page's core function, primary action, above-the-fold content,
+hidden-by-default content, and Astryx archetype. `pnpm page:new` refuses to create a route until that
+brief exists.
+
 ## Commands
 
 ```bash
