@@ -39,18 +39,21 @@ export async function deliverGiteeRepository(
   const marker = `Created by AgentDock (${operationId})`
   const repoPath = `/repos/${enterprise}/${name}`
 
-  async function request(path: string, form?: Record<string, string>) {
+  async function request(
+    path: string,
+    form?: Record<string, string>,
+    method = form ? 'POST' : 'GET',
+  ) {
     const endpoint = new URL(`https://gitee.com/api/v5${path}`)
     if (!form) endpoint.searchParams.set('access_token', token!)
     const response = await fetch(endpoint, {
-      method: form ? 'POST' : 'GET',
+      method,
       body: form ? new URLSearchParams({ ...form, access_token: token! }) : null,
       redirect: 'error',
       signal: AbortSignal.timeout(20_000),
     })
     if (response.status === 404 && !form) return undefined
-    if (!response.ok)
-      throw new Error(`Gitee ${form ? 'create' : 'lookup'} returned HTTP ${response.status}`)
+    if (!response.ok) throw new Error(`Gitee ${method} returned HTTP ${response.status}`)
     return (await response.json().catch(() => undefined)) as GiteeRepo | undefined
   }
 
@@ -118,7 +121,18 @@ export async function deliverGiteeRepository(
   if (run('git', ['ls-remote', '--refs', url, 'refs/heads/main']) !== published) {
     throw new Error('Could not verify the initial commit on Gitee')
   }
-  const verified = assertRepository(await request(repoPath))
-  if (verified.default_branch !== 'main') throw new Error('Gitee default branch is not main')
+  let verified = assertRepository(await request(repoPath))
+  if (
+    verified.default_branch !== 'main' &&
+    run('git', ['ls-remote', '--refs', url]) === published
+  ) {
+    await request(repoPath, { default_branch: 'main' }, 'PATCH')
+    verified = assertRepository(await request(repoPath))
+  }
+  if (verified.default_branch !== 'main') {
+    throw new Error(
+      'Gitee default branch is not main. Check the repository settings and remote refs before retrying.',
+    )
+  }
   return { id: verified.id, cloneUrl: url, visibility, defaultBranch: 'main' }
 }

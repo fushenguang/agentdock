@@ -39,6 +39,7 @@ describe('Gitee delivery', () => {
       deliverGiteeRepository(target, 'operation', 'abc', undefined, git, record),
     ).resolves.toMatchObject({ id: 123, cloneUrl: target.url })
     expect(record).toHaveBeenCalledWith(123)
+    expect(fetch.mock.calls[1]?.[1].body.get('private')).toBe('0')
     expect(git).toHaveBeenCalledWith('git', ['push', target.url, 'abc:refs/heads/main'])
   })
 
@@ -52,5 +53,20 @@ describe('Gitee delivery', () => {
     ).rejects.toThrow('ownership')
     expect(git).not.toHaveBeenCalled()
     expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('sets the default branch after verifying the only remote ref', async () => {
+    vi.stubEnv('GITEE_TOKEN', 'test-token')
+    const lookup = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json(repo))
+      .mockResolvedValueOnce(Response.json({ ...repo, default_branch: null }))
+      .mockResolvedValueOnce(Response.json(repo))
+      .mockResolvedValueOnce(Response.json(repo))
+    vi.stubGlobal('fetch', lookup)
+    const git = vi.fn().mockReturnValueOnce(target.url).mockReturnValue('abc\trefs/heads/main')
+    await deliverGiteeRepository(target, 'operation', 'abc', repo.id, git, vi.fn())
+    expect(lookup.mock.calls[2]?.[1].method).toBe('PATCH')
+    expect(lookup.mock.calls[2]?.[1].body.get('default_branch')).toBe('main')
   })
 })

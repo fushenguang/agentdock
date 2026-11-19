@@ -486,13 +486,13 @@ Every PR to `main` or `release/**` must pass CI checks before merging. The relea
 
 Runs on `pull_request` targeting `main` and `release/**`. Four parallel jobs:
 
-| Job            | Tool                        | What it checks                                                   |
-| -------------- | --------------------------- | ---------------------------------------------------------------- |
-| **type-check** | `tsc --noEmit`              | TypeScript strict mode, no type errors in any package            |
-| **lint**       | ESLint                      | Code style, convention rules, Layer 2 architectural imports      |
-| **arch-guard** | `dependency-cruiser`        | No forbidden dependencies between packages, Layer 2 isolation    |
-| **build**      | `turbo build` + `bun build` | All packages build successfully, registry generated, CLI bundled |
-| **test**       | Vitest                      | All unit tests pass (depends on `build` job for registry.json)   |
+| Job            | Tool                        | What it checks                                                        |
+| -------------- | --------------------------- | --------------------------------------------------------------------- |
+| **type-check** | `tsc --noEmit`              | TypeScript strict mode, no type errors in any package                 |
+| **lint**       | ESLint                      | Code style, convention rules, Layer 2 architectural imports           |
+| **arch-guard** | `dependency-cruiser`        | No forbidden dependencies between packages, Layer 2 isolation         |
+| **build**      | `turbo build` + `bun build` | All packages build successfully, registry generated, CLI bundled      |
+| **test**       | Vitest + Node test runner   | CLI and domain template tests pass (Node 24 CI, registry built first) |
 
 ### Additional checks (other workflows)
 

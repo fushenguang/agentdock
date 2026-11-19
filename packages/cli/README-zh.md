@@ -39,6 +39,32 @@ pnpm add -g @cogito.ai/cli
 
 ## 命令说明
 
+`auth login|status|logout` 管理托管索引的登录状态。`skill validate <dir>` 校验技能。`skill publish <dir> --registry <checkout> --json` 写入本地目录清单并报告托管索引结果。
+
+### 创建并验证领域包
+
+将以下内容保存为 `package-spec.json`。默认生成 Web 工作台。无 Web 包需要设置 `hasWeb: false` 并填写 `noWebException.reason` 和 `noWebException.approvedBy`。双语名称、简介、版本等字段见 [spec schema](https://github.com/fushenguang/agentdock/blob/main/templates/domain-packages/schemas/package-spec.schema.json)。
+
+```json
+{
+  "id": "design-studio",
+  "displayName": "Design Studio",
+  "intent": "Create and export a design from a workspace conversation.",
+  "owner": "@design",
+  "lifecycle": "active",
+  "repositoryClass": "product"
+}
+```
+
+```sh
+npx @cogito.ai/cli@latest create-domain-package --spec package-spec.json --dry-run --json
+npx @cogito.ai/cli@latest create-domain-package --spec package-spec.json --json
+```
+
+本机需要模板支持的 Node 和 pnpm，以及用于初始提交的 Git 身份。默认目录是 `dp-<id>`，也可通过 `--dir` 指定尚不存在的路径。预演返回计划。正式创建会执行产品仓的检查和测试，有 Web 时还会构建制品，启动打包后的服务并检查健康状态。App 安装、编辑器交互需要单独验收。
+
+交付到 Gitee 时，配置 `GITEE_TOKEN` 和 SSH，传入 `--provider gitee --namespace enterprise:<namespace>`。默认可见性为 `private`，可以用 `--visibility internal` 修改。保持 spec 文件内容和目录不变，可以重试已记录的创建操作。`--json` 返回 `ok`、失败阶段 `phase`，或成功后的 `initialCommitSha` 和 `checks`。
+
 ### `agentdock init`
 
 从模板创建新项目。自动检测运行环境：
@@ -183,12 +209,7 @@ pnpm --filter @cogito.ai/cli build
 
 ### 发布流程
 
-```bash
-pnpm changeset          # 描述本次变更
-pnpm changeset version  # 更新版本号 + CHANGELOG
-pnpm --filter @cogito.ai/cli build
-pnpm --filter @cogito.ai/cli publish
-```
+用 `pnpm changeset` 记录版本变更。合入 `main` 后，Release 工作流会打开版本 PR。合并版本 PR 后，CI 构建、发布，并回查 npm。
 
 ---
 

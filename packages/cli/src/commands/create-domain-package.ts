@@ -21,8 +21,15 @@ export const createDomainPackageCommand = defineCommand({
   async run({ args }) {
     const result = await provisionDomainPackage(args)
     if (args.json) process.stdout.write(JSON.stringify(result) + '\n')
-    else if (result.ok) console.log(JSON.stringify(result, null, 2))
-    else console.error(`${result.phase}: ${result.message}`)
+    else if (result.ok) {
+      console.log(`${result.status}: ${result.localPath}\nChecks: ${result.checks.join(', ')}`)
+      if ('destination' in result && result.destination)
+        console.log(`Destination: ${result.destination}`)
+      if ('repo' in result && result.repo) console.log(result.repo.cloneUrl)
+    } else
+      console.error(
+        `${result.phase}: ${result.message}${result.localPath ? ` (${result.localPath})` : ''}`,
+      )
     if (!result.ok) process.exitCode = 1
   },
 })

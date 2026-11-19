@@ -2,13 +2,13 @@ import { spawnSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, lstatSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { createDomainPackage } from './domainPackages.js'
 import { deliverGiteeRepository, giteeTarget } from './giteeRepository.js'
 import { getTemplate } from './registry.js'
-import { scaffoldProject } from './scaffold.js'
+import { getTemplateSourceDir, scaffoldProject } from './scaffold.js'
 
 const MAX_SPEC_BYTES = 64 * 1024
-const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 async function readSpec(source: string) {
   let text: string
@@ -43,19 +43,27 @@ async function readSpec(source: string) {
     text = readFileSync(source, 'utf8')
     if (Buffer.byteLength(text) > MAX_SPEC_BYTES) throw new Error('Spec exceeds 64 KiB')
   }
-  let spec: { id?: unknown; hasWeb?: unknown } | null
+  let input: unknown
   try {
-    spec = JSON.parse(text)
+    input = JSON.parse(text)
   } catch {
     throw new Error('Spec is not valid JSON')
   }
-  if (typeof spec?.id !== 'string' || !ID.test(spec.id) || spec.id.length > 64) {
-    throw new Error('Spec id must be kebab case and at most 64 characters')
+  const validator = join(
+    getTemplateSourceDir('templates/domain-packages'),
+    'tools',
+    'validate-spec.mjs',
+  )
+  const { validateSpec } = await import(pathToFileURL(validator).href)
+  if (typeof validateSpec !== 'function')
+    throw new Error(
+      'Bundled domain package validator is missing. Reinstall or rebuild the AgentDock CLI.',
+    )
+  const spec: { id: string; hasWeb: boolean } = validateSpec(input)
+  if (typeof spec?.id !== 'string' || typeof spec.hasWeb !== 'boolean') {
+    throw new Error('Invalid result from the bundled domain package validator')
   }
-  if (['docs', 'web'].includes(spec.id)) throw new Error(`Reserved package id: ${spec.id}`)
-  if (spec.hasWeb !== undefined && typeof spec.hasWeb !== 'boolean')
-    throw new Error('hasWeb must be a boolean')
-  return { text, id: spec.id, hasWeb: spec.hasWeb !== false }
+  return { text, id: spec.id, hasWeb: spec.hasWeb }
 }
 
 interface CreationState {
@@ -63,6 +71,7 @@ interface CreationState {
   specSha256: string
   destination: string | null
   commit?: string
+  checks?: string[]
   repoId?: number
 }
 
@@ -90,6 +99,12 @@ export async function provisionDomainPackage(options: {
       : undefined
     const firstDelivery = Boolean(state?.commit && state.destination === null && target)
     if (
+      state?.checks !== undefined &&
+      (!Array.isArray(state.checks) || !state.checks.every((check) => typeof check === 'string'))
+    ) {
+      throw new Error('Invalid check list in the saved domain package creation state')
+    }
+    if (
       existsSync(localPath) &&
       (!state ||
         state.specSha256 !== specSha256 ||
@@ -104,7 +119,14 @@ export async function provisionDomainPackage(options: {
       localPath,
       specSha256,
     }
-    const checks = ['check', ...(spec.hasWeb ? [`build:${spec.id}-package`] : [])]
+    const checks =
+      state?.commit && state.checks
+        ? state.checks
+        : [
+            'check',
+            ...(state?.commit ? [] : ['test']),
+            ...(spec.hasWeb ? [`build:${spec.id}-package`] : []),
+          ]
     if (options['dry-run']) return { ...result, status: 'planned', destination, checks }
 
     // Never pass the Gitee API token to package scripts or Git.
@@ -168,6 +190,7 @@ export async function provisionDomainPackage(options: {
       run('git', ['add', '--all'])
       run('git', ['commit', '-m', `chore(${spec.id}): scaffold domain package`])
       creation.commit = run('git', ['rev-parse', 'HEAD'])!
+      creation.checks = checks
       save()
     }
     phase = 'git'

@@ -8,5 +8,4 @@
 
 - [x] Generate Young Design Master with the new command.
 - [x] Integrate Open Artifact editors and the TheFoolAI Agent workflow.
-- [x] Install and exercise the delivered package inside the isolated App.
-- [ ] Release the compatible desktop App and verify installation from the production catalog.
+- [x] Install version 0.1.0 through Settings → Workspaces → All in an isolated desktop App using a local catalog. Verify Agent creation of design files, editor persistence, and feedback to the Agent.

@@ -3,6 +3,8 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { runAgentAdapter } from '../../adapters/agent.js'
+import { provisionDomainPackage } from '../provisionDomainPackage.js'
+import { createDomainPackage } from '../domainPackages.js'
 
 let targetDir: string
 let mockBinDir: string
@@ -62,6 +64,40 @@ function emittedJson(): Record<string, unknown> {
 }
 
 describe('domain-packages init onboarding', () => {
+  it('runs the generator with the supplied child environment', () => {
+    mkdirSync(join(targetDir, 'tools'), { recursive: true })
+    writeFileSync(
+      join(targetDir, 'tools/create-package.mjs'),
+      "if (process.env.GITEE_TOKEN || process.env.CHILD_MARKER !== 'test') process.exit(1)",
+    )
+    vi.stubEnv('GITEE_TOKEN', 'test-only')
+    try {
+      expect(
+        createDomainPackage({
+          targetDir,
+          input: { id: 'demo' },
+          quiet: true,
+          env: { CHILD_MARKER: 'test' },
+        }).ok,
+      ).toBe(true)
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+  it('rejects an incomplete spec before a dry run or a scaffold can claim its target', async () => {
+    const spec = join(mockBinDir, 'invalid.json')
+    writeFileSync(spec, JSON.stringify({ id: 'valid-slug' }))
+    for (const dryRun of [true, false]) {
+      const result = await provisionDomainPackage({ spec, dir: targetDir, 'dry-run': dryRun })
+      expect(result).toMatchObject({
+        ok: false,
+        phase: 'input',
+        message: expect.stringContaining('intent'),
+      })
+      expect(existsSync(targetDir)).toBe(false)
+    }
+  })
+
   it('creates the first package non-interactively from explicit fields', async () => {
     installMockNpx()
 
@@ -88,6 +124,8 @@ describe('domain-packages init onboarding', () => {
     expect(existsSync(join(targetDir, 'apps', 'new-domain', 'contract.json'))).toBe(true)
     expect(existsSync(join(targetDir, 'apps', 'web', 'package.json'))).toBe(true)
     expect(existsSync(join(targetDir, 'apps', 'web', '.gitkeep'))).toBe(false)
+    expect(existsSync(join(targetDir, 'test', 'create-package.test.mjs'))).toBe(false)
+    expect(existsSync(join(targetDir, 'test', 'sync-agent-skills.test.mjs'))).toBe(true)
 
     const catalog = JSON.parse(readFileSync(join(targetDir, 'catalog.json'), 'utf8')) as {
       packages: Array<{ contextEntry: string }>

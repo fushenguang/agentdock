@@ -27,7 +27,7 @@
 ```
 templates/    # 脚手架模板（如 web-nextjs、skills-registry）
 packages/
-  cli/        # @cogito.ai/cli —— agentdock CLI（init、auth、skill、mcp）
+  cli/        # @cogito.ai/cli —— agentdock CLI（init、create-domain-package、auth、skill、mcp）
 openspec/     # 规划唯一真实源 —— proposals、specs、design、tasks
 apps/
   docs/       # 本平台的文档站点（Fumadocs / Next.js）
@@ -37,7 +37,7 @@ apps/
 
 ### 前置条件
 
-- Node.js ≥ 18
+- Node.js 24（仓库开发和测试）
 - pnpm 9（`npm install -g pnpm@9`）
 
 ### 安装与构建
@@ -73,37 +73,50 @@ pnpm --filter docs dev
 
 ## CLI：`@cogito.ai/cli`
 
-该 CLI 以 `@cogito.ai/cli` 发布到 npm，当前版本为 **0.15.0**。无需安装，直接通过 `npx` 运行：
+使用 `npx @cogito.ai/cli@latest <命令>`，或全局安装 `@cogito.ai/cli` 后运行 `agentdock`。每个命令和子命令都可以用 `--help` 查看参数。
 
-```bash
-npx @cogito.ai/cli@latest <command>
+| 命令                                        | 用途                                                                                               |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `init`                                      | 交互式创建项目，也可以在 CI 中传入 `--name`、`--template` 和 `--json`。                            |
+| `create-domain-package`                     | 从本地或 HTTPS JSON spec 创建独立的 `dp-<id>` 产品仓，执行检查，可选交付到 Gitee。                 |
+| `auth login`、`auth status`、`auth logout`  | 管理托管技能索引所用的本地登录状态。可以用 `--provider` 选择已配置的提供方。                       |
+| `skill validate <dir>`                      | 校验包含 `SKILL.md` 的目录。                                                                       |
+| `skill publish <dir> --registry <checkout>` | 写入本地技能目录清单。`--json` 结果中的 `indexed` 表示托管索引是否成功。                           |
+| `mcp`                                       | 为 MCP 客户端启动 stdio 服务，提供 `list_templates`、`get_template_schema` 和 `scaffold_project`。 |
+
+### 选择模板
+
+可用模板为 `web-nextjs`、`web-tanstackstart`、`web-tanstackstart-kids`、`expo-app`、`game-web-phaser`、`skills-registry` 和 `domain-packages`。
+
+```sh
+npx @cogito.ai/cli@latest init --name studio --display-name '设计工作室' --template web-tanstackstart --mode standalone --json
 ```
 
-### 命令全景
+`--mode auto` 自动识别 pnpm 工作区。用 `--dir apps/studio --mode workspace` 创建工作区成员。`--pm`、`--data-layer`、`--schema` 和 `--integrations` 的可用值取决于模板。想在 `init --template domain-packages` 时一并创建首包，可以传入 `--domain-package-spec`，也可以传 `--domain-package-id` 和 `--domain-package-intent`，以及可选的 `--domain-package-display-name` 和 `--domain-package-owner`。
 
-`npx @cogito.ai/cli@latest --help`（v0.15.0）的实际输出：
+### 创建并验证领域包
 
-```
-AgentDock CLI – scaffold projects for humans and AI agents (agentdock v0.15.0)
+将以下内容保存为 `package-spec.json`。默认生成 Web 工作台。无 Web 包需要设置 `hasWeb: false` 并填写 `noWebException.reason` 和 `noWebException.approvedBy`。双语名称、简介、版本等字段见 [spec schema](./templates/domain-packages/schemas/package-spec.schema.json)。
 
-USAGE agentdock auth|init|mcp|skill
-
-COMMANDS
-
-   auth    Manage authentication
-   init    Scaffold a new AgentDock project
-    mcp    Start an MCP (Model Context Protocol) Stdio server exposing AgentDock tools
-  skill    Validate and publish Agent Skills
-
-Use agentdock <command> --help for more information about a command.
+```json
+{
+  "id": "design-studio",
+  "displayName": "Design Studio",
+  "intent": "Create and export a design from a workspace conversation.",
+  "owner": "@design",
+  "lifecycle": "active",
+  "repositoryClass": "product"
+}
 ```
 
-- **`auth login|logout|status`** —— 管理 `skill publish` 用于索引托管 registry 所需的凭据。
-- **`init`** —— 从模板脚手架一个新项目（`--name`、`--template`、`--pm`、`--dir`、`--data-layer`、`--schema`，另有面向 agent 模式的 `--silent`/`--json`）。
-- **`mcp`** —— 启动一个暴露 AgentDock 工具的 MCP Stdio server。它是给 MCP 兼容客户端启动用的（走 stdio 上的 JSON-RPC，单独运行时不会有任何输出）——不是给你手动交互式运行的命令。
-- **`skill validate|publish`** —— 按 Agent Skills 规范校验一个 skill 目录，并将其发布进某个 registry checkout。
+```sh
+npx @cogito.ai/cli@latest create-domain-package --spec package-spec.json --dry-run --json
+npx @cogito.ai/cli@latest create-domain-package --spec package-spec.json --json
+```
 
-每个命令/子命令都支持 `--help`，可查看当前版本下最准确的用法。
+本机需要模板支持的 Node 和 pnpm，以及用于初始提交的 Git 身份。默认目录是 `dp-<id>`，也可通过 `--dir` 指定尚不存在的路径。预演返回计划。正式创建会执行产品仓的检查和测试，有 Web 时还会构建制品，启动打包后的服务并检查健康状态。App 安装、编辑器交互需要单独验收。
+
+交付到 Gitee 时，配置 `GITEE_TOKEN` 和 SSH，传入 `--provider gitee --namespace enterprise:<namespace>`。默认可见性为 `private`，可以用 `--visibility internal` 修改。保持 spec 文件内容和目录不变，可以重试已记录的创建操作。`--json` 返回 `ok`、失败阶段 `phase`，或成功后的 `initialCommitSha` 和 `checks`。
 
 ### 认证
 
@@ -114,7 +127,14 @@ npx @cogito.ai/cli@latest auth status
 `auth login` 会打开浏览器完成设备授权（device authorization）流程，并把凭据存本地；`auth status` 基于这份本地凭据报告当前登录身份；`auth logout` 会删除它们。已登录状态下 `auth status` 的真实输出示例（脱敏后）：
 
 ```json
-{"event":"status","signedIn":true,"provider":"thefoolai","userId":"<uuid>","displayName":"<name>","savedAt":"<ISO timestamp>"}
+{
+  "event": "status",
+  "signedIn": true,
+  "provider": "thefoolai",
+  "userId": "<uuid>",
+  "displayName": "<name>",
+  "savedAt": "<ISO timestamp>"
+}
 ```
 
 **已知限制 —— 不要跳过这条**：凭据**有效期为 24 小时**。过期后，`auth status` **依然会显示 `signedIn: true`**——它只读本地凭据文件，并不会向服务端校验 token。问题只会在之后才暴露出来：`skill publish` 的 registry 索引步骤会**静默降级成一条 warning**，而不是报错。如果发布之后发现 skill 没有被索引，先重新 `auth login`，哪怕 `auth status` 看起来一切正常。这已登记为债 `cli-auth-token-expires-silently`。
@@ -134,11 +154,11 @@ npx @cogito.ai/cli@latest skill publish <skill-dir> --registry <registry-checkou
 
 **前置条件** —— 每一条不满足都对应一个真实核实过的报错：
 
-| 要求 | 不满足时的报错 |
-| --- | --- |
-| `<skill-dir>` 位于某个 git 仓库内 | `"<dir>" is not inside a git repository`（`SKILL_SOURCE_UNRESOLVED`） |
-| 该仓库配置了 `origin` remote | `no git remote "origin" configured for the repository containing "<dir>"`（`SKILL_SOURCE_UNRESOLVED`） |
-| `SKILL.md` 通过 Agent Skills 规范校验 | `"<dir>" failed skill validation` 加一份 `errors` 列表，例如 `Missing required field in frontmatter: description`（`SKILL_INVALID`） |
+| 要求                                        | 不满足时的报错                                                                                                                                                                            |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<skill-dir>` 位于某个 git 仓库内           | `"<dir>" is not inside a git repository`（`SKILL_SOURCE_UNRESOLVED`）                                                                                                                     |
+| 该仓库配置了 `origin` remote                | `no git remote "origin" configured for the repository containing "<dir>"`（`SKILL_SOURCE_UNRESOLVED`）                                                                                    |
+| `SKILL.md` 通过 Agent Skills 规范校验       | `"<dir>" failed skill validation` 加一份 `errors` 列表，例如 `Missing required field in frontmatter: description`（`SKILL_INVALID`）                                                      |
 | `metadata.version`（如果填了）是合法 semver | `Invalid version "<v>" in "<dir>": expected semver (major.minor.patch, e.g. "1.2.3", optionally with a "-prerelease" and/or "+build" suffix, ...) — got "<v>"`（`SKILL_VERSION_INVALID`） |
 
 版本号**缺失**是允许的（见下文 `versionMissing`）——只有**格式错误**的版本号才会被直接拒绝。
@@ -164,6 +184,7 @@ npx @cogito.ai/cli@latest skill publish <skill-dir> --registry <registry-checkou
 **为什么要加这一段：** 一次真实的 `skill publish <某私有仓库内的目录> --registry <一个公开内容仓的 checkout>` 运行，写出了一条 `source` 指向那个私有仓库的 manifest 条目，而输出和文档里都**完全没有**任何迹象表明 `source`/`path` 来自 skill 自己的仓库、而不是 `--registry`。照着这条记录去装的人会在 `git clone` 那一步失败，而那个私有仓库的地址也就此躺进了一份公开文件。
 
 **副作用清单，完整版 —— 除此之外不会碰任何东西：**
+
 - `<registry-checkout>/skills.json` 被创建（如果不存在）或更新：新增一条条目，或者 —— 如果已有相同 `id`（即 skill 的 `name`）的条目 —— 那一整条被替换（多次发布之间字段不会合并）。
 - 写入/替换的条目字段：`id`/`name`（来自 `SKILL.md` 的 `name`）、`description`、`source`、`path`（skill 位于其仓库根目录时省略）、`license`（frontmatter 里有就带上）、`version`（能解析出就带上）、`nonSpecFields`（如果 `skills-ref` 把某些非规范顶层 frontmatter 字段降级成了警告）、`author`（已登录时带上）、以及 `publishedAt` —— 每次发布都会刷新成当前时间戳，哪怕这是一次内容完全没变的重复发布。
 - 不会 commit 或 push 任何东西（见上面两条 ❌）。
@@ -198,17 +219,17 @@ npx @cogito.ai/cli@latest skill publish <skill-dir> --registry <registry-checkou
 
 **常见的 `--json` 失败形状**，每一种都已真跑核实：
 
-| 情况 | `--json` 输出 |
-| --- | --- |
-| 没填 `<dir>` | `{"ok":false,"error":"MISSING_ARG","field":"dir"}` |
-| 没填 `--registry` | `{"ok":false,"error":"MISSING_ARG","field":"registry"}` |
-| `--registry` 路径不存在 | `{"ok":false,"error":"REGISTRY_NOT_FOUND","message":"Registry checkout not found: \"<path>\""}` |
-| `<dir>` 不在 git 仓库里 | `{"ok":false,"error":"SKILL_SOURCE_UNRESOLVED","message":"\"<dir>\" is not inside a git repository"}` |
-| 该仓库没有 `origin` remote | `{"ok":false,"error":"SKILL_SOURCE_UNRESOLVED","message":"no git remote \"origin\" configured for the repository containing \"<dir>\""}` |
-| `SKILL.md` 没通过规范校验 | `{"ok":false,"error":"SKILL_INVALID","message":"\"<dir>\" failed skill validation","errors":["..."]}` |
-| `metadata.version` 不是合法 semver | `{"ok":false,"error":"SKILL_VERSION_INVALID","message":"Invalid version \"<v>\" in \"<dir>\": ..."}` |
-| 发布成功，但索引失败（已登录、请求失败） | `{"ok":true, ..., "indexed":false,"indexError":"<原因>"}` |
-| 发布成功，未登录（索引根本没尝试） | `{"ok":true, ..., "indexed":false,"anonymous":true}`（没有 `indexError`——因为什么都没尝试） |
+| 情况                                     | `--json` 输出                                                                                                                            |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 没填 `<dir>`                             | `{"ok":false,"error":"MISSING_ARG","field":"dir"}`                                                                                       |
+| 没填 `--registry`                        | `{"ok":false,"error":"MISSING_ARG","field":"registry"}`                                                                                  |
+| `--registry` 路径不存在                  | `{"ok":false,"error":"REGISTRY_NOT_FOUND","message":"Registry checkout not found: \"<path>\""}`                                          |
+| `<dir>` 不在 git 仓库里                  | `{"ok":false,"error":"SKILL_SOURCE_UNRESOLVED","message":"\"<dir>\" is not inside a git repository"}`                                    |
+| 该仓库没有 `origin` remote               | `{"ok":false,"error":"SKILL_SOURCE_UNRESOLVED","message":"no git remote \"origin\" configured for the repository containing \"<dir>\""}` |
+| `SKILL.md` 没通过规范校验                | `{"ok":false,"error":"SKILL_INVALID","message":"\"<dir>\" failed skill validation","errors":["..."]}`                                    |
+| `metadata.version` 不是合法 semver       | `{"ok":false,"error":"SKILL_VERSION_INVALID","message":"Invalid version \"<v>\" in \"<dir>\": ..."}`                                     |
+| 发布成功，但索引失败（已登录、请求失败） | `{"ok":true, ..., "indexed":false,"indexError":"<原因>"}`                                                                                |
+| 发布成功，未登录（索引根本没尝试）       | `{"ok":true, ..., "indexed":false,"anonymous":true}`（没有 `indexError`——因为什么都没尝试）                                              |
 
 如果你还想用肉眼确认，可以打开托管 registry 里该 skill 的网页——`https://www.fujia.site/skills/<skill-id>`，其中 `<skill-id>` 就是 manifest 条目里的 `id`——确认页面上真的渲染出了这个 skill 的内容。**不要把那个页面返回 HTTP 200 当作任何判据**——那是一个客户端渲染的路由，一个不存在的 id 同样会返回 200。CLI 给出的 `indexed: true` 才是真正的信号。
 
