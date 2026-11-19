@@ -232,6 +232,23 @@ function validateSpec(spec) {
   if (typeof spec.intent !== 'string' || spec.intent.trim().length < 20) {
     errors.push('intent must be at least 20 characters')
   }
+  if (
+    spec.displayNameLocalized !== undefined &&
+    (!spec.displayNameLocalized ||
+      Object.keys(spec.displayNameLocalized).length !== 2 ||
+      ['zh', 'en'].some((key) => {
+        const name = spec.displayNameLocalized[key]
+        return typeof name !== 'string' || !name.trim() || name.length > 80
+      }))
+  ) {
+    errors.push('displayNameLocalized must contain nonempty zh and en names of at most 80 characters')
+  }
+  if (
+    spec.description !== undefined &&
+    (typeof spec.description !== 'string' || !spec.description.trim() || spec.description.length > 500)
+  ) {
+    errors.push('description must contain 1 to 500 characters')
+  }
   if (spec.lifecycle !== 'active') errors.push('created formal packages must use lifecycle active')
   if (spec.repositoryClass !== 'product')
     errors.push('created formal packages must use repositoryClass product')
@@ -251,6 +268,8 @@ function validateSpec(spec) {
   return {
     id: spec.id,
     displayName: spec.displayName,
+    displayNameLocalized: spec.displayNameLocalized,
+    description: spec.description,
     intent: spec.intent.trim(),
     owner: spec.owner,
     version: spec.version ?? '0.1.0',
@@ -324,7 +343,8 @@ function packageFiles(spec) {
     'package.json': {
       name: `@thefoolai/domain-package-${spec.id}`,
       version: spec.version,
-      description: spec.intent,
+      description: spec.description ?? spec.intent,
+      ...(spec.displayNameLocalized ? { displayNameLocalized: spec.displayNameLocalized } : {}),
       type: 'module',
       scripts: spec.hasWeb ? { 'start:web': 'pnpm --dir ../.. --filter web start' } : {},
       license: 'Apache-2.0',

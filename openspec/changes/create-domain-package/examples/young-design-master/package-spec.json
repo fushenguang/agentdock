@@ -1,0 +1,14 @@
+{
+  "id": "young-design-master",
+  "displayName": "小小设计大师",
+  "displayNameLocalized": {
+    "zh": "小小设计大师",
+    "en": "young-design-master"
+  },
+  "description": "每一个人都是创意设计大师",
+  "intent": "在 App 内与 Agent 一起创作、编辑、评论并导出设计稿、幻灯片、设计系统、白板和文档。",
+  "owner": "@product-team",
+  "lifecycle": "active",
+  "repositoryClass": "product",
+  "hasWeb": true
+}

@@ -1,5 +1,6 @@
 import { defineCommand } from 'citty'
 import { authCommand } from './commands/auth/index.js'
+import { createDomainPackageCommand } from './commands/create-domain-package.js'
 import { initCommand } from './commands/init.js'
 import { mcpCommand } from './commands/mcp.js'
 import { skillCommand } from './commands/skill/index.js'
@@ -14,6 +15,7 @@ export const main = defineCommand({
   subCommands: {
     auth: authCommand,
     init: initCommand,
+    'create-domain-package': createDomainPackageCommand,
     mcp: mcpCommand,
     skill: skillCommand,
   },

@@ -60,6 +60,19 @@ pnpm create:package
 
 ## 通过 spec 创建 package（agent/CI）
 
+创建独立仓库、安装依赖并检查生成的运行时，可以直接执行：
+
+```bash
+agentdock create-domain-package --spec ./package-spec.json --json
+```
+
+`--spec` 也接受 HTTPS 地址。加上 `--provider gitee --namespace enterprise:<path>`
+即可将通过校验的提交推到 Gitee 企业仓。API 使用环境变量 `GITEE_TOKEN`，Git
+使用已配置的 SSH 密钥。仓库默认私有，也可传 `--visibility internal`。
+用 `--dry-run` 查看本地计划。
+
+如果工作区已经存在，写入 spec 后在工作区内运行生成器：
+
 ```bash
 cat > package-spec.json <<'JSON'
 {
