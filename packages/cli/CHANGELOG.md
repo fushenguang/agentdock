@@ -1,5 +1,13 @@
 # @cogito.ai/cli
 
+## 0.34.0
+
+### Minor Changes
+
+- a5dac14: Add `agentdock create-domain-package` for non-interactive, verified scaffolding from local or HTTPS specs and delivery to Gitee enterprise repositories.
+
+  Dry runs validate the same fields as creation. Generated products run their own workspace checks and tests, while the empty-template generator suite runs in AgentDock CI. Approved headless products can pass verification without installing Web dependencies.
+
 ## 0.33.0
 
 ### Minor Changes
