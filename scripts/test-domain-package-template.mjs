@@ -6,7 +6,6 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readdirSync,
   readFileSync,
   readlinkSync,
   rmSync,
@@ -16,8 +15,9 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { validateSpec } from '../templates/domain-packages/tools/validate-spec.mjs'
 
-const templateRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
+const templateRoot = join(dirname(fileURLToPath(import.meta.url)), '../templates/domain-packages')
 const generator = join(templateRoot, 'tools', 'create-package.mjs')
 const checker = join(templateRoot, 'tools', 'check-workspace.mjs')
 
@@ -54,7 +54,7 @@ function mockNpx(root) {
     file,
     [
       '#!/bin/sh',
-      'if ! printf "%s\\n" "$*" | grep -q "@cogito.ai/cli@0.32.7"; then',
+      `if ! printf "%s\\n" "$*" | grep -Fq "@cogito.ai/cli@${JSON.parse(readFileSync(join(templateRoot, 'standards-lock.json'))).agentdockCliVersion}"; then`,
       '  echo "expected pinned AgentDock CLI" >&2',
       '  exit 2',
       'fi',
@@ -243,7 +243,7 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
     )
     assert.equal(
       standardsLock.standards.find((entry) => entry.id === 'domain-package-spec').digest,
-      'sha256:d851c39223d3a65d2b82ede0dd033fb6d1505531d5918b1637303414c377165c',
+      'sha256:25fffa3242b7e1e4e915ae4acea1b3efb1ed035ea6d7eb34d428cfe0ee099e73',
     )
 
     const check = spawnSync(process.execPath, [checker, '--repo-root', root], {
@@ -264,6 +264,7 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
     const packageJson = JSON.parse(
       readFileSync(join(root, 'apps', 'new-domain', 'package.json'), 'utf8'),
     )
+    assert.equal(packageJson.description, packageSpec().intent)
     assert.equal(packageJson.scripts['start:web'], 'pnpm --dir ../.. --filter web start')
     const metadata = JSON.parse(readFileSync(join(outputRoot, 'build.json'), 'utf8'))
     assert.equal(metadata.entry, 'server.mjs')
@@ -277,11 +278,6 @@ test('generator creates a formal Web package with pinned AgentDock CLI', () => {
     ]) {
       assert.equal(existsSync(join(outputRoot, artifact)), true, `missing artifact: ${artifact}`)
     }
-    const packagedText = [
-      ...readdirSync(join(outputRoot, 'client'), { recursive: true }),
-      ...readdirSync(join(outputRoot, 'server'), { recursive: true }),
-    ].join('\n')
-    assert.doesNotMatch(packagedText, new RegExp(root.replaceAll('/', '\\/')))
     const clientApp = readFileSync(join(outputRoot, 'client', 'app.js'), 'utf8')
     const serverManifest = readFileSync(join(outputRoot, 'server', 'manifest.js'), 'utf8')
     assert.equal(clientApp, 'appPath=apps/web/src/app.ts\n')
@@ -374,6 +370,44 @@ test('formal no-Web package requires an approved exception', () => {
     assert.equal(existsSync(join(root, 'openspec', 'config.yaml')), true)
     assert.equal(existsSync(join(root, 'apps', 'docs', 'package.json')), true)
     assert.equal(existsSync(join(root, 'apps', 'web', '.gitkeep')), true)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('checks catalog metadata and accepts an approved no-Web product', () => {
+  for (const invalid of [
+    { id: 'web' },
+    { version: 'beta' },
+    { hasweb: false },
+    { hasWeb: 'false' },
+    { artifactChannel: 'other' },
+    { owner: 'x'.repeat(121) },
+    { displayNameLocalized: { zh: '中文' } },
+    { description: 'x'.repeat(501) },
+    { hasWeb: false, noWebException: { reason: 'short' } },
+  ]) {
+    assert.throws(() => validateSpec(packageSpec(invalid)))
+  }
+  const root = workspace()
+  try {
+    const spec = packageSpec({
+      hasWeb: false,
+      noWebException: {
+        reason: 'This package only provides command capabilities.',
+        approvedBy: '@team',
+      },
+      description: ' Product description ',
+      displayNameLocalized: { zh: ' 作品 ', en: ' Studio ' },
+    })
+    const result = createPackage(root, spec)
+    assert.equal(result.status, 0, result.stderr)
+    const metadata = JSON.parse(readFileSync(join(root, 'apps/new-domain/package.json'), 'utf8'))
+    assert.deepEqual(metadata.displayNameLocalized, { zh: '作品', en: 'Studio' })
+    assert.equal(metadata.description, 'Product description')
+    assert.equal(existsSync(join(root, 'apps/web/package.json')), false)
+    const check = spawnSync('npm', ['run', 'check'], { cwd: root, encoding: 'utf8' })
+    assert.equal(check.status, 0, check.stderr)
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

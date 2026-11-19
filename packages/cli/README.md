@@ -37,6 +37,32 @@ pnpm add -g @cogito.ai/cli
 
 ## Commands
 
+`auth login|status|logout` manages sign-in for hosted skill indexing. `skill validate <dir>` checks a skill. `skill publish <dir> --registry <checkout> --json` writes a local manifest and reports whether hosted indexing succeeded.
+
+### Create and verify a domain package
+
+Save this as `package-spec.json`. Web is enabled by default. For an intentionally headless package, set `hasWeb` to `false` and supply `noWebException.reason` and `noWebException.approvedBy`. The [spec schema](https://github.com/fushenguang/agentdock/blob/main/templates/domain-packages/schemas/package-spec.schema.json) also covers bilingual names, descriptions and versions.
+
+```json
+{
+  "id": "design-studio",
+  "displayName": "Design Studio",
+  "intent": "Create and export a design from a workspace conversation.",
+  "owner": "@design",
+  "lifecycle": "active",
+  "repositoryClass": "product"
+}
+```
+
+```sh
+npx @cogito.ai/cli@latest create-domain-package --spec package-spec.json --dry-run --json
+npx @cogito.ai/cli@latest create-domain-package --spec package-spec.json --json
+```
+
+Use Node and pnpm compatible with the generated template, a Git identity for the initial commit, and an unused target directory (`--dir` overrides `dp-<id>`). The dry run returns the plan. Creation runs the generated workspace checks and tests. For Web packages, it builds the package and starts the packaged runtime to check its health. App installation and editor interaction need separate acceptance.
+
+For Gitee delivery, add `--provider gitee --namespace enterprise:<namespace>` and optionally `--visibility internal` (default `private`). Configure `GITEE_TOKEN` and SSH access. Retrying with the same spec bytes and directory resumes a recorded creation. In `--json` mode, inspect `ok`, the failed `phase`, or the successful `initialCommitSha` and `checks`.
+
 ### `agentdock init`
 
 Scaffold a new project from a template. Auto-detects the environment:
@@ -191,12 +217,7 @@ Templates that support a pnpm range without an exact `packageManager` pin can se
 
 ### Publishing a new version
 
-```bash
-pnpm changeset          # describe the change
-pnpm changeset version  # bump version + update CHANGELOG
-pnpm --filter @cogito.ai/cli build
-pnpm --filter @cogito.ai/cli publish
-```
+Record the release with `pnpm changeset`. After the change reaches `main`, the Release workflow opens a version PR. Merging that PR builds the package, publishes it and checks the public npm registry.
 
 ---
 

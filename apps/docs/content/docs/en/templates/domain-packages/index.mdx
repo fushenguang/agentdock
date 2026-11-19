@@ -62,6 +62,19 @@ a temporary `package-spec.json`.
 
 ## Create a package from a spec (agent/CI)
 
+To create a standalone repository, install its dependencies and check its generated runtime, run:
+
+```bash
+agentdock create-domain-package --spec ./package-spec.json --json
+```
+
+`--spec` also accepts an HTTPS URL. To deliver the verified commit to a Gitee
+enterprise, add `--provider gitee --namespace enterprise:<path>`. The command uses
+`GITEE_TOKEN` for the API and your configured SSH key for Git. The repository is
+private unless `--visibility internal` is supplied. Use `--dry-run` to inspect the local plan.
+
+In an existing workspace, write the spec and run the package generator:
+
 ```bash
 cat > package-spec.json <<'JSON'
 {

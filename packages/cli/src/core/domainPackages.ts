@@ -41,6 +41,7 @@ export function createDomainPackage(options: {
   targetDir: string
   input: DomainPackageOnboardingInput
   quiet?: boolean
+  env?: NodeJS.ProcessEnv
 }): DomainPackageCreationResult {
   const generator = join(options.targetDir, 'tools', 'create-package.mjs')
   if (!existsSync(generator)) {
@@ -68,6 +69,7 @@ export function createDomainPackage(options: {
 
   const result = spawnSync(process.execPath, args, {
     cwd: options.targetDir,
+    env: options.env,
     encoding: options.quiet ? 'utf8' : undefined,
     stdio: options.quiet ? 'pipe' : 'inherit',
   })

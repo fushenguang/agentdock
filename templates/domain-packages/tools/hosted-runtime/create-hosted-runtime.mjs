@@ -493,6 +493,7 @@ export function createHostedRuntime({
   let runtimeId = "";
   let hostSupportedCapabilities = new Map();
   let hostCapabilityNegotiation = null;
+  let hostAppearance = null;
   let activeWebPage = null;
   const pendingWebInvocations = new Map();
   const webChannelCounters = {
@@ -2184,6 +2185,28 @@ export function createHostedRuntime({
     });
   }
 
+  function parseHostAppearance(value) {
+    const themes = new Set([
+      "neutral",
+      "butter",
+      "matcha",
+      "stone",
+      "steady-teal",
+      "app-default",
+      "app-eye-care",
+      "app-dark",
+    ]);
+    if (
+      !value ||
+      typeof value !== "object" ||
+      !themes.has(value.themeName) ||
+      (value.mode !== "light" && value.mode !== "dark")
+    ) {
+      return null;
+    }
+    return Object.freeze({ themeName: value.themeName, mode: value.mode });
+  }
+
   function handleParentMessage(event) {
     const message = event?.data ?? event;
     if (message?.type === "host:start") {
@@ -2222,9 +2245,14 @@ export function createHostedRuntime({
           )
           .map((entry) => [entry.id, entry]),
       );
+      hostAppearance = parseHostAppearance(message.hostAppearance);
       publishHostCapabilityNegotiation();
       addBootstrapCode(message.bootstrapCode);
       startHttpServer();
+      return;
+    }
+    if (message?.type === "host:appearance") {
+      hostAppearance = parseHostAppearance(message.appearance);
       return;
     }
     if (message?.type === "host:bootstrap") {
@@ -2262,6 +2290,9 @@ export function createHostedRuntime({
     // Read-only: no write entry point; `null` until host:start (and always in standalone mode).
     globalThis.THEFOOLAI_HOST_CAPABILITY_NEGOTIATION = Object.freeze({
       get: () => hostCapabilityNegotiation,
+    });
+    globalThis.THEFOOLAI_HOST_APPEARANCE = Object.freeze({
+      get: () => hostAppearance,
     });
     if (hosted) {
       globalThis.THEFOOLAI_HOST_CAPABILITY_BRIDGE = requestHostCapability;

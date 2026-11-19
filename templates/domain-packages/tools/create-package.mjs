@@ -13,6 +13,7 @@ import { createInterface } from 'node:readline/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { syncAgentSkillLinks } from './sync-agent-skills.mjs'
+import { validateSpec } from './validate-spec.mjs'
 
 const toolRoot = dirname(fileURLToPath(import.meta.url))
 const defaultWorkspaceRoot = resolve(toolRoot, '..')
@@ -22,7 +23,7 @@ const PACKAGE_STANDARDS_LOCK = {
       id: 'domain-package-spec',
       version: '2.0.0',
       commit: null,
-      digest: 'sha256:d851c39223d3a65d2b82ede0dd033fb6d1505531d5918b1637303414c377165c',
+      digest: 'sha256:25fffa3242b7e1e4e915ae4acea1b3efb1ed035ea6d7eb34d428cfe0ee099e73',
     },
     {
       id: 'ai-first-domain-package',
@@ -52,7 +53,7 @@ const PACKAGE_STANDARDS_LOCK = {
       id: 'package-callable-capabilities',
       version: '1.0.0-rc.7',
       commit: null,
-      digest: 'sha256:507342e3c410d0da99675481e7ee8e9daa1d20e837aa23e2852eb90e1017ed49',
+      digest: 'sha256:4cd4dca6b2f2dfe834bd8efd5f57ab70c10e73de9cbf0104a569509eff70ec25',
     },
     {
       id: 'package-layout',
@@ -62,9 +63,9 @@ const PACKAGE_STANDARDS_LOCK = {
     },
     {
       id: 'web-scaffold',
-      version: '0.5.1',
+      version: '0.5.2',
       commit: null,
-      digest: 'sha256:741df2521f79914b686b2d095a3f3355c4161297e438004e0d4534f511dcd009',
+      digest: 'sha256:bb883a2de75345d7c290118f6bad0c3be9ee9bbd58b88e737af00553a6ae101f',
     },
   ],
 }
@@ -223,46 +224,6 @@ async function loadSpec(options, repositoryRoot) {
   return promptSpec()
 }
 
-function validateSpec(spec) {
-  const errors = []
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(spec.id ?? '')) errors.push('id must be kebab-case')
-  for (const key of ['displayName', 'intent', 'owner']) {
-    if (typeof spec[key] !== 'string' || spec[key].trim() === '') errors.push(`${key} is required`)
-  }
-  if (typeof spec.intent !== 'string' || spec.intent.trim().length < 20) {
-    errors.push('intent must be at least 20 characters')
-  }
-  if (spec.lifecycle !== 'active') errors.push('created formal packages must use lifecycle active')
-  if (spec.repositoryClass !== 'product')
-    errors.push('created formal packages must use repositoryClass product')
-  if (spec.hasWeb === false && typeof spec.noWebException !== 'object') {
-    errors.push('hasWeb=false requires noWebException')
-  }
-  if (spec.hasWeb === false) {
-    const exception = spec.noWebException ?? {}
-    if (typeof exception.reason !== 'string' || exception.reason.trim().length < 20) {
-      errors.push('noWebException.reason must be at least 20 characters')
-    }
-    if (typeof exception.approvedBy !== 'string' || exception.approvedBy.trim() === '') {
-      errors.push('noWebException.approvedBy is required')
-    }
-  }
-  if (errors.length > 0) fail(errors.join('; '))
-  return {
-    id: spec.id,
-    displayName: spec.displayName,
-    intent: spec.intent.trim(),
-    owner: spec.owner,
-    version: spec.version ?? '0.1.0',
-    lifecycle: 'active',
-    repositoryClass: 'product',
-    residency: 'external',
-    hasWeb: spec.hasWeb ?? true,
-    artifactChannel: spec.artifactChannel ?? 'pending',
-    noWebException: spec.hasWeb === false ? spec.noWebException : undefined,
-  }
-}
-
 function jsonSchema(properties, required = []) {
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -324,7 +285,8 @@ function packageFiles(spec) {
     'package.json': {
       name: `@thefoolai/domain-package-${spec.id}`,
       version: spec.version,
-      description: spec.intent,
+      description: spec.description ?? spec.intent,
+      ...(spec.displayNameLocalized ? { displayNameLocalized: spec.displayNameLocalized } : {}),
       type: 'module',
       scripts: spec.hasWeb ? { 'start:web': 'pnpm --dir ../.. --filter web start' } : {},
       license: 'Apache-2.0',
@@ -865,6 +827,11 @@ function updateWorkspace(workspaceRoot, spec, standards) {
     rootPackage.scripts[`build:${spec.id}-package`] = `node tools/build-package.mjs ${spec.id}`
     rootPackage.scripts[`smoke:${spec.id}-package`] = `node tools/smoke-package.mjs ${spec.id}`
   } else {
+    if (
+      rootPackage.scripts.check === 'node tools/check-workspace.mjs && node tools/check-skill.mjs'
+    ) {
+      rootPackage.scripts.check = 'node tools/check-workspace.mjs'
+    }
     rootPackage.scripts[`check:${spec.id}`] = 'node tools/check-workspace.mjs'
   }
   writeJson(rootPackageFile, rootPackage)

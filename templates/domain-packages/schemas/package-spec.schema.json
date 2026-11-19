@@ -16,6 +16,20 @@
       "minLength": 1,
       "maxLength": 80
     },
+    "displayNameLocalized": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zh", "en"],
+      "properties": {
+        "zh": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "en": { "type": "string", "minLength": 1, "maxLength": 80 }
+      }
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
     "intent": {
       "type": "string",
       "minLength": 20,

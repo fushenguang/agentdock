@@ -27,7 +27,7 @@ It also ships **`@cogito.ai/cli`** (bin name `agentdock`) — a CLI for scaffold
 ```
 templates/    # Scaffolding templates (e.g., web-nextjs, web-tanstackstart, skills-registry)
 packages/
-  cli/        # @cogito.ai/cli — the `agentdock` CLI (init, auth, skill, mcp)
+  cli/        # @cogito.ai/cli — the `agentdock` CLI (init, create-domain-package, auth, skill, mcp)
 openspec/     # Planning SSOT — proposals, specs, design, tasks
 apps/
   docs/       # This platform's documentation site (Fumadocs / Next.js)
@@ -37,7 +37,7 @@ apps/
 
 ### Prerequisites
 
-- Node.js ≥ 18
+- Node.js 24 for repository development and tests
 - pnpm 9 (`npm install -g pnpm@9`)
 
 ### Install & Build
@@ -73,37 +73,50 @@ pnpm --filter docs dev
 
 ## CLI: `@cogito.ai/cli`
 
-The CLI is published to npm as `@cogito.ai/cli`. Current version: **0.15.0**. Run it without installing via `npx`:
+Run a command with `npx @cogito.ai/cli@latest`, or install `@cogito.ai/cli` globally and use `agentdock`. Use `<command> --help` for the flags supported by that command.
 
-```bash
-npx @cogito.ai/cli@latest <command>
+| Command                                     | When to use it                                                                                                                      |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `init`                                      | Scaffold an application or workspace. Run interactively, or supply `--name`, `--template` and `--json` in CI.                       |
+| `create-domain-package`                     | Create and verify a standalone `dp-<id>` product from one local or HTTPS JSON spec. Optionally deliver its initial commit to Gitee. |
+| `auth login`, `auth status`, `auth logout`  | Manage local sign-in for hosted skill indexing. `--provider` selects a configured provider.                                         |
+| `skill validate <dir>`                      | Check a directory containing `SKILL.md`.                                                                                            |
+| `skill publish <dir> --registry <checkout>` | Write a local registry manifest entry. In `--json` output, `indexed` reports whether hosted indexing succeeded.                     |
+| `mcp`                                       | Start the stdio server for an MCP client. It exposes `list_templates`, `get_template_schema` and `scaffold_project`.                |
+
+### Choose a template
+
+The template IDs are `web-nextjs`, `web-tanstackstart`, `web-tanstackstart-kids`, `expo-app`, `game-web-phaser`, `skills-registry` and `domain-packages`.
+
+```sh
+npx @cogito.ai/cli@latest init --name studio --display-name 'Design Studio' --template web-tanstackstart --mode standalone --json
 ```
 
-### Command overview
+`--mode auto` detects pnpm workspace membership. Use `--dir apps/studio --mode workspace` for a member. `--pm`, `--data-layer`, `--schema` and `--integrations` depend on the template. To create the first package as part of `init --template domain-packages`, pass `--domain-package-spec` or use `--domain-package-id` and `--domain-package-intent` with optional `--domain-package-display-name` and `--domain-package-owner`.
 
-Output of `npx @cogito.ai/cli@latest --help` (v0.15.0):
+### Create and verify a domain package
 
-```
-AgentDock CLI – scaffold projects for humans and AI agents (agentdock v0.15.0)
+Save this as `package-spec.json`. Web is enabled by default. For an intentionally headless package, set `hasWeb` to `false` and supply `noWebException.reason` and `noWebException.approvedBy`. The [spec schema](./templates/domain-packages/schemas/package-spec.schema.json) also covers bilingual names, descriptions and versions.
 
-USAGE agentdock auth|init|mcp|skill
-
-COMMANDS
-
-   auth    Manage authentication
-   init    Scaffold a new AgentDock project
-    mcp    Start an MCP (Model Context Protocol) Stdio server exposing AgentDock tools
-  skill    Validate and publish Agent Skills
-
-Use agentdock <command> --help for more information about a command.
+```json
+{
+  "id": "design-studio",
+  "displayName": "Design Studio",
+  "intent": "Create and export a design from a workspace conversation.",
+  "owner": "@design",
+  "lifecycle": "active",
+  "repositoryClass": "product"
+}
 ```
 
-- **`auth login|logout|status`** — manage the credentials used by `skill publish` to index into the hosted registry.
-- **`init`** — scaffold a new project from a template (`--name`, `--template`, `--pm`, `--dir`, `--data-layer`, `--schema`, plus `--silent`/`--json` for agent mode).
-- **`mcp`** — starts an MCP Stdio server exposing AgentDock's tools. It is meant to be launched by an MCP-compatible client (it speaks JSON-RPC over stdio and produces no output when run standalone) — not something you run interactively yourself.
-- **`skill validate|publish`** — validate an Agent Skill directory against the Agent Skills spec, and publish it into a registry checkout.
+```sh
+npx @cogito.ai/cli@latest create-domain-package --spec package-spec.json --dry-run --json
+npx @cogito.ai/cli@latest create-domain-package --spec package-spec.json --json
+```
 
-Every command and subcommand supports `--help` for its exact, current usage.
+Use Node and pnpm compatible with the generated template, a Git identity for the initial commit, and an unused target directory (`--dir` overrides `dp-<id>`). The dry run returns the plan. Creation runs the generated workspace checks and tests. For Web packages, it builds the package and starts the packaged runtime to check its health. App installation and editor interaction need separate acceptance.
+
+For Gitee delivery, add `--provider gitee --namespace enterprise:<namespace>` and optionally `--visibility internal` (default `private`). Configure `GITEE_TOKEN` and SSH access. Retrying with the same spec bytes and directory resumes a recorded creation. In `--json` mode, inspect `ok`, the failed `phase`, or the successful `initialCommitSha` and `checks`.
 
 ### Authentication
 
@@ -114,7 +127,14 @@ npx @cogito.ai/cli@latest auth status
 `auth login` opens a browser-based device-authorization flow and stores credentials locally; `auth status` reports the signed-in identity from those stored credentials; `auth logout` removes them. Example `auth status` output when signed in (from a real run):
 
 ```json
-{"event":"status","signedIn":true,"provider":"thefoolai","userId":"<uuid>","displayName":"<name>","savedAt":"<ISO timestamp>"}
+{
+  "event": "status",
+  "signedIn": true,
+  "provider": "thefoolai",
+  "userId": "<uuid>",
+  "displayName": "<name>",
+  "savedAt": "<ISO timestamp>"
+}
 ```
 
 **Known limitation — do not skip:** credentials are valid for **24 hours**. After they expire, `auth status` **still reports `signedIn: true`** — it only reads the local credential file and does not verify the token against the server. The failure only surfaces later: `skill publish`'s registry-indexing step silently degrades to a warning instead of erroring. If publish stops indexing your skill, re-run `auth login` first, even if `auth status` looks fine. This is tracked as debt `cli-auth-token-expires-silently`.
@@ -130,15 +150,15 @@ Everything below was confirmed by actually running `skill publish` against dispo
 **Both arguments are required** — omit either one and `publish` exits immediately, before touching anything:
 
 - **`<skill-dir>`** (positional) — path to the directory containing the skill's `SKILL.md`. Relative or absolute both work. Omitted → `Error: <dir> is required` (`--json`: `{"ok":false,"error":"MISSING_ARG","field":"dir"}`).
-- **`--registry <registry-checkout>`** — the **root directory of a local git checkout of a skills registry**: the directory that contains (or will contain) a `skills.json` manifest. It is **not** a place your skill's files get copied into (see "What publish does" below), and it does **not** have to be a checkout of *this* repo — any local clone of a registry-shaped repo works. Omitted → `Error: --registry is required` (`--json`: `{"ok":false,"error":"MISSING_ARG","field":"registry"}`). Points at a path that doesn't exist → `✗ Registry checkout not found: "<path>"` (`--json`: `{"ok":false,"error":"REGISTRY_NOT_FOUND","message":"..."}`).
+- **`--registry <registry-checkout>`** — the **root directory of a local git checkout of a skills registry**: the directory that contains (or will contain) a `skills.json` manifest. It is **not** a place your skill's files get copied into (see "What publish does" below), and it does **not** have to be a checkout of _this_ repo — any local clone of a registry-shaped repo works. Omitted → `Error: --registry is required` (`--json`: `{"ok":false,"error":"MISSING_ARG","field":"registry"}`). Points at a path that doesn't exist → `✗ Registry checkout not found: "<path>"` (`--json`: `{"ok":false,"error":"REGISTRY_NOT_FOUND","message":"..."}`).
 
 **Prerequisites** — each one maps to a real, confirmed error if unmet:
 
-| Requirement | Error if unmet |
-| --- | --- |
-| `<skill-dir>` is inside a git repository | `"<dir>" is not inside a git repository` (`SKILL_SOURCE_UNRESOLVED`) |
-| that repository has an `origin` remote | `no git remote "origin" configured for the repository containing "<dir>"` (`SKILL_SOURCE_UNRESOLVED`) |
-| `SKILL.md` passes Agent Skills spec validation | `"<dir>" failed skill validation` + an `errors` list, e.g. `Missing required field in frontmatter: description` (`SKILL_INVALID`) |
+| Requirement                                     | Error if unmet                                                                                                                                                                           |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<skill-dir>` is inside a git repository        | `"<dir>" is not inside a git repository` (`SKILL_SOURCE_UNRESOLVED`)                                                                                                                     |
+| that repository has an `origin` remote          | `no git remote "origin" configured for the repository containing "<dir>"` (`SKILL_SOURCE_UNRESOLVED`)                                                                                    |
+| `SKILL.md` passes Agent Skills spec validation  | `"<dir>" failed skill validation` + an `errors` list, e.g. `Missing required field in frontmatter: description` (`SKILL_INVALID`)                                                        |
 | `metadata.version`, if present, is valid semver | `Invalid version "<v>" in "<dir>": expected semver (major.minor.patch, e.g. "1.2.3", optionally with a "-prerelease" and/or "+build" suffix, ...) — got "<v>"` (`SKILL_VERSION_INVALID`) |
 
 A **missing** version is allowed (see `versionMissing` below) — only a **malformed** one is rejected outright.
@@ -164,6 +184,7 @@ The `source:` line is **always** printed, whether or not it matches the registry
 **Why this exists:** a real `skill publish <dir-inside-a-private-repo> --registry <checkout-of-a-public-content-repo>` run wrote a manifest entry whose `source` pointed at the private repo, with zero indication anywhere — output or docs — that `source`/`path` come from the skill's own repo rather than `--registry`. Anyone who tried to install that entry would fail at the `git clone` step, and the private repo's address was now sitting in a public file.
 
 **Side effects, in full — this is the complete list, nothing else is touched:**
+
 - `<registry-checkout>/skills.json` is created (if absent) or updated: a new entry is appended, or — if an entry with the same `id` (the skill's `name`) already exists — that entire entry is replaced (fields are never merged across publishes).
 - The written/replaced entry's fields: `id`/`name` (from `SKILL.md`'s `name`), `description`, `source`, `path` (omitted if the skill sits at its repo's root), `license` (if present in frontmatter), `version` (if resolvable), `nonSpecFields` (if `skills-ref` downgraded any non-spec top-level frontmatter keys), `author` (if signed in), and `publishedAt` — always refreshed to the current timestamp, even on a re-publish where nothing else changed.
 - Nothing is committed or pushed (see the ❌ items above).
@@ -198,17 +219,17 @@ The reliable way to check whether indexing actually happened is to read the JSON
 
 **Common `--json` failure shapes**, each confirmed by running the corresponding failure live:
 
-| Situation | `--json` output |
-| --- | --- |
-| `<dir>` omitted | `{"ok":false,"error":"MISSING_ARG","field":"dir"}` |
-| `--registry` omitted | `{"ok":false,"error":"MISSING_ARG","field":"registry"}` |
-| `--registry` path doesn't exist | `{"ok":false,"error":"REGISTRY_NOT_FOUND","message":"Registry checkout not found: \"<path>\""}` |
-| `<dir>` not in a git repo | `{"ok":false,"error":"SKILL_SOURCE_UNRESOLVED","message":"\"<dir>\" is not inside a git repository"}` |
-| that repo has no `origin` remote | `{"ok":false,"error":"SKILL_SOURCE_UNRESOLVED","message":"no git remote \"origin\" configured for the repository containing \"<dir>\""}` |
-| `SKILL.md` fails spec validation | `{"ok":false,"error":"SKILL_INVALID","message":"\"<dir>\" failed skill validation","errors":["..."]}` |
-| `metadata.version` is not valid semver | `{"ok":false,"error":"SKILL_VERSION_INVALID","message":"Invalid version \"<v>\" in \"<dir>\": ..."}` |
-| published ok, but indexing failed (signed in, request failed) | `{"ok":true, ..., "indexed":false,"indexError":"<reason>"}` |
-| published ok, not signed in (indexing never attempted) | `{"ok":true, ..., "indexed":false,"anonymous":true}` (no `indexError` — nothing was attempted) |
+| Situation                                                     | `--json` output                                                                                                                          |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `<dir>` omitted                                               | `{"ok":false,"error":"MISSING_ARG","field":"dir"}`                                                                                       |
+| `--registry` omitted                                          | `{"ok":false,"error":"MISSING_ARG","field":"registry"}`                                                                                  |
+| `--registry` path doesn't exist                               | `{"ok":false,"error":"REGISTRY_NOT_FOUND","message":"Registry checkout not found: \"<path>\""}`                                          |
+| `<dir>` not in a git repo                                     | `{"ok":false,"error":"SKILL_SOURCE_UNRESOLVED","message":"\"<dir>\" is not inside a git repository"}`                                    |
+| that repo has no `origin` remote                              | `{"ok":false,"error":"SKILL_SOURCE_UNRESOLVED","message":"no git remote \"origin\" configured for the repository containing \"<dir>\""}` |
+| `SKILL.md` fails spec validation                              | `{"ok":false,"error":"SKILL_INVALID","message":"\"<dir>\" failed skill validation","errors":["..."]}`                                    |
+| `metadata.version` is not valid semver                        | `{"ok":false,"error":"SKILL_VERSION_INVALID","message":"Invalid version \"<v>\" in \"<dir>\": ..."}`                                     |
+| published ok, but indexing failed (signed in, request failed) | `{"ok":true, ..., "indexed":false,"indexError":"<reason>"}`                                                                              |
+| published ok, not signed in (indexing never attempted)        | `{"ok":true, ..., "indexed":false,"anonymous":true}` (no `indexError` — nothing was attempted)                                           |
 
 If you also want to eyeball the hosted registry's web page for the skill — `https://www.fujia.site/skills/<skill-id>`, where `<skill-id>` is the same `id` as in the manifest entry — open it in a browser and confirm the skill's content is genuinely rendered there. **Don't treat an HTTP 200 on that page as proof of anything** — it's a client-rendered route, and it returns 200 for a nonexistent id too. `indexed: true` from the CLI is the actual signal.
 
@@ -233,5 +254,3 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for commit conventions and workflow.
 ## License
 
 [MIT](./LICENSE) — see file for details.
-
-<!-- TODO: confirm license choice before first public release -->

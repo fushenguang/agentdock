@@ -220,7 +220,7 @@ function integrationResolutionFailure(
   }
 }
 
-function getTemplateSourceDir(templateSource: string): string {
+export function getTemplateSourceDir(templateSource: string): string {
   const runtimeDir = dirname(fileURLToPath(import.meta.url))
   const candidates = [
     // Built package layout: dist/templates/<id>
